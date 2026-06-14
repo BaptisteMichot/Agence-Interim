@@ -51,7 +51,7 @@ public class User {
     private String password;
 
     @Column(nullable = true)
-    private boolean hasVehicle;
+    private Boolean hasVehicle;
 
     @Column(nullable = true)
     private LocalDate birthdate;

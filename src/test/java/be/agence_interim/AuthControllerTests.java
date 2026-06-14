@@ -4,11 +4,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+
+import be.agence_interim.repository.UserRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,6 +20,9 @@ class AuthControllerTests {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Test
     void registerAndLoginThroughWebEndpoints() throws Exception {
@@ -96,6 +102,27 @@ class AuthControllerTests {
 
         assertThat(response.statusCode()).isEqualTo(401);
         assertThat(response.body()).isEqualTo("Identifiants incorrects, veuillez réessayer.");
+    }
+
+    @Test
+    void registrationKeepsHasVehicleNullWhenMissing() throws Exception {
+        HttpResponse<String> response = HttpClient.newHttpClient().send(
+                post("/api/auth/register", """
+                        {
+                          "lastName": "Dupont",
+                          "firstName": "Jean",
+                          "email": "minimal@example.be",
+                          "password": "Password123456!"
+                        }
+                        """),
+                HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(201);
+        assertThat(response.body()).contains("\"role\":\"JOBSEEKER\"");
+        assertThat(userRepository.findByEmail("minimal@example.be"))
+                .get()
+                .extracting(user -> user.getHasVehicle())
+                .isNull();
     }
 
     private HttpRequest post(String path, String body) {
