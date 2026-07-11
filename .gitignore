@@ -1,6 +1,6 @@
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+**/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -37,5 +37,5 @@ build/
 .env.*
 !.env.example
 
-config/application-local.properties
-src/main/resources/application-local.properties
+**/config/application-local.properties
+**/src/main/resources/application-local.properties
