@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut } from './http';
+import { apiDelete, apiDownload, apiGet, apiPost, apiPut, apiUpload } from './http';
 import type {
   DegreeOption,
   DegreePayload,
@@ -120,4 +120,20 @@ export function updateLanguageLevel(languageId: number, level: LanguageLevel): P
 
 export function deleteLanguage(languageId: number): Promise<void> {
   return apiDelete(`/profile/languages/${languageId}`);
+}
+
+// --- CV (PDF) ---
+
+export function uploadCv(file: File): Promise<{ fileName: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiUpload<{ fileName: string }>('/profile/cv', formData);
+}
+
+export function downloadCv(): Promise<Blob> {
+  return apiDownload('/profile/cv');
+}
+
+export function deleteCv(): Promise<void> {
+  return apiDelete('/profile/cv');
 }

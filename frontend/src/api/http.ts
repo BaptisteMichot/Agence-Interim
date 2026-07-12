@@ -63,3 +63,25 @@ export function apiPut<T>(path: string, body: unknown): Promise<T> {
 export function apiDelete(path: string): Promise<void> {
   return request<void>('DELETE', path);
 }
+
+/** Envoi d'un fichier (multipart). Ne fixe pas Content-Type : le navigateur gère la frontière. */
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return response.json() as Promise<T>;
+}
+
+/** Téléchargement d'un binaire authentifié (retourne un Blob). */
+export async function apiDownload(path: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  return response.blob();
+}

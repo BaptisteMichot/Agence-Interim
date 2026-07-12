@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getProfile } from '../../api/profile';
 import type { Profile } from '../../profile/types';
 import PersonalInfoForm from './PersonalInfoForm';
+import CvSection from './CvSection';
 import ExperienceSection from './ExperienceSection';
 import FormationSection from './FormationSection';
 import SkillSection from './SkillSection';
@@ -53,6 +54,7 @@ export default function ProfilePage() {
       </div>
 
       <PersonalInfoForm profile={profile} onSaved={setProfile} />
+      <CvSection cvFilePath={profile.cvFilePath} onChanged={reload} />
       <ExperienceSection experiences={profile.experiences} onChanged={reload} />
       <FormationSection formations={profile.formations} onChanged={reload} />
       <SkillSection />
