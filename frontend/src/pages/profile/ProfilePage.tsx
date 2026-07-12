@@ -5,6 +5,9 @@ import type { Profile } from '../../profile/types';
 import PersonalInfoForm from './PersonalInfoForm';
 import ExperienceSection from './ExperienceSection';
 import FormationSection from './FormationSection';
+import SkillSection from './SkillSection';
+import DegreeSection from './DegreeSection';
+import LanguageSection from './LanguageSection';
 
 /** Page « Mon profil » de l'espace intérimaire (incrément 3a). */
 export default function ProfilePage() {
@@ -52,6 +55,9 @@ export default function ProfilePage() {
       <PersonalInfoForm profile={profile} onSaved={setProfile} />
       <ExperienceSection experiences={profile.experiences} onChanged={reload} />
       <FormationSection formations={profile.formations} onChanged={reload} />
+      <SkillSection />
+      <DegreeSection />
+      <LanguageSection />
     </div>
   );
 }
