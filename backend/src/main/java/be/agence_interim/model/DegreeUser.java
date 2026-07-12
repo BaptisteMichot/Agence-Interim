@@ -27,7 +27,7 @@ public class DegreeUser {
     public static final int INSTITUTION_MAX_LENGTH = 50;
 
     @EmbeddedId
-    private DegreeUserId id;
+    private DegreeUserId id = new DegreeUserId();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("idDegree")

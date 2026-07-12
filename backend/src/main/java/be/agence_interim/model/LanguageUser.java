@@ -29,7 +29,7 @@ public class LanguageUser {
     public static final int LEVEL_MAX_LENGTH = 2;
 
     @EmbeddedId
-    private LanguageUserId id;
+    private LanguageUserId id = new LanguageUserId();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("idLanguage")
