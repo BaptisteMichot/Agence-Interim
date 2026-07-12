@@ -9,6 +9,7 @@ import AdminDashboard from './pages/dashboards/AdminDashboard';
 import EmployerDashboard from './pages/dashboards/EmployerDashboard';
 import JobSeekerDashboard from './pages/dashboards/JobSeekerDashboard';
 import RecruiterDashboard from './pages/dashboards/RecruiterDashboard';
+import ProfilePage from './pages/profile/ProfilePage';
 
 /** Redirige la racine vers le tableau de bord du rôle, ou vers la connexion. */
 function HomeRedirect() {
@@ -30,6 +31,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route element={<ProtectedRoute allowedRoles={['JOBSEEKER']} />}>
             <Route path="/interimaire" element={<JobSeekerDashboard />} />
+            <Route path="/interimaire/profil" element={<ProfilePage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
             <Route path="/employeur" element={<EmployerDashboard />} />
