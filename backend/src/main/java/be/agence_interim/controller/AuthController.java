@@ -1,10 +1,13 @@
 package be.agence_interim.controller;
 
 import be.agence_interim.dto.AuthResponse;
+import be.agence_interim.dto.EmployerRegisterRequest;
 import be.agence_interim.dto.LoginRequest;
+import be.agence_interim.dto.MessageResponse;
 import be.agence_interim.dto.RegisterRequest;
 import be.agence_interim.model.User;
 import be.agence_interim.service.AuthService;
+import be.agence_interim.service.EmployerAccessService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -24,9 +27,11 @@ public class AuthController {
     private static final String INVALID_CREDENTIALS = "Identifiants incorrects, veuillez réessayer.";
 
     private final AuthService authService;
+    private final EmployerAccessService employerAccessService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, EmployerAccessService employerAccessService) {
         this.authService = authService;
+        this.employerAccessService = employerAccessService;
     }
 
     @PostMapping("/register")
@@ -34,16 +39,37 @@ public class AuthController {
         User savedUser = authService.register(toUser(request));
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(AuthResponse.fromUser(
+                .body(AuthResponse.of(
                         savedUser,
+                        null,
                         authService.createToken(savedUser),
                         "Inscription reussie."));
+    }
+
+    /** Inscription employeur : crée le compte + une demande d'accès en attente (pas de connexion). */
+    @PostMapping("/register-employer")
+    public ResponseEntity<MessageResponse> registerEmployer(
+            @Valid @RequestBody EmployerRegisterRequest request) {
+        employerAccessService.registerEmployer(
+                request.lastName(),
+                request.firstName(),
+                request.email(),
+                request.password(),
+                request.companyName());
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new MessageResponse(
+                        "Votre demande d'acces employeur a ete envoyee. Elle sera validee par l'agence."));
     }
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         User user = authService.login(request.email(), request.password());
-        return AuthResponse.fromUser(user, authService.createToken(user), "Connexion reussie.");
+        return AuthResponse.of(
+                user,
+                employerAccessService.latestStatus(user.getId()),
+                authService.createToken(user),
+                "Connexion reussie.");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

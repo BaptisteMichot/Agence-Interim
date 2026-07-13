@@ -3,16 +3,21 @@ package be.agence_interim.config;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import be.agence_interim.model.Degree;
 import be.agence_interim.model.DegreeType;
 import be.agence_interim.model.Language;
+import be.agence_interim.model.Role;
 import be.agence_interim.model.Skill;
+import be.agence_interim.model.User;
 import be.agence_interim.repository.DegreeRepository;
 import be.agence_interim.repository.LanguageRepository;
 import be.agence_interim.repository.SkillRepository;
+import be.agence_interim.repository.UserRepository;
 
 /**
  * Insère au démarrage les listes de base (référentiels globaux) si elles sont absentes.
@@ -45,14 +50,26 @@ public class DataSeeder implements CommandLineRunner {
     private final LanguageRepository languageRepository;
     private final SkillRepository skillRepository;
     private final DegreeRepository degreeRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final String adminEmail;
+    private final String adminPassword;
 
     public DataSeeder(
             LanguageRepository languageRepository,
             SkillRepository skillRepository,
-            DegreeRepository degreeRepository) {
+            DegreeRepository degreeRepository,
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            @Value("${app.admin.email:}") String adminEmail,
+            @Value("${app.admin.password:}") String adminPassword) {
         this.languageRepository = languageRepository;
         this.skillRepository = skillRepository;
         this.degreeRepository = degreeRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.adminEmail = adminEmail;
+        this.adminPassword = adminPassword;
     }
 
     @Override
@@ -60,6 +77,25 @@ public class DataSeeder implements CommandLineRunner {
         seedLanguages();
         seedSkills();
         seedDegrees();
+        seedAdmin();
+    }
+
+    /** Crée le compte administrateur d'amorçage si configuré et absent. */
+    private void seedAdmin() {
+        if (adminEmail.isBlank() || adminPassword.isBlank()) {
+            return;
+        }
+        String email = adminEmail.trim().toLowerCase();
+        if (userRepository.existsByEmail(email)) {
+            return;
+        }
+        User admin = new User();
+        admin.setRole(Role.ADMIN);
+        admin.setFirstName("Admin");
+        admin.setLastName("Agence");
+        admin.setEmail(email);
+        admin.setPassword(passwordEncoder.encode(adminPassword));
+        userRepository.save(admin);
     }
 
     private void seedLanguages() {

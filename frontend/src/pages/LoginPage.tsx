@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { homePathForRole } from '../auth/roleRoutes';
+import { homePathForUser } from '../auth/roleRoutes';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -18,7 +18,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const user = await login(email, password);
-      navigate(homePathForRole(user.role), { replace: true });
+      navigate(homePathForUser(user), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
     } finally {
@@ -76,6 +76,12 @@ export default function LoginPage() {
           Pas encore de compte ?{' '}
           <Link to="/register" className="font-medium text-indigo-600 hover:underline">
             Créer un compte
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm text-slate-600">
+          Vous êtes un employeur ?{' '}
+          <Link to="/inscription-employeur" className="font-medium text-indigo-600 hover:underline">
+            Demander un accès
           </Link>
         </p>
       </form>

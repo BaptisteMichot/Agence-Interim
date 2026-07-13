@@ -42,6 +42,7 @@ function toUser(response: AuthResponse): AuthUser {
     firstName: response.firstName,
     email: response.email,
     role: response.role,
+    employerRequestStatus: response.employerRequestStatus,
   };
 }
 

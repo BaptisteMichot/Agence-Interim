@@ -4,6 +4,8 @@ import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -29,6 +31,7 @@ import lombok.Setter;
 public class EmployerAccessRequest {
 
     public static final int STATUS_MAX_LENGTH = 8;
+    public static final int MESSAGE_MAX_LENGTH = 150;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,6 +44,11 @@ public class EmployerAccessRequest {
     @Column(nullable = false)
     private LocalDate requestDate;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = STATUS_MAX_LENGTH)
-    private String status;
+    private EmployerAccessStatus status;
+
+    /** Message justificatif facultatif, saisi lors d'une nouvelle demande après refus. */
+    @Column(nullable = true, length = MESSAGE_MAX_LENGTH)
+    private String message;
 }
