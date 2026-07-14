@@ -31,7 +31,7 @@ public class DegreeJobOffer {
     public static final int REQUIRED_SECTION_MAX_LENGTH = 30;
 
     @EmbeddedId
-    private DegreeJobOfferId id;
+    private DegreeJobOfferId id = new DegreeJobOfferId();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("idDegree")

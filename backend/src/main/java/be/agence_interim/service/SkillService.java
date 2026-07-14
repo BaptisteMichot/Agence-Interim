@@ -42,7 +42,7 @@ public class SkillService {
 
     @Transactional
     public SkillUser add(int userId, Integer skillId, String name, SkillLevel level) {
-        Skill skill = resolve(userId, skillId, name);
+        Skill skill = resolveSkill(userId, skillId, name);
         if (skillUserRepository.existsByUserIdAndSkillId(userId, skill.getId())) {
             throw new IllegalArgumentException("Cette compétence est déjà dans votre profil.");
         }
@@ -69,7 +69,8 @@ public class SkillService {
     }
 
     /** Trouve la compétence à rattacher : par id (globale/perso), sinon par nom (réutilise ou crée une perso). */
-    private Skill resolve(int userId, Integer skillId, String name) {
+    @Transactional
+    public Skill resolveSkill(int userId, Integer skillId, String name) {
         if (skillId != null) {
             Skill skill = skillRepository.findById(skillId)
                     .orElseThrow(() -> new NoSuchElementException("Compétence introuvable."));

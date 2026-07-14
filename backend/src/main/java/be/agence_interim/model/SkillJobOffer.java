@@ -28,7 +28,7 @@ import lombok.Setter;
 public class SkillJobOffer {
 
     @EmbeddedId
-    private SkillJobOfferId id;
+    private SkillJobOfferId id = new SkillJobOfferId();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("idSkill")

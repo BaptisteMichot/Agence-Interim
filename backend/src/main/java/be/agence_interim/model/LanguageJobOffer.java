@@ -30,7 +30,7 @@ public class LanguageJobOffer {
     public static final int REQUIRED_LEVEL_MAX_LENGTH = 2;
 
     @EmbeddedId
-    private LanguageJobOfferId id;
+    private LanguageJobOfferId id = new LanguageJobOfferId();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("idLanguage")

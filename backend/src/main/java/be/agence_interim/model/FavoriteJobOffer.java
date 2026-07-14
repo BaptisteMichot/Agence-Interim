@@ -24,7 +24,7 @@ import lombok.Setter;
 public class FavoriteJobOffer {
 
     @EmbeddedId
-    private FavoriteJobOfferId id;
+    private FavoriteJobOfferId id = new FavoriteJobOfferId();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @MapsId("idJobSeeker")

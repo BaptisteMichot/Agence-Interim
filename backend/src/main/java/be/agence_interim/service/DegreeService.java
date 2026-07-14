@@ -43,7 +43,7 @@ public class DegreeService {
     public DegreeUser add(
             int userId, Integer degreeId, DegreeType type, String section,
             String institution, Integer graduationYear) {
-        Degree degree = resolve(userId, degreeId, type, section);
+        Degree degree = resolveDegree(userId, degreeId, type, section);
         if (degreeUserRepository.existsByUserIdAndDegreeId(userId, degree.getId())) {
             throw new IllegalArgumentException("Ce diplôme est déjà dans votre profil.");
         }
@@ -71,7 +71,9 @@ public class DegreeService {
         degreeUserRepository.delete(degreeUser);
     }
 
-    private Degree resolve(int userId, Integer degreeId, DegreeType type, String section) {
+    /** Trouve le diplôme à rattacher : par id (global/perso), sinon par type+section (réutilise ou crée un perso). */
+    @Transactional
+    public Degree resolveDegree(int userId, Integer degreeId, DegreeType type, String section) {
         if (degreeId != null) {
             Degree degree = degreeRepository.findById(degreeId)
                     .orElseThrow(() -> new NoSuchElementException("Diplôme introuvable."));

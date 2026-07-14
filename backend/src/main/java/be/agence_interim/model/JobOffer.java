@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,6 +34,7 @@ public class JobOffer {
     public static final int SECTOR_MAX_LENGTH = 20;
     public static final int CITY_MAX_LENGTH = 20;
     public static final int EXPERIENCE_TIME_MAX_LENGTH = 5;
+    public static final int STATUS_MAX_LENGTH = 8;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -67,4 +70,8 @@ public class JobOffer {
 
     @Column(nullable = true)
     private Boolean vehicleMandatory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = STATUS_MAX_LENGTH)
+    private JobOfferStatus status = JobOfferStatus.OPEN;
 }
