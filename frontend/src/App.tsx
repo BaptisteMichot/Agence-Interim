@@ -12,6 +12,7 @@ import EmployerDashboard from './pages/dashboards/EmployerDashboard';
 import JobSeekerDashboard from './pages/dashboards/JobSeekerDashboard';
 import RecruiterDashboard from './pages/dashboards/RecruiterDashboard';
 import ProfilePage from './pages/profile/ProfilePage';
+import OfferFormPage from './pages/employer/OfferFormPage';
 
 /** Redirige la racine vers la bonne destination selon l'utilisateur, ou vers la connexion. */
 function HomeRedirect() {
@@ -43,6 +44,8 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
             <Route path="/employeur" element={<EmployerDashboard />} />
+            <Route path="/employeur/offres/nouvelle" element={<OfferFormPage />} />
+            <Route path="/employeur/offres/:id" element={<OfferFormPage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminDashboard />} />
