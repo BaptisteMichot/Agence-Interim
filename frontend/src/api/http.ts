@@ -41,11 +41,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new Error(await readError(response));
   }
 
-  // 204 No Content (ex. suppression) : rien à parser.
-  if (response.status === 204) {
-    return undefined as T;
-  }
-  return response.json() as Promise<T>;
+  // Corps vide (204 No Content, 201 sans corps…) : rien à parser.
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export function apiGet<T>(path: string): Promise<T> {

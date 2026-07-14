@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from './http';
+import { apiDelete, apiGet, apiPost, apiPut } from './http';
 import type { JobOfferDetail, JobOfferPayload, JobOfferSummary } from '../offers/types';
 
 // --- Offres de l'employeur courant ---
@@ -21,4 +21,30 @@ export function updateOffer(id: number, payload: JobOfferPayload): Promise<JobOf
 
 export function closeOffer(id: number): Promise<JobOfferDetail> {
   return apiPost<JobOfferDetail>(`/employer/offers/${id}/close`, {});
+}
+
+// --- Consultation par l'intérimaire + favoris ---
+
+export function browseOffers(): Promise<JobOfferSummary[]> {
+  return apiGet<JobOfferSummary[]>('/offers');
+}
+
+export function getOfferDetail(id: number): Promise<JobOfferDetail> {
+  return apiGet<JobOfferDetail>(`/offers/${id}`);
+}
+
+export function getFavoriteOffers(): Promise<JobOfferSummary[]> {
+  return apiGet<JobOfferSummary[]>('/offers/favorites');
+}
+
+export function getFavoriteOfferIds(): Promise<number[]> {
+  return apiGet<number[]>('/offers/favorites/ids');
+}
+
+export function addFavoriteOffer(id: number): Promise<void> {
+  return apiPost<void>(`/offers/${id}/favorite`, {});
+}
+
+export function removeFavoriteOffer(id: number): Promise<void> {
+  return apiDelete(`/offers/${id}/favorite`);
 }
