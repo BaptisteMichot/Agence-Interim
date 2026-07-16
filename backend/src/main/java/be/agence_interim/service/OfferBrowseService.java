@@ -1,5 +1,6 @@
 package be.agence_interim.service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -8,12 +9,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import be.agence_interim.dto.JobOfferResponse;
 import be.agence_interim.dto.JobOfferSummaryResponse;
+import be.agence_interim.dto.MatchingOfferResponse;
 import be.agence_interim.model.FavoriteJobOffer;
 import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.JobOfferStatus;
+import be.agence_interim.model.User;
 import be.agence_interim.repository.FavoriteJobOfferRepository;
 import be.agence_interim.repository.JobOfferRepository;
 import be.agence_interim.repository.UserRepository;
+import be.agence_interim.service.MatchingService.MatchScore;
 
 /** Consultation des offres par l'intérimaire et gestion de ses favoris. */
 @Service
@@ -23,16 +27,19 @@ public class OfferBrowseService {
     private final FavoriteJobOfferRepository favoriteRepository;
     private final UserRepository userRepository;
     private final JobOfferService jobOfferService;
+    private final MatchingService matchingService;
 
     public OfferBrowseService(
             JobOfferRepository jobOfferRepository,
             FavoriteJobOfferRepository favoriteRepository,
             UserRepository userRepository,
-            JobOfferService jobOfferService) {
+            JobOfferService jobOfferService,
+            MatchingService matchingService) {
         this.jobOfferRepository = jobOfferRepository;
         this.favoriteRepository = favoriteRepository;
         this.userRepository = userRepository;
         this.jobOfferService = jobOfferService;
+        this.matchingService = matchingService;
     }
 
     /** Toutes les offres ouvertes, les plus récentes d'abord. */
@@ -48,6 +55,27 @@ public class OfferBrowseService {
         JobOffer offer = jobOfferRepository.findById(offerId)
                 .orElseThrow(() -> new NoSuchElementException("Offre introuvable."));
         return jobOfferService.toResponse(offer);
+    }
+
+    /**
+     * Offres ouvertes correspondant au profil de l'intérimaire (exigences obligatoires
+     * satisfaites), triées par score de correspondance décroissant.
+     */
+    @Transactional(readOnly = true)
+    public List<MatchingOfferResponse> matching(int jobSeekerId) {
+        User jobSeeker = userRepository.findById(jobSeekerId)
+                .orElseThrow(() -> new NoSuchElementException("Utilisateur introuvable."));
+        return jobOfferRepository.findByStatusOrderByPublishedAtDesc(JobOfferStatus.OPEN)
+                .stream()
+                .map(offer -> {
+                    MatchScore match = matchingService.score(jobSeeker, matchingService.loadRequirements(offer));
+                    return match.mandatoryOk()
+                            ? new MatchingOfferResponse(JobOfferSummaryResponse.fromEntity(offer), match.score())
+                            : null;
+                })
+                .filter(response -> response != null)
+                .sorted(Comparator.comparingInt((MatchingOfferResponse response) -> response.score()).reversed())
+                .toList();
     }
 
     /** Identifiants des offres en favori (pour marquer les étoiles côté frontend). */

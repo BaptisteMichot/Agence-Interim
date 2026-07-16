@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import be.agence_interim.dto.JobOfferResponse;
 import be.agence_interim.dto.JobOfferSummaryResponse;
+import be.agence_interim.dto.MatchingOfferResponse;
 import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.OfferBrowseService;
 
@@ -32,6 +33,12 @@ public class JobSeekerOfferController {
     @GetMapping
     public List<JobOfferSummaryResponse> browse() {
         return offerBrowseService.browseOpen();
+    }
+
+    /** Offres correspondant au profil (obligatoires satisfaits), triées par score décroissant. */
+    @GetMapping("/matching")
+    public List<MatchingOfferResponse> matching(@AuthenticationPrincipal Jwt jwt) {
+        return offerBrowseService.matching(CurrentUser.id(jwt));
     }
 
     @GetMapping("/favorites")

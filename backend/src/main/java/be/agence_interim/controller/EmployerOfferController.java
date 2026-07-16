@@ -19,6 +19,7 @@ import be.agence_interim.dto.JobOfferResponse;
 import be.agence_interim.dto.JobOfferSummaryResponse;
 import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.JobOfferService;
+import be.agence_interim.service.MatchNotificationService;
 import jakarta.validation.Valid;
 
 /** Offres d'emploi de l'employeur authentifié (routes /api/employer/** = rôle EMPLOYER). */
@@ -27,9 +28,12 @@ import jakarta.validation.Valid;
 public class EmployerOfferController {
 
     private final JobOfferService jobOfferService;
+    private final MatchNotificationService matchNotificationService;
 
-    public EmployerOfferController(JobOfferService jobOfferService) {
+    public EmployerOfferController(
+            JobOfferService jobOfferService, MatchNotificationService matchNotificationService) {
         this.jobOfferService = jobOfferService;
+        this.matchNotificationService = matchNotificationService;
     }
 
     @GetMapping
@@ -46,6 +50,8 @@ public class EmployerOfferController {
     public ResponseEntity<JobOfferResponse> create(
             @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody JobOfferRequest request) {
         JobOfferResponse body = jobOfferService.create(CurrentUser.id(jwt), request);
+        // Après le commit : contact automatique (asynchrone) des candidats correspondants.
+        matchNotificationService.notifyMatchingJobSeekers(body.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 

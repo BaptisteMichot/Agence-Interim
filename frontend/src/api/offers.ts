@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './http';
-import type { JobOfferDetail, JobOfferPayload, JobOfferSummary } from '../offers/types';
+import type { JobOfferDetail, JobOfferPayload, JobOfferSummary, MatchingOffer } from '../offers/types';
 
 // --- Offres de l'employeur courant ---
 
@@ -27,6 +27,11 @@ export function closeOffer(id: number): Promise<JobOfferDetail> {
 
 export function browseOffers(): Promise<JobOfferSummary[]> {
   return apiGet<JobOfferSummary[]>('/offers');
+}
+
+/** Offres correspondant au profil (triées par score décroissant). */
+export function getMatchingOffers(): Promise<MatchingOffer[]> {
+  return apiGet<MatchingOffer[]>('/offers/matching');
 }
 
 export function getOfferDetail(id: number): Promise<JobOfferDetail> {

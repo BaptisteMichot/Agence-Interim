@@ -48,6 +48,12 @@ export interface JobOfferSummary {
   companyName: string;
 }
 
+/** Offre correspondant au profil, avec son score de correspondance (0-100). */
+export interface MatchingOffer {
+  offer: JobOfferSummary;
+  score: number;
+}
+
 /** Offre complète avec exigences. */
 export interface JobOfferDetail extends JobOfferSummary {
   description: string;

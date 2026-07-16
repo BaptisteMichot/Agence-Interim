@@ -5,18 +5,20 @@ import {
   browseOffers,
   getFavoriteOfferIds,
   getFavoriteOffers,
+  getMatchingOffers,
   removeFavoriteOffer,
 } from '../../api/offers';
 import { errorBox } from '../../components/ui';
-import type { JobOfferSummary } from '../../offers/types';
+import type { JobOfferSummary, MatchingOffer } from '../../offers/types';
 import { formatDate } from '../../profile/format';
 
-type Tab = 'all' | 'favorites';
+type Tab = 'match' | 'all' | 'favorites';
 
 /** Consultation des offres ouvertes + favoris (espace intérimaire). */
 export default function OffersBrowsePage() {
-  const [tab, setTab] = useState<Tab>('all');
+  const [tab, setTab] = useState<Tab>('match');
   const [offers, setOffers] = useState<JobOfferSummary[]>([]);
+  const [matching, setMatching] = useState<MatchingOffer[]>([]);
   const [favorites, setFavorites] = useState<JobOfferSummary[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -25,12 +27,14 @@ export default function OffersBrowsePage() {
   const reload = useCallback(async () => {
     setError(null);
     try {
-      const [open, favs, ids] = await Promise.all([
+      const [open, match, favs, ids] = await Promise.all([
         browseOffers(),
+        getMatchingOffers(),
         getFavoriteOffers(),
         getFavoriteOfferIds(),
       ]);
       setOffers(open);
+      setMatching(match);
       setFavorites(favs);
       setFavoriteIds(new Set(ids));
     } catch (err) {
@@ -58,7 +62,16 @@ export default function OffersBrowsePage() {
     }
   };
 
-  const shown = useMemo(() => (tab === 'all' ? offers : favorites), [tab, offers, favorites]);
+  /** Liste affichée, normalisée en { offer, score? } selon l'onglet. */
+  const shown = useMemo<{ offer: JobOfferSummary; score?: number }[]>(() => {
+    if (tab === 'match') {
+      return matching.map((m) => ({ offer: m.offer, score: m.score }));
+    }
+    if (tab === 'favorites') {
+      return favorites.map((offer) => ({ offer }));
+    }
+    return offers.map((offer) => ({ offer }));
+  }, [tab, offers, matching, favorites]);
 
   return (
     <section>
@@ -69,7 +82,16 @@ export default function OffersBrowsePage() {
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Offres d'emploi</h1>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setTab('match')}
+          className={`rounded-full px-4 py-1.5 text-sm font-medium ${
+            tab === 'match' ? 'bg-indigo-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Pour moi ({matching.length})
+        </button>
         <button
           type="button"
           onClick={() => setTab('all')}
@@ -96,12 +118,16 @@ export default function OffersBrowsePage() {
         {loading && <p className="text-sm text-slate-500">Chargement…</p>}
         {!loading && shown.length === 0 && (
           <p className="text-sm text-slate-500">
-            {tab === 'all' ? 'Aucune offre ouverte pour le moment.' : 'Aucune offre en favori.'}
+            {tab === 'match'
+              ? 'Aucune offre ne correspond à votre profil pour le moment. Complétez vos compétences, diplômes et langues pour recevoir des propositions.'
+              : tab === 'all'
+                ? 'Aucune offre ouverte pour le moment.'
+                : 'Aucune offre en favori.'}
           </p>
         )}
 
         <ul className="space-y-3">
-          {shown.map((offer) => (
+          {shown.map(({ offer, score }) => (
             <li
               key={offer.id}
               className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 p-4"
@@ -114,6 +140,19 @@ export default function OffersBrowsePage() {
                   {offer.status === 'CLOSED' && (
                     <span className="ml-2 rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">
                       Clôturée
+                    </span>
+                  )}
+                  {score !== undefined && (
+                    <span
+                      className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        score >= 75
+                          ? 'bg-green-100 text-green-700'
+                          : score >= 50
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {score} % de correspondance
                     </span>
                   )}
                 </p>
