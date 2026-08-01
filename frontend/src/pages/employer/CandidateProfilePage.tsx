@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { downloadCandidateCv, getCandidateProfile } from '../../api/applications';
+import { openConversationForApplication } from '../../api/chat';
 import { btnSecondary, errorBox } from '../../components/ui';
 import type { CandidateProfile } from '../../applications/types';
 import {
@@ -46,6 +47,17 @@ export default function CandidateProfilePage() {
     }
   };
 
+  /** Ouvre (ou retrouve) le fil de discussion avec ce candidat, puis y navigue. */
+  const startChat = async () => {
+    setError(null);
+    try {
+      const conversation = await openConversationForApplication(applicationId);
+      navigate(`/messages/${conversation.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "La discussion n'a pas pu être ouverte.");
+    }
+  };
+
   if (loading) {
     return <p className="text-slate-500">Chargement…</p>;
   }
@@ -75,11 +87,16 @@ export default function CandidateProfilePage() {
               Véhicule : {profile.hasVehicle ? 'oui' : 'non'}
             </p>
           </div>
-          {profile.hasCv && (
-            <button type="button" className={btnSecondary} onClick={openCv}>
-              📄 Consulter le CV
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {profile.hasCv && (
+              <button type="button" className={btnSecondary} onClick={openCv}>
+                📄 Consulter le CV
+              </button>
+            )}
+            <button type="button" className={btnSecondary} onClick={startChat}>
+              💬 Discuter
             </button>
-          )}
+          </div>
         </div>
       </div>
 

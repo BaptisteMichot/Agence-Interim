@@ -9,6 +9,12 @@ export function formatDate(iso: string | null): string {
   return `${day}/${month}/${year}`;
 }
 
+/** Convertit un horodatage ISO en « jj/mm/aaaa hh:mm ». */
+export function formatDateTime(iso: string): string {
+  const [date, time] = iso.split('T');
+  return `${formatDate(date)} ${time.slice(0, 5)}`;
+}
+
 /** Libellé d'affichage d'un statut de formation. */
 export function formationStatusLabel(status: FormationStatus): string {
   return status === 'EN_COURS' ? 'En cours' : 'Terminé';

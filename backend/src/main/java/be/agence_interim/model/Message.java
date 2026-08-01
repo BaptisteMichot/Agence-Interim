@@ -44,4 +44,8 @@ public class Message {
 
     @Column(nullable = false)
     private LocalDateTime sentTime;
+
+    /** Vrai dès que le destinataire a ouvert la conversation. */
+    @Column(name = "read", nullable = false)
+    private boolean read = false;
 }

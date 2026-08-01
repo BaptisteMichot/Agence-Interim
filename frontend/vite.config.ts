@@ -12,6 +12,11 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // WebSocket du chat : le proxy doit relayer la mise à niveau du protocole.
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true,
+      },
     },
   },
 })

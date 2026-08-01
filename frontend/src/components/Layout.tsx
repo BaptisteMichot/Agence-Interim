@@ -1,11 +1,14 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ROLE_LABEL } from '../auth/roleRoutes';
+import { useChat } from '../chat/ChatContext';
 
 /** Coquille commune aux pages authentifiées : barre de navigation + contenu. */
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { unreadCount } = useChat();
   const navigate = useNavigate();
+  const canChat = user?.role === 'JOBSEEKER' || user?.role === 'EMPLOYER';
 
   const handleLogout = () => {
     logout();
@@ -19,6 +22,19 @@ export default function Layout() {
           <span className="text-lg font-semibold text-indigo-600">Agence d'intérim</span>
           {user && (
             <div className="flex items-center gap-4 text-sm">
+              {canChat && (
+                <Link
+                  to="/messages"
+                  className="relative font-medium text-slate-700 hover:text-indigo-600"
+                >
+                  Messages
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-4 -top-2 rounded-full bg-indigo-600 px-1.5 py-0.5 text-xs font-semibold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               <span className="text-slate-600">
                 {user.firstName} {user.lastName}
                 <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">

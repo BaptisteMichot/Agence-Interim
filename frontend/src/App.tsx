@@ -18,6 +18,8 @@ import CandidateProfilePage from './pages/employer/CandidateProfilePage';
 import OffersBrowsePage from './pages/offers/OffersBrowsePage';
 import OfferDetailPage from './pages/offers/OfferDetailPage';
 import MyApplicationsPage from './pages/applications/MyApplicationsPage';
+import ConversationsPage from './pages/chat/ConversationsPage';
+import ConversationThreadPage from './pages/chat/ConversationThreadPage';
 
 /** Redirige la racine vers la bonne destination selon l'utilisateur, ou vers la connexion. */
 function HomeRedirect() {
@@ -56,6 +58,11 @@ export default function App() {
             <Route path="/employeur/offres/:id" element={<OfferFormPage />} />
             <Route path="/employeur/offres/:id/candidatures" element={<OfferApplicationsPage />} />
             <Route path="/employeur/candidatures/:id" element={<CandidateProfilePage />} />
+          </Route>
+          {/* Messagerie : accessible aux deux participants d'une conversation. */}
+          <Route element={<ProtectedRoute allowedRoles={['JOBSEEKER', 'EMPLOYER']} />}>
+            <Route path="/messages" element={<ConversationsPage />} />
+            <Route path="/messages/:id" element={<ConversationThreadPage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminDashboard />} />

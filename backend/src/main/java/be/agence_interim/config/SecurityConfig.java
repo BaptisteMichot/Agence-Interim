@@ -9,6 +9,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -34,6 +35,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        // La WebSocket est authentifiée par le JWT passé à la poignée de main.
+                        .requestMatchers("/ws/**").permitAll()
+                        // Seul l'employeur démarre un chat (FR10) ; les deux participants échangent ensuite.
+                        .requestMatchers(HttpMethod.POST, "/api/chat/conversations/application/**")
+                        .hasRole("EMPLOYER")
+                        .requestMatchers("/api/chat/**").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/profile/**").hasRole("JOBSEEKER")
                         .requestMatchers("/api/offers/**").hasRole("JOBSEEKER")

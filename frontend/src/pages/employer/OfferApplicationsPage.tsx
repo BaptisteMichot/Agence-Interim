@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getOfferApplications, rateApplication } from '../../api/applications';
+import { openConversationForApplication } from '../../api/chat';
 import { getMyOffer } from '../../api/offers';
 import { btnSecondary, errorBox, inputClass } from '../../components/ui';
 import type { OfferApplication } from '../../applications/types';
@@ -55,6 +56,7 @@ function RatingStars({
 export default function OfferApplicationsPage() {
   const { id } = useParams();
   const offerId = Number(id);
+  const navigate = useNavigate();
 
   const [offer, setOffer] = useState<JobOfferDetail | null>(null);
   const [applications, setApplications] = useState<OfferApplication[]>([]);
@@ -86,6 +88,17 @@ export default function OfferApplicationsPage() {
       setApplications((list) => list.map((a) => (a.id === updated.id ? updated : a)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    }
+  };
+
+  /** Ouvre (ou retrouve) le fil de discussion avec le candidat, puis y navigue. */
+  const startChat = async (applicationId: number) => {
+    setError(null);
+    try {
+      const conversation = await openConversationForApplication(applicationId);
+      navigate(`/messages/${conversation.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "La discussion n'a pas pu être ouverte.");
     }
   };
 
@@ -155,6 +168,13 @@ export default function OfferApplicationsPage() {
                 <Link to={`/employeur/candidatures/${application.id}`} className={btnSecondary}>
                   Voir le profil
                 </Link>
+                <button
+                  type="button"
+                  className={btnSecondary}
+                  onClick={() => startChat(application.id)}
+                >
+                  💬 Discuter
+                </button>
               </div>
             </li>
           ))}

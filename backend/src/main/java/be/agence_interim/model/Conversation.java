@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Conversation entre deux utilisateurs (typiquement un employeur et un candidat).
+ * Conversation entre deux utilisateurs, rattachée à une candidature : {@code sender} est
+ * l'employeur qui a démarré le chat, {@code receiver} le candidat.
  * Porte un identifiant propre afin que {@link Message} puisse la référencer.
  */
 @Entity
@@ -36,4 +37,8 @@ public class Conversation {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_receiver", nullable = false)
     private User receiver;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_application", nullable = false)
+    private Application application;
 }
