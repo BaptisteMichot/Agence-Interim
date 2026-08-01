@@ -1,31 +1,39 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { applyToOffer, getAppliedOfferIds } from '../../api/applications';
 import {
   addFavoriteOffer,
   getFavoriteOfferIds,
   getOfferDetail,
   removeFavoriteOffer,
 } from '../../api/offers';
-import { btnSecondary, errorBox } from '../../components/ui';
+import { btnPrimary, btnSecondary, errorBox } from '../../components/ui';
 import type { JobOfferDetail } from '../../offers/types';
 import { degreeTypeLabel, formatDate, skillLevelLabel } from '../../profile/format';
 
-/** Détail d'une offre pour l'intérimaire (exigences + favori). Postuler viendra à l'incrément 7. */
+/** Détail d'une offre pour l'intérimaire : exigences, favori et candidature. */
 export default function OfferDetailPage() {
   const { id } = useParams();
   const offerId = Number(id);
 
   const [offer, setOffer] = useState<JobOfferDetail | null>(null);
   const [favorite, setFavorite] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setError(null);
     try {
-      const [detail, ids] = await Promise.all([getOfferDetail(offerId), getFavoriteOfferIds()]);
+      const [detail, favoriteIds, appliedIds] = await Promise.all([
+        getOfferDetail(offerId),
+        getFavoriteOfferIds(),
+        getAppliedOfferIds(),
+      ]);
       setOffer(detail);
-      setFavorite(ids.includes(offerId));
+      setFavorite(favoriteIds.includes(offerId));
+      setApplied(appliedIds.includes(offerId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de charger l'offre.");
     } finally {
@@ -48,6 +56,19 @@ export default function OfferDetailPage() {
       setFavorite((v) => !v);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    }
+  };
+
+  const apply = async () => {
+    setError(null);
+    setApplying(true);
+    try {
+      await applyToOffer(offerId);
+      setApplied(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -83,9 +104,23 @@ export default function OfferDetailPage() {
             )}
           </div>
           {offer.status === 'OPEN' && (
-            <button type="button" className={btnSecondary} onClick={toggleFavorite}>
-              {favorite ? '★ Retirer des favoris' : '☆ Ajouter aux favoris'}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className={btnSecondary} onClick={toggleFavorite}>
+                {favorite ? '★ Retirer des favoris' : '☆ Ajouter aux favoris'}
+              </button>
+              {applied ? (
+                <span className="rounded-md bg-green-100 px-4 py-2 text-sm font-medium text-green-700">
+                  ✓ Candidature envoyée —{' '}
+                  <Link to="/interimaire/candidatures" className="underline">
+                    suivre
+                  </Link>
+                </span>
+              ) : (
+                <button type="button" className={btnPrimary} onClick={apply} disabled={applying}>
+                  Postuler
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

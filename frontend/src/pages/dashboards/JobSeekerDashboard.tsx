@@ -4,7 +4,7 @@ import DashboardPlaceholder from '../../components/DashboardPlaceholder';
 export default function JobSeekerDashboard() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Link
           to="/interimaire/profil"
           className="block rounded-xl border border-indigo-200 bg-indigo-50 p-6 transition hover:bg-indigo-100"
@@ -20,7 +20,16 @@ export default function JobSeekerDashboard() {
         >
           <p className="text-lg font-semibold text-emerald-800">Offres d'emploi →</p>
           <p className="mt-1 text-sm text-emerald-700">
-            Consulte les offres ouvertes et gère tes favoris.
+            Consulte les offres ouvertes, postule et gère tes favoris.
+          </p>
+        </Link>
+        <Link
+          to="/interimaire/candidatures"
+          className="block rounded-xl border border-sky-200 bg-sky-50 p-6 transition hover:bg-sky-100"
+        >
+          <p className="text-lg font-semibold text-sky-800">Mes candidatures →</p>
+          <p className="mt-1 text-sm text-sky-700">
+            Suis l'avancement de tes candidatures.
           </p>
         </Link>
       </div>
@@ -28,8 +37,7 @@ export default function JobSeekerDashboard() {
       <DashboardPlaceholder
         title="Espace intérimaire"
         upcoming={[
-          'Recevoir des offres correspondant à mon profil',
-          'Postuler aux offres et suivre mes candidatures',
+          'Discuter avec un employeur via la messagerie',
           'Consulter mon planning et l’historique de mes missions',
         ]}
       />

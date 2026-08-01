@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/profile/**").hasRole("JOBSEEKER")
                         .requestMatchers("/api/offers/**").hasRole("JOBSEEKER")
+                        .requestMatchers("/api/applications/**").hasRole("JOBSEEKER")
                         .requestMatchers("/api/employer/**").hasRole("EMPLOYER")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getApplicationCounts } from '../../api/applications';
 import { closeOffer, getMyOffers } from '../../api/offers';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
@@ -8,6 +9,7 @@ import { formatDate } from '../../profile/format';
 
 export default function EmployerDashboard() {
   const [offers, setOffers] = useState<JobOfferSummary[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [closing, setClosing] = useState<JobOfferSummary | null>(null);
@@ -15,7 +17,9 @@ export default function EmployerDashboard() {
   const reload = useCallback(async () => {
     setError(null);
     try {
-      setOffers(await getMyOffers());
+      const [myOffers, applicationCounts] = await Promise.all([getMyOffers(), getApplicationCounts()]);
+      setOffers(myOffers);
+      setCounts(applicationCounts);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Impossible de charger les offres.');
     } finally {
@@ -96,6 +100,9 @@ export default function EmployerDashboard() {
                 )}
               </div>
               <div className="flex shrink-0 gap-2">
+                <Link to={`/employeur/offres/${offer.id}/candidatures`} className={btnSecondary}>
+                  Candidatures ({counts[offer.id] ?? 0})
+                </Link>
                 {offer.status === 'OPEN' && (
                   <>
                     <Link to={`/employeur/offres/${offer.id}`} className={btnSecondary}>

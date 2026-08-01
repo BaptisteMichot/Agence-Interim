@@ -1,0 +1,187 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { downloadCandidateCv, getCandidateProfile } from '../../api/applications';
+import { btnSecondary, errorBox } from '../../components/ui';
+import type { CandidateProfile } from '../../applications/types';
+import {
+  degreeTypeLabel,
+  formatDate,
+  formationStatusLabel,
+  skillLevelLabel,
+} from '../../profile/format';
+
+/** Profil complet d'un candidat, consulté par l'employeur depuis une candidature. */
+export default function CandidateProfilePage() {
+  const { id } = useParams();
+  const applicationId = Number(id);
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = useState<CandidateProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setError(null);
+    try {
+      setProfile(await getCandidateProfile(applicationId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossible de charger le profil.');
+    } finally {
+      setLoading(false);
+    }
+  }, [applicationId]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const openCv = async () => {
+    setError(null);
+    try {
+      const blob = await downloadCandidateCv(applicationId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    }
+  };
+
+  if (loading) {
+    return <p className="text-slate-500">Chargement…</p>;
+  }
+
+  if (!profile) {
+    return <p className={errorBox}>{error ?? 'Candidat introuvable.'}</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="text-sm text-indigo-600 hover:underline"
+        >
+          ← Retour aux candidatures
+        </button>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {profile.firstName} {profile.lastName}
+            </h1>
+            <p className="mt-1 text-slate-600">{profile.email}</p>
+            <p className="text-sm text-slate-500">
+              {profile.birthdate && <>Né(e) le {formatDate(profile.birthdate)} · </>}
+              Véhicule : {profile.hasVehicle ? 'oui' : 'non'}
+            </p>
+          </div>
+          {profile.hasCv && (
+            <button type="button" className={btnSecondary} onClick={openCv}>
+              📄 Consulter le CV
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && <p className={errorBox}>{error}</p>}
+
+      {(profile.skills.length > 0 || profile.degrees.length > 0 || profile.languages.length > 0) && (
+        <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Compétences et diplômes</h2>
+
+          {profile.skills.length > 0 && (
+            <div className="mb-4">
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Compétences</h3>
+              <ul className="flex flex-wrap gap-2">
+                {profile.skills.map((s) => (
+                  <li key={s.skillId} className="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
+                    {s.name} · {skillLevelLabel(s.level)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {profile.degrees.length > 0 && (
+            <div className="mb-4">
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Diplômes</h3>
+              <ul className="flex flex-wrap gap-2">
+                {profile.degrees.map((d) => (
+                  <li key={d.degreeId} className="rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-800">
+                    {degreeTypeLabel(d.type)} — {d.section}
+                    {d.institution && ` (${d.institution}${d.graduationYear ? `, ${d.graduationYear}` : ''})`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {profile.languages.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Langues</h3>
+              <ul className="flex flex-wrap gap-2">
+                {profile.languages.map((l) => (
+                  <li key={l.languageId} className="rounded-full bg-amber-50 px-3 py-1 text-sm text-amber-800">
+                    {l.name} · {l.level}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
+      {profile.experiences.length > 0 && (
+        <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Expériences professionnelles</h2>
+          <ul className="space-y-3">
+            {profile.experiences.map((e) => (
+              <li key={e.id} className="rounded-lg border border-slate-200 p-4">
+                <p className="font-medium text-slate-900">
+                  {e.position} — {e.companyName}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {formatDate(e.startDate)} → {e.endDate ? formatDate(e.endDate) : "aujourd'hui"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {profile.formations.length > 0 && (
+        <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Formations</h2>
+          <ul className="space-y-3">
+            {profile.formations.map((f) => (
+              <li key={f.id} className="rounded-lg border border-slate-200 p-4">
+                <p className="font-medium text-slate-900">
+                  {f.title} — {f.institution}
+                  <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                    {formationStatusLabel(f.status)}
+                  </span>
+                </p>
+                <p className="text-sm text-slate-500">
+                  {formatDate(f.startDate)} → {f.endDate ? formatDate(f.endDate) : "aujourd'hui"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {profile.skills.length === 0 &&
+        profile.degrees.length === 0 &&
+        profile.languages.length === 0 &&
+        profile.experiences.length === 0 &&
+        profile.formations.length === 0 && (
+          <p className="text-sm text-slate-500">
+            Ce candidat n'a pas encore complété son profil.{' '}
+            <Link to="/employeur" className="text-indigo-600 hover:underline">
+              Retour à mes offres
+            </Link>
+          </p>
+        )}
+    </div>
+  );
+}

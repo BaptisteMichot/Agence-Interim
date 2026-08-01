@@ -16,18 +16,23 @@ import org.springframework.web.bind.annotation.RestController;
 import be.agence_interim.dto.JobOfferResponse;
 import be.agence_interim.dto.JobOfferSummaryResponse;
 import be.agence_interim.dto.MatchingOfferResponse;
+import be.agence_interim.dto.MyApplicationResponse;
 import be.agence_interim.security.CurrentUser;
+import be.agence_interim.service.ApplicationService;
 import be.agence_interim.service.OfferBrowseService;
 
-/** Consultation des offres et favoris de l'intérimaire (routes /api/offers/** = rôle JOBSEEKER). */
+/** Consultation des offres, favoris et candidature de l'intérimaire (routes /api/offers/** = rôle JOBSEEKER). */
 @RestController
 @RequestMapping("/api/offers")
 public class JobSeekerOfferController {
 
     private final OfferBrowseService offerBrowseService;
+    private final ApplicationService applicationService;
 
-    public JobSeekerOfferController(OfferBrowseService offerBrowseService) {
+    public JobSeekerOfferController(
+            OfferBrowseService offerBrowseService, ApplicationService applicationService) {
         this.offerBrowseService = offerBrowseService;
+        this.applicationService = applicationService;
     }
 
     @GetMapping
@@ -66,5 +71,11 @@ public class JobSeekerOfferController {
     public ResponseEntity<Void> removeFavorite(@AuthenticationPrincipal Jwt jwt, @PathVariable int id) {
         offerBrowseService.removeFavorite(CurrentUser.id(jwt), id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/apply")
+    public ResponseEntity<MyApplicationResponse> apply(@AuthenticationPrincipal Jwt jwt, @PathVariable int id) {
+        MyApplicationResponse body = applicationService.apply(CurrentUser.id(jwt), id);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 }

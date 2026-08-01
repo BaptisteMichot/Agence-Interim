@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -44,8 +46,9 @@ public class Application {
     @Column(nullable = false)
     private LocalDateTime applicationTime;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = STATUS_MAX_LENGTH)
-    private String status;
+    private ApplicationStatus status = ApplicationStatus.PENDING;
 
     @Column(nullable = true)
     private Integer rating;

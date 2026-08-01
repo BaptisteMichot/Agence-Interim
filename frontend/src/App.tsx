@@ -13,8 +13,11 @@ import JobSeekerDashboard from './pages/dashboards/JobSeekerDashboard';
 import RecruiterDashboard from './pages/dashboards/RecruiterDashboard';
 import ProfilePage from './pages/profile/ProfilePage';
 import OfferFormPage from './pages/employer/OfferFormPage';
+import OfferApplicationsPage from './pages/employer/OfferApplicationsPage';
+import CandidateProfilePage from './pages/employer/CandidateProfilePage';
 import OffersBrowsePage from './pages/offers/OffersBrowsePage';
 import OfferDetailPage from './pages/offers/OfferDetailPage';
+import MyApplicationsPage from './pages/applications/MyApplicationsPage';
 
 /** Redirige la racine vers la bonne destination selon l'utilisateur, ou vers la connexion. */
 function HomeRedirect() {
@@ -45,11 +48,14 @@ export default function App() {
             <Route path="/interimaire/profil" element={<ProfilePage />} />
             <Route path="/interimaire/offres" element={<OffersBrowsePage />} />
             <Route path="/interimaire/offres/:id" element={<OfferDetailPage />} />
+            <Route path="/interimaire/candidatures" element={<MyApplicationsPage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
             <Route path="/employeur" element={<EmployerDashboard />} />
             <Route path="/employeur/offres/nouvelle" element={<OfferFormPage />} />
             <Route path="/employeur/offres/:id" element={<OfferFormPage />} />
+            <Route path="/employeur/offres/:id/candidatures" element={<OfferApplicationsPage />} />
+            <Route path="/employeur/candidatures/:id" element={<CandidateProfilePage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminDashboard />} />
