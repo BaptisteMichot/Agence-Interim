@@ -68,7 +68,16 @@ public class SkillService {
         skillUserRepository.delete(skillUser);
     }
 
-    /** Trouve la compétence à rattacher : par id (globale/perso), sinon par nom (réutilise ou crée une perso). */
+    /**
+     * Trouve la compétence à rattacher : par id (globale/perso), sinon par nom
+     * (réutilise ou crée une perso).
+     *
+     * La recherche par nom ignore le créateur : une compétence perso porte un libellé
+     * unique pour toute l'application. Sans cela, « Soudure TIG » saisi par l'employeur
+     * dans son offre et par l'intérimaire dans son profil créaient deux lignes
+     * distinctes, et le matching (qui compare des identifiants) considérait que le
+     * candidat ne possédait pas la compétence exigée.
+     */
     @Transactional
     public Skill resolveSkill(int userId, Integer skillId, String name) {
         if (skillId != null) {
@@ -84,7 +93,7 @@ public class SkillService {
         }
         String trimmed = name.trim();
         return skillRepository.findFirstByNameIgnoreCaseAndIsGlobalTrue(trimmed)
-                .or(() -> skillRepository.findFirstByNameIgnoreCaseAndCreatedById(trimmed, userId))
+                .or(() -> skillRepository.findFirstByNameIgnoreCaseOrderByIdAsc(trimmed))
                 .orElseGet(() -> createCustom(userId, trimmed));
     }
 

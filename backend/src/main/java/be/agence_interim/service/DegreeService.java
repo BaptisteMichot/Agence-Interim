@@ -71,7 +71,14 @@ public class DegreeService {
         degreeUserRepository.delete(degreeUser);
     }
 
-    /** Trouve le diplôme à rattacher : par id (global/perso), sinon par type+section (réutilise ou crée un perso). */
+    /**
+     * Trouve le diplôme à rattacher : par id (global/perso), sinon par type+section
+     * (réutilise ou crée un perso).
+     *
+     * Comme pour les compétences, la recherche par type+section ignore le créateur :
+     * un même diplôme saisi par l'employeur et par l'intérimaire doit désigner la même
+     * ligne, sans quoi le matching (comparaison par identifiant) ne le reconnaît pas.
+     */
     @Transactional
     public Degree resolveDegree(int userId, Integer degreeId, DegreeType type, String section) {
         if (degreeId != null) {
@@ -87,7 +94,7 @@ public class DegreeService {
         }
         String trimmed = section.trim();
         return degreeRepository.findFirstByTypeAndSectionIgnoreCaseAndIsGlobalTrue(type, trimmed)
-                .or(() -> degreeRepository.findFirstByTypeAndSectionIgnoreCaseAndCreatedById(type, trimmed, userId))
+                .or(() -> degreeRepository.findFirstByTypeAndSectionIgnoreCaseOrderByIdAsc(type, trimmed))
                 .orElseGet(() -> createCustom(userId, type, trimmed));
     }
 

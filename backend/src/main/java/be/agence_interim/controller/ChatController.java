@@ -73,7 +73,11 @@ public class ChatController {
             @PathVariable int id,
             @Valid @RequestBody SendMessageRequest request) {
         SentMessage sent = chatService.send(CurrentUser.id(jwt), id, request.content());
-        sessionRegistry.sendToUser(sent.recipientId(), new OutgoingFrame("MESSAGE", sent.message(), null));
+        OutgoingFrame frame = new OutgoingFrame("MESSAGE", sent.message(), null);
+        // Comme sur la WebSocket : l'émetteur reçoit aussi l'écho, pour que ses autres
+        // onglets ouverts sur la conversation affichent le message sans rechargement.
+        sessionRegistry.sendToUser(sent.senderId(), frame);
+        sessionRegistry.sendToUser(sent.recipientId(), frame);
         return ResponseEntity.status(HttpStatus.CREATED).body(sent.message());
     }
 

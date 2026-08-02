@@ -13,7 +13,12 @@ public interface DegreeRepository extends JpaRepository<Degree, Integer> {
 
     Optional<Degree> findFirstByTypeAndSectionIgnoreCaseAndIsGlobalTrue(DegreeType type, String section);
 
-    Optional<Degree> findFirstByTypeAndSectionIgnoreCaseAndCreatedById(DegreeType type, String section, int userId);
+    /**
+     * Premier diplôme de ce type et de cette section, quel qu'en soit le créateur.
+     * Garantit qu'un même diplôme saisi par un employeur et par un intérimaire désigne
+     * bien la même ligne : le matching compare les diplômes par identifiant.
+     */
+    Optional<Degree> findFirstByTypeAndSectionIgnoreCaseOrderByIdAsc(DegreeType type, String section);
 
     boolean existsByTypeAndSectionIgnoreCaseAndIsGlobalTrue(DegreeType type, String section);
 }

@@ -12,7 +12,12 @@ public interface SkillRepository extends JpaRepository<Skill, Integer> {
 
     Optional<Skill> findFirstByNameIgnoreCaseAndIsGlobalTrue(String name);
 
-    Optional<Skill> findFirstByNameIgnoreCaseAndCreatedById(String name, int userId);
+    /**
+     * Première compétence portant ce nom, quel qu'en soit le créateur. Garantit qu'un
+     * même libellé saisi par un employeur et par un intérimaire désigne bien la même
+     * ligne : le matching compare les compétences par identifiant.
+     */
+    Optional<Skill> findFirstByNameIgnoreCaseOrderByIdAsc(String name);
 
     boolean existsByNameIgnoreCaseAndIsGlobalTrue(String name);
 }

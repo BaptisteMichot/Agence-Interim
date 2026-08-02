@@ -69,10 +69,10 @@ export default function ConversationThreadPage() {
     try {
       await sendMessage(conversationId, content);
       setDraft('');
-      if (!connected) {
-        // Envoi via l'API : la WebSocket ne renverra pas d'écho, on rafraîchit nous-mêmes.
-        await reloadMessages();
-      }
+      // On rafraîchit toujours : l'affichage de son propre message ne doit pas dépendre
+      // de l'écho temps réel (WebSocket fermée, en reconnexion, ou écho perdu). Si l'écho
+      // arrive quand même, il déclenche le même rechargement — le résultat est identique.
+      await reloadMessages();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Le message n'a pas pu être envoyé.");
     } finally {
