@@ -2,38 +2,33 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
 import * as authApi from '../api/client';
+import {
+  SESSION_EXPIRED_EVENT,
+  clearSession,
+  readToken,
+  readUser,
+  saveSession,
+} from './session';
 import type { AuthResponse, AuthUser, RegisterPayload } from './types';
-
-const TOKEN_KEY = 'auth.token';
-const USER_KEY = 'auth.user';
 
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  /** Vrai quand la session a été refusée par le serveur (à afficher sur la page de connexion). */
+  sessionExpired: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (payload: RegisterPayload) => Promise<AuthUser>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-function loadUser(): AuthUser | null {
-  const raw = localStorage.getItem(USER_KEY);
-  if (!raw) {
-    return null;
-  }
-  try {
-    return JSON.parse(raw) as AuthUser;
-  } catch {
-    return null;
-  }
-}
 
 function toUser(response: AuthResponse): AuthUser {
   return {
@@ -47,15 +42,16 @@ function toUser(response: AuthResponse): AuthUser {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
-  const [user, setUser] = useState<AuthUser | null>(loadUser);
+  const [token, setToken] = useState<string | null>(readToken);
+  const [user, setUser] = useState<AuthUser | null>(readUser);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const persist = useCallback((response: AuthResponse): AuthUser => {
     const nextUser = toUser(response);
-    localStorage.setItem(TOKEN_KEY, response.token);
-    localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+    saveSession(response.token, nextUser);
     setToken(response.token);
     setUser(nextUser);
+    setSessionExpired(false);
     return nextUser;
   }, []);
 
@@ -70,15 +66,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    clearSession();
     setToken(null);
     setUser(null);
+    setSessionExpired(false);
+  }, []);
+
+  // Le serveur a refusé le token (401/403) : la couche HTTP a purgé la session,
+  // on aligne l'état React pour que les routes protégées renvoient vers /login.
+  useEffect(() => {
+    const onExpired = () => {
+      setToken(null);
+      setUser(null);
+      setSessionExpired(true);
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, token, isAuthenticated: token !== null, login, register, logout }),
-    [user, token, login, register, logout],
+    () => ({
+      user,
+      token,
+      isAuthenticated: token !== null,
+      sessionExpired,
+      login,
+      register,
+      logout,
+    }),
+    [user, token, sessionExpired, login, register, logout],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

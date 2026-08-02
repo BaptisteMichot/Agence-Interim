@@ -1,5 +1,6 @@
+import { expireSession, readToken } from '../auth/session';
+
 const API_BASE = '/api';
-const TOKEN_KEY = 'auth.token';
 
 /**
  * Extrait un message d'erreur lisible du corps d'une réponse en échec.
@@ -23,8 +24,21 @@ export async function readError(response: Response): Promise<string> {
 }
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = readToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/**
+ * Construit l'erreur d'une réponse en échec. Un 401 (token absent, invalide ou expiré)
+ * ou un 403 (token d'un autre rôle) signifie que la session ne vaut plus rien : on la
+ * purge pour renvoyer l'utilisateur vers la connexion au lieu d'afficher une erreur brute.
+ */
+async function toError(response: Response): Promise<Error> {
+  if (response.status === 401 || response.status === 403) {
+    expireSession();
+    return new Error('Votre session n’est plus valide. Veuillez vous reconnecter.');
+  }
+  return new Error(await readError(response));
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -38,7 +52,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response));
+    throw await toError(response);
   }
 
   // Corps vide (204 No Content, 201 sans corps…) : rien à parser.
@@ -70,7 +84,7 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
     body: formData,
   });
   if (!response.ok) {
-    throw new Error(await readError(response));
+    throw await toError(response);
   }
   return response.json() as Promise<T>;
 }
@@ -79,7 +93,7 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
 export async function apiDownload(path: string): Promise<Blob> {
   const response = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
   if (!response.ok) {
-    throw new Error(await readError(response));
+    throw await toError(response);
   }
   return response.blob();
 }
