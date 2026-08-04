@@ -1,4 +1,6 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { getMissionDecisionCount } from '../api/missions';
 import { useAuth } from '../auth/AuthContext';
 import { ROLE_LABEL } from '../auth/roleRoutes';
 import { useChat } from '../chat/ChatContext';
@@ -8,7 +10,22 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const { unreadCount } = useChat();
   const navigate = useNavigate();
+  const location = useLocation();
   const canChat = user?.role === 'JOBSEEKER' || user?.role === 'EMPLOYER';
+  const isJobSeeker = user?.role === 'JOBSEEKER';
+  const [missionsToConfirm, setMissionsToConfirm] = useState(0);
+
+  // Notification portail : missions validées par l'agence en attente d'une réponse.
+  // Rafraîchie à chaque navigation, la réponse se donnant depuis une page de l'app.
+  useEffect(() => {
+    if (!isJobSeeker) {
+      setMissionsToConfirm(0);
+      return;
+    }
+    getMissionDecisionCount()
+      .then((result) => setMissionsToConfirm(result.count))
+      .catch(() => setMissionsToConfirm(0));
+  }, [isJobSeeker, location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -22,6 +39,19 @@ export default function Layout() {
           <span className="text-lg font-semibold text-indigo-600">Agence d'intérim</span>
           {user && (
             <div className="flex items-center gap-4 text-sm">
+              {isJobSeeker && (
+                <Link
+                  to="/interimaire/missions"
+                  className="relative font-medium text-slate-700 hover:text-indigo-600"
+                >
+                  Missions
+                  {missionsToConfirm > 0 && (
+                    <span className="absolute -right-4 -top-2 rounded-full bg-violet-600 px-1.5 py-0.5 text-xs font-semibold text-white">
+                      {missionsToConfirm}
+                    </span>
+                  )}
+                </Link>
+              )}
               {canChat && (
                 <Link
                   to="/messages"

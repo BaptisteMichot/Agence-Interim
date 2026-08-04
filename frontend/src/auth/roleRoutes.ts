@@ -9,7 +9,6 @@ export const HOME_PATH_BY_ROLE: Record<Role, string> = {
   EMPLOYER: '/employeur',
   EMPLOYER_PENDING: EMPLOYER_STATUS_PATH,
   ADMIN: '/admin',
-  INTERIM_RECRUITER: '/agence',
 };
 
 /** Libellé lisible de chaque rôle (pour l'affichage). */
@@ -18,7 +17,6 @@ export const ROLE_LABEL: Record<Role, string> = {
   EMPLOYER: 'Employeur',
   EMPLOYER_PENDING: 'Employeur (en attente)',
   ADMIN: 'Administrateur',
-  INTERIM_RECRUITER: "Agence d'intérim",
 };
 
 export function homePathForRole(role: Role): string {

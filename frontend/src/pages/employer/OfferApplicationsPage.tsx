@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getOfferApplications, rateApplication } from '../../api/applications';
 import { openConversationForApplication } from '../../api/chat';
 import { getMyOffer } from '../../api/offers';
-import { btnSecondary, errorBox, inputClass } from '../../components/ui';
+import { btnPrimary, btnSecondary, errorBox, inputClass } from '../../components/ui';
 import type { OfferApplication } from '../../applications/types';
 import type { JobOfferDetail } from '../../offers/types';
 import { formatDate } from '../../profile/format';
@@ -175,6 +175,13 @@ export default function OfferApplicationsPage() {
                 >
                   💬 Discuter
                 </button>
+                <Link
+                  to={`/employeur/candidatures/${application.id}/mission`}
+                  className={btnPrimary}
+                  title="Créer la mission provisoire pour ce candidat"
+                >
+                  Sélectionner
+                </Link>
               </div>
             </li>
           ))}

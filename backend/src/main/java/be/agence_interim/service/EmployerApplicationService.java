@@ -86,7 +86,8 @@ public class EmployerApplicationService {
     /** Profil complet du candidat d'une candidature reçue. */
     @Transactional(readOnly = true)
     public CandidateProfileResponse candidateProfile(int employerId, int applicationId) {
-        User candidate = ownedApplication(employerId, applicationId).getJobSeeker();
+        Application application = ownedApplication(employerId, applicationId);
+        User candidate = application.getJobSeeker();
         int candidateId = candidate.getId();
         return new CandidateProfileResponse(
                 candidateId,
@@ -96,6 +97,8 @@ public class EmployerApplicationService {
                 candidate.getBirthdate(),
                 candidate.getHasVehicle(),
                 candidate.getCvFilePath() != null,
+                application.getJobOffer().getId(),
+                application.getJobOffer().getTitle(),
                 skillService.userSkills(candidateId).stream().map(UserSkillResponse::fromEntity).toList(),
                 degreeService.userDegrees(candidateId).stream().map(UserDegreeResponse::fromEntity).toList(),
                 languageService.userLanguages(candidateId).stream().map(UserLanguageResponse::fromEntity).toList(),

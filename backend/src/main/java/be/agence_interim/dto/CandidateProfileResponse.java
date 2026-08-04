@@ -12,6 +12,8 @@ public record CandidateProfileResponse(
         LocalDate birthdate,
         Boolean hasVehicle,
         boolean hasCv,
+        int offerId,
+        String offerTitle,
         List<UserSkillResponse> skills,
         List<UserDegreeResponse> degrees,
         List<UserLanguageResponse> languages,

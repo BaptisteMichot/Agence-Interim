@@ -8,16 +8,21 @@ import RegisterPage from './pages/RegisterPage';
 import EmployerRegisterPage from './pages/EmployerRegisterPage';
 import EmployerStatusPage from './pages/EmployerStatusPage';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
+import AdminMissionsPage from './pages/dashboards/AdminMissionsPage';
 import EmployerDashboard from './pages/dashboards/EmployerDashboard';
 import JobSeekerDashboard from './pages/dashboards/JobSeekerDashboard';
-import RecruiterDashboard from './pages/dashboards/RecruiterDashboard';
 import ProfilePage from './pages/profile/ProfilePage';
 import OfferFormPage from './pages/employer/OfferFormPage';
 import OfferApplicationsPage from './pages/employer/OfferApplicationsPage';
 import CandidateProfilePage from './pages/employer/CandidateProfilePage';
+import MissionFormPage from './pages/employer/MissionFormPage';
+import EmployerMissionsPage from './pages/employer/EmployerMissionsPage';
+import EmployerMissionDetailPage from './pages/employer/EmployerMissionDetailPage';
 import OffersBrowsePage from './pages/offers/OffersBrowsePage';
 import OfferDetailPage from './pages/offers/OfferDetailPage';
 import MyApplicationsPage from './pages/applications/MyApplicationsPage';
+import MyMissionsPage from './pages/missions/MyMissionsPage';
+import MissionDetailPage from './pages/missions/MissionDetailPage';
 import ConversationsPage from './pages/chat/ConversationsPage';
 import ConversationThreadPage from './pages/chat/ConversationThreadPage';
 
@@ -51,6 +56,8 @@ export default function App() {
             <Route path="/interimaire/offres" element={<OffersBrowsePage />} />
             <Route path="/interimaire/offres/:id" element={<OfferDetailPage />} />
             <Route path="/interimaire/candidatures" element={<MyApplicationsPage />} />
+            <Route path="/interimaire/missions" element={<MyMissionsPage />} />
+            <Route path="/interimaire/missions/:id" element={<MissionDetailPage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
             <Route path="/employeur" element={<EmployerDashboard />} />
@@ -58,6 +65,13 @@ export default function App() {
             <Route path="/employeur/offres/:id" element={<OfferFormPage />} />
             <Route path="/employeur/offres/:id/candidatures" element={<OfferApplicationsPage />} />
             <Route path="/employeur/candidatures/:id" element={<CandidateProfilePage />} />
+            <Route
+              path="/employeur/candidatures/:applicationId/mission"
+              element={<MissionFormPage />}
+            />
+            <Route path="/employeur/missions" element={<EmployerMissionsPage />} />
+            <Route path="/employeur/missions/:id" element={<EmployerMissionDetailPage />} />
+            <Route path="/employeur/missions/:id/corriger" element={<MissionFormPage />} />
           </Route>
           {/* Messagerie : accessible aux deux participants d'une conversation. */}
           <Route element={<ProtectedRoute allowedRoles={['JOBSEEKER', 'EMPLOYER']} />}>
@@ -66,9 +80,7 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminDashboard />} />
-          </Route>
-          <Route element={<ProtectedRoute allowedRoles={['INTERIM_RECRUITER']} />}>
-            <Route path="/agence" element={<RecruiterDashboard />} />
+            <Route path="/admin/missions" element={<AdminMissionsPage />} />
           </Route>
         </Route>
       </Route>

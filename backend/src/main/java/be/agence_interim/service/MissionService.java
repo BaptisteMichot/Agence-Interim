@@ -181,7 +181,9 @@ public class MissionService {
 
     @Transactional(readOnly = true)
     public List<MissionResponse> listForJobSeeker(int jobSeekerId) {
-        return toResponses(missionRepository.findByJobSeekerIdFetchAll(jobSeekerId));
+        return toResponses(missionRepository.findByJobSeekerIdFetchAll(jobSeekerId).stream()
+                .filter(mission -> visibleToJobSeeker(mission))
+                .toList());
     }
 
     @Transactional(readOnly = true)
@@ -355,10 +357,23 @@ public class MissionService {
 
     private Mission jobSeekerMission(int jobSeekerId, int missionId) {
         Mission mission = mission(missionId);
-        if (mission.getApplication().getJobSeeker().getId() != jobSeekerId) {
+        if (mission.getApplication().getJobSeeker().getId() != jobSeekerId || !visibleToJobSeeker(mission)) {
             throw new NoSuchElementException("Mission introuvable.");
         }
         return mission;
+    }
+
+    /**
+     * L'intérimaire ne voit une mission qu'à partir du moment où elle lui est soumise :
+     * les échanges entre l'employeur et l'agence (mission provisoire, refus) lui restent
+     * invisibles. Exception : un renouvellement qu'il a déjà accepté et qui attend l'agence.
+     */
+    private boolean visibleToJobSeeker(Mission mission) {
+        return switch (mission.getStatus()) {
+            case PENDING -> mission.getPreviousMission() != null;
+            case REFUSED -> false;
+            default -> true;
+        };
     }
 
     private MissionResponse toResponse(Mission mission) {

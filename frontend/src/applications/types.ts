@@ -37,6 +37,8 @@ export interface CandidateProfile {
   birthdate: string | null;
   hasVehicle: boolean | null;
   hasCv: boolean;
+  offerId: number;
+  offerTitle: string;
   skills: UserSkill[];
   degrees: UserDegree[];
   languages: UserLanguage[];

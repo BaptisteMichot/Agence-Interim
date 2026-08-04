@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   acceptEmployerRequest,
   getEmployerRequests,
   refuseEmployerRequest,
   type AdminEmployerRequest,
 } from '../../api/employer';
+import { getAdminMissions } from '../../api/missions';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { btnDanger, btnPrimary, errorBox } from '../../components/ui';
 import { formatDate } from '../../profile/format';
@@ -21,6 +23,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
+  const [pendingMissions, setPendingMissions] = useState(0);
 
   const reload = useCallback(async () => {
     setError(null);
@@ -31,6 +34,12 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    getAdminMissions()
+      .then((missions) => setPendingMissions(missions.filter((m) => m.status === 'PENDING').length))
+      .catch(() => setPendingMissions(0));
   }, []);
 
   useEffect(() => {
@@ -62,8 +71,27 @@ export default function AdminDashboard() {
     <section className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Espace administrateur</h1>
-        <p className="mt-1 text-slate-600">Demandes d'accès employeur.</p>
+        <p className="mt-1 text-slate-600">Accès employeur et validation des missions d'intérim.</p>
       </div>
+
+      <Link
+        to="/admin/missions"
+        className="block rounded-xl border border-violet-200 bg-violet-50 p-6 transition hover:bg-violet-100"
+      >
+        <p className="text-lg font-semibold text-violet-800">
+          Missions à valider →
+          {pendingMissions > 0 && (
+            <span className="ml-2 rounded-full bg-violet-600 px-2 py-0.5 text-xs font-semibold text-white">
+              {pendingMissions}
+            </span>
+          )}
+        </p>
+        <p className="mt-1 text-sm text-violet-700">
+          {pendingMissions > 0
+            ? `${pendingMissions} mission(s) provisoire(s) en attente de votre validation.`
+            : 'Aucune mission en attente. Consultez le suivi des missions en cours.'}
+        </p>
+      </Link>
 
       {error && <p className={errorBox}>{error}</p>}
 

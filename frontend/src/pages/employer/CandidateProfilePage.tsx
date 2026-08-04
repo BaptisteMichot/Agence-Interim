@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { downloadCandidateCv, getCandidateProfile } from '../../api/applications';
 import { openConversationForApplication } from '../../api/chat';
-import { btnSecondary, errorBox } from '../../components/ui';
+import { btnPrimary, btnSecondary, errorBox } from '../../components/ui';
 import type { CandidateProfile } from '../../applications/types';
 import {
   degreeTypeLabel,
@@ -96,6 +96,9 @@ export default function CandidateProfilePage() {
             <button type="button" className={btnSecondary} onClick={startChat}>
               💬 Discuter
             </button>
+            <Link to={`/employeur/candidatures/${applicationId}/mission`} className={btnPrimary}>
+              Sélectionner ce candidat
+            </Link>
           </div>
         </div>
       </div>

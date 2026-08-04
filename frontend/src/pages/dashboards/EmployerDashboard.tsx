@@ -53,9 +53,14 @@ export default function EmployerDashboard() {
           <h1 className="text-2xl font-semibold text-slate-900">Espace employeur</h1>
           <p className="mt-1 text-slate-600">Vos offres d'emploi.</p>
         </div>
-        <Link to="/employeur/offres/nouvelle" className={btnPrimary}>
-          + Nouvelle offre
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/employeur/missions" className={btnSecondary}>
+            Mes missions
+          </Link>
+          <Link to="/employeur/offres/nouvelle" className={btnPrimary}>
+            + Nouvelle offre
+          </Link>
+        </div>
       </div>
 
       {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}

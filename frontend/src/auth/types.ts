@@ -1,6 +1,6 @@
 // Types partagés avec le backend (voir be.agence_interim.model.Role et dto.AuthResponse).
 
-export type Role = 'ADMIN' | 'INTERIM_RECRUITER' | 'EMPLOYER' | 'EMPLOYER_PENDING' | 'JOBSEEKER';
+export type Role = 'ADMIN' | 'EMPLOYER' | 'EMPLOYER_PENDING' | 'JOBSEEKER';
 
 export type EmployerAccessStatus = 'PENDING' | 'ACCEPTED' | 'REFUSED';
 
