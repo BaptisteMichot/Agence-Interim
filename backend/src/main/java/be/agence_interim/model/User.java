@@ -23,7 +23,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class User {
 
-    public static final int ROLE_MAX_LENGHT = 17;
+    public static final int ROLE_MAX_LENGHT = 16;
     public static final int LAST_NAME_MAX_LENGTH = 25;
     public static final int FIRST_NAME_MAX_LENGTH = 25;
     public static final int EMAIL_MAX_LENGTH = 35;

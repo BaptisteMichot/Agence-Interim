@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -40,11 +42,13 @@ public class Contract {
     @Column(nullable = true)
     private LocalDateTime generationTime;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = STATUS_MAX_LENGTH)
-    private String statusEmployer;
+    private SignatureStatus statusEmployer = SignatureStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = STATUS_MAX_LENGTH)
-    private String statusWorker;
+    private SignatureStatus statusWorker = SignatureStatus.PENDING;
 
     @Column(nullable = true, columnDefinition = "TEXT")
     private String contractFilePath;

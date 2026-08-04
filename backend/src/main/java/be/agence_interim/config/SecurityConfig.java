@@ -45,6 +45,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/profile/**").hasRole("JOBSEEKER")
                         .requestMatchers("/api/offers/**").hasRole("JOBSEEKER")
                         .requestMatchers("/api/applications/**").hasRole("JOBSEEKER")
+                        .requestMatchers("/api/missions/**").hasRole("JOBSEEKER")
+                        // Le contrat est accessible aux deux parties et à l'agence : contrôle dans le service.
+                        .requestMatchers("/api/contracts/**").authenticated()
                         .requestMatchers("/api/employer/**").hasRole("EMPLOYER")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt

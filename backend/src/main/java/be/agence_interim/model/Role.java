@@ -6,7 +6,6 @@ package be.agence_interim.model;
  */
 public enum Role {
     ADMIN,
-    INTERIM_RECRUITER,
     EMPLOYER,
     EMPLOYER_PENDING,
     JOBSEEKER

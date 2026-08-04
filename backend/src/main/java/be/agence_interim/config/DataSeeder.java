@@ -20,7 +20,8 @@ import be.agence_interim.repository.SkillRepository;
 import be.agence_interim.repository.UserRepository;
 
 /**
- * Insère au démarrage les listes de base (référentiels globaux) si elles sont absentes.
+ * Insère au démarrage les listes de base (référentiels globaux) si elles sont
+ * absentes.
  * Idempotent : chaque entrée n'est ajoutée que si elle n'existe pas déjà.
  */
 @Component
@@ -31,10 +32,10 @@ public class DataSeeder implements CommandLineRunner {
             "Portugais", "Arabe", "Turc", "Polonais", "Russe", "Chinois");
 
     private static final List<String> GLOBAL_SKILLS = List.of(
-            "Cariste", "Manutention", "Soudure", "Peinture", "Maçonnerie", "Électricité",
-            "Plomberie", "Menuiserie", "Nettoyage", "Accueil", "Vente", "Caisse",
-            "Cuisine", "Service en salle", "Secrétariat", "Comptabilité", "Informatique",
-            "Bureautique", "Gestion de stock", "Conduite PL", "Jardinage", "Mécanique",
+            "Cariste", "Peinture", "Maçonnerie", "Électricité",
+            "Plomberie", "Menuiserie", "Nettoyage", "Accueil", "Vente",
+            "Cuisine", "Secrétariat", "Comptabilité", "Informatique",
+            "Bureautique", "Gestion de stock", "Jardinage", "Mécanique",
             "Logistique", "Sécurité");
 
     /** Sections de diplôme par type. */

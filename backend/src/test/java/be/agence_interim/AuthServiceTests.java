@@ -45,7 +45,7 @@ class AuthServiceTests {
         user.setFirstName("Marie");
         user.setEmail("jobseeker@example.be");
         user.setPassword("Password123456!");
-        user.setRole(Role.INTERIM_RECRUITER);
+        user.setRole(Role.ADMIN);
 
         User registeredUser = authService.register(user);
 
