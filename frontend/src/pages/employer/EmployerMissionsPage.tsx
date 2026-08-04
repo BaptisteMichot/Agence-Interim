@@ -63,6 +63,11 @@ export default function EmployerMissionsPage() {
                   Corriger
                 </Link>
               )}
+              {mission.status === 'ACTIVE' && (
+                <Link to={`/employeur/missions/${mission.id}/renouveler`} className={btnSecondary}>
+                  Renouveler
+                </Link>
+              )}
               <Link to={`/employeur/missions/${mission.id}`} className={btnSecondary}>
                 Détail
               </Link>

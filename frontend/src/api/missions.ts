@@ -13,6 +13,11 @@ export function updateMission(missionId: number, payload: MissionPayload): Promi
   return apiPut<Mission>(`/employer/missions/${missionId}`, payload);
 }
 
+/** Demande le renouvellement d'une mission confirmée (nouvelle mission proposée au candidat). */
+export function renewMission(missionId: number, payload: MissionPayload): Promise<Mission> {
+  return apiPost<Mission>(`/employer/missions/${missionId}/renew`, payload);
+}
+
 export function getEmployerMissions(): Promise<Mission[]> {
   return apiGet<Mission[]>('/employer/missions');
 }

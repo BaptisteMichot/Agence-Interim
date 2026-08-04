@@ -56,6 +56,10 @@ public class MissionService {
     /** Statuts qui réservent l'agenda de l'intérimaire. */
     private static final Set<MissionStatus> BOOKED = EnumSet.of(MissionStatus.APPROVED, MissionStatus.ACTIVE);
 
+    /** Statuts d'une mission encore en cours de négociation (validation ou réponse attendue). */
+    private static final Set<MissionStatus> UNDER_REVIEW = EnumSet.of(
+            MissionStatus.PENDING, MissionStatus.APPROVED, MissionStatus.RENEWAL);
+
     /** Statuts qui attendent une décision de l'intérimaire. */
     private static final Set<MissionStatus> AWAITING_WORKER = EnumSet.of(
             MissionStatus.APPROVED, MissionStatus.RENEWAL);
@@ -122,9 +126,43 @@ public class MissionService {
             throw new IllegalArgumentException("Seule une mission refusée par l'agence peut être corrigée.");
         }
         applyFields(mission, request, mission.getApplication().getJobOffer());
-        mission.setStatus(MissionStatus.PENDING);
+        // Un renouvellement corrigé repasse par l'intérimaire : il avait accepté d'autres conditions.
+        mission.setStatus(
+                mission.getPreviousMission() != null ? MissionStatus.RENEWAL : MissionStatus.PENDING);
         mission.setRefusalReason(null);
         Mission saved = missionRepository.save(mission);
+        checkNoOverlap(saved);
+        replaceSlots(saved, request.slots());
+        return toResponse(saved);
+    }
+
+    /**
+     * Demande le renouvellement d'une mission confirmée (US19) : une nouvelle mission
+     * est créée sur la même candidature et proposée directement à l'intérimaire, qui
+     * l'accepte ou la refuse avant la validation de l'agence.
+     */
+    @Transactional
+    public MissionResponse renew(int employerId, int missionId, MissionRequest request) {
+        Mission source = employerMission(employerId, missionId);
+        if (source.getStatus() != MissionStatus.ACTIVE) {
+            throw new IllegalArgumentException("Seule une mission confirmée peut être renouvelée.");
+        }
+        if (missionRepository.existsByApplicationIdAndStatusIn(
+                source.getApplication().getId(), UNDER_REVIEW)) {
+            throw new IllegalArgumentException(
+                    "Un renouvellement est déjà en cours pour cette mission.");
+        }
+        if (!request.startDate().isAfter(source.getEndDate())) {
+            throw new IllegalArgumentException(
+                    "Le renouvellement doit commencer après la fin de la mission en cours.");
+        }
+
+        Mission renewal = new Mission();
+        renewal.setApplication(source.getApplication());
+        renewal.setPreviousMission(source);
+        renewal.setStatus(MissionStatus.RENEWAL);
+        applyFields(renewal, request, source.getApplication().getJobOffer());
+        Mission saved = missionRepository.save(renewal);
         checkNoOverlap(saved);
         replaceSlots(saved, request.slots());
         return toResponse(saved);

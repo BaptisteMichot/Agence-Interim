@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCandidateProfile } from '../../api/applications';
-import { createMission, getEmployerMission, updateMission } from '../../api/missions';
+import { createMission, getEmployerMission, renewMission, updateMission } from '../../api/missions';
 import { getMyOffer } from '../../api/offers';
 import {
   btnPrimary,
@@ -36,6 +36,12 @@ interface EditableDay {
   endTime: string;
 }
 
+/**
+ * create : nouvelle mission pour un candidat retenu ; edit : correction après un refus
+ * de l'agence ; renew : renouvellement d'une mission confirmée (US19).
+ */
+export type MissionFormMode = 'create' | 'edit' | 'renew';
+
 /** Au-delà, l'édition jour par jour n'a plus de sens dans un écran. */
 const MAX_DAYS = 92;
 
@@ -47,12 +53,13 @@ const DEFAULT_END = '16:00';
  * d'une mission refusée par l'agence. Les conditions saisies ici sont celles qui
  * figureront sur le contrat.
  */
-export default function MissionFormPage() {
+export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFormMode }) {
   const { applicationId: applicationParam, id: missionParam } = useParams();
   const navigate = useNavigate();
   const applicationId = Number(applicationParam);
   const missionId = Number(missionParam);
-  const isEdit = Boolean(missionParam);
+  const isEdit = mode === 'edit';
+  const isRenewal = mode === 'renew';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,6 +82,7 @@ export default function MissionFormPage() {
   const [workReason, setWorkReason] = useState<WorkReason>('OVERLOAD');
   const [notes, setNotes] = useState('');
   const [refusalReason, setRefusalReason] = useState<string | null>(null);
+  const [previousPeriod, setPreviousPeriod] = useState<{ start: string; end: string } | null>(null);
 
   /** Régénère la liste des journées en conservant celles déjà réglées. */
   const rebuildDays = useCallback((start: string, end: string, previous: EditableDay[]) => {
@@ -106,7 +114,43 @@ export default function MissionFormPage() {
 
     async function load() {
       try {
-        if (isEdit) {
+        if (isRenewal) {
+          const source = await getEmployerMission(missionId);
+          const offer = await getMyOffer(source.offerId);
+          if (cancelled) {
+            return;
+          }
+          setCandidate(`${source.candidateFirstName} ${source.candidateLastName}`);
+          setOfferTitle(source.offerTitle);
+          setSalaryMin(offer.salaryMin);
+          setSalaryMax(offer.salaryMax);
+          setPosition(source.position);
+          setWorkplace(source.workplace);
+          setHourlyWage(String(source.hourlyWage));
+          setWorkReason(source.workReason);
+          setNotes(source.notes ?? '');
+          setPreviousPeriod({ start: source.startDate, end: source.endDate });
+
+          // Même durée, à la suite de la mission renouvelée, avec les horaires d'origine.
+          const firstSlot = source.slots[0];
+          const start = firstSlot ? shortTime(firstSlot.startTime) : DEFAULT_START;
+          const end = firstSlot ? shortTime(firstSlot.endTime) : DEFAULT_END;
+          setDefaultStart(start);
+          setDefaultEnd(end);
+          const length = datesBetween(source.startDate, source.endDate).length;
+          const nextStart = addDays(source.endDate, 1);
+          const nextEnd = addDays(nextStart, length - 1);
+          setRangeStart(nextStart);
+          setRangeEnd(nextEnd);
+          setDays(
+            datesBetween(nextStart, nextEnd).map((date) => ({
+              date,
+              worked: !isWeekend(date),
+              startTime: start,
+              endTime: end,
+            })),
+          );
+        } else if (isEdit) {
           const mission = await getEmployerMission(missionId);
           const offer = await getMyOffer(mission.offerId);
           if (cancelled) {
@@ -166,7 +210,7 @@ export default function MissionFormPage() {
     return () => {
       cancelled = true;
     };
-  }, [applicationId, isEdit, missionId, rebuildDays]);
+  }, [applicationId, isEdit, isRenewal, missionId, rebuildDays]);
 
   const changeRange = (start: string, end: string) => {
     setRangeStart(start);
@@ -190,6 +234,8 @@ export default function MissionFormPage() {
     setDays((list) => list.map((day) => ({ ...day, worked })));
   };
 
+  // Un renouvellement ne peut démarrer qu'après la fin de la mission renouvelée.
+  const minDate = previousPeriod ? addDays(previousPeriod.end, 1) : todayIso();
   const workedDays = useMemo(() => days.filter((day) => day.worked), [days]);
   const minutes = totalMinutes(workedDays);
   const wageNumber = Number(hourlyWage.replace(',', '.'));
@@ -203,6 +249,12 @@ export default function MissionFormPage() {
 
     if (workedDays.length === 0) {
       setError('Sélectionnez au moins une journée de travail.');
+      return;
+    }
+    if (previousPeriod && workedDays.some((day) => day.date <= previousPeriod.end)) {
+      setError(
+        `Le renouvellement doit commencer après le ${formatDate(previousPeriod.end)}, fin de la mission en cours.`,
+      );
       return;
     }
     const invalid = workedDays.find((day) => slotMinutes(day) <= 0);
@@ -242,9 +294,14 @@ export default function MissionFormPage() {
 
     setSaving(true);
     try {
-      const mission = isEdit
-        ? await updateMission(missionId, payload)
-        : await createMission(applicationId, payload);
+      let mission;
+      if (isEdit) {
+        mission = await updateMission(missionId, payload);
+      } else if (isRenewal) {
+        mission = await renewMission(missionId, payload);
+      } else {
+        mission = await createMission(applicationId, payload);
+      }
       navigate(`/employeur/missions/${mission.id}`, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "La mission n'a pas pu être enregistrée.");
@@ -268,16 +325,26 @@ export default function MissionFormPage() {
           ← Retour
         </button>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-          {isEdit ? 'Corriger la mission' : 'Proposer une mission'}
+          {isEdit ? 'Corriger la mission' : isRenewal ? 'Renouveler la mission' : 'Proposer une mission'}
         </h1>
         <p className="mt-1 text-slate-600">
           {candidate} · offre « {offerTitle} »
         </p>
         <p className="mt-1 text-sm text-slate-500">
-          Ces informations seront reprises telles quelles dans le contrat. La mission est ensuite
-          soumise à l'agence, puis à l'intérimaire.
+          {isRenewal
+            ? "Les conditions de la mission en cours sont reprises : ajustez-les si besoin. L'intérimaire accepte ou refuse le renouvellement, puis l'agence le valide."
+            : "Ces informations seront reprises telles quelles dans le contrat. La mission est ensuite soumise à l'agence, puis à l'intérimaire."}
         </p>
       </div>
+
+      {previousPeriod && (
+        <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+          <p className="text-sm text-violet-900">
+            Renouvellement de la mission du {formatDate(previousPeriod.start)} au{' '}
+            {formatDate(previousPeriod.end)}. Le renouvellement doit démarrer après cette date.
+          </p>
+        </div>
+      )}
 
       {refusalReason && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
@@ -385,7 +452,7 @@ export default function MissionFormPage() {
               type="date"
               className={inputClass}
               value={rangeStart}
-              min={todayIso()}
+              min={minDate}
               onChange={(e) => changeRange(e.target.value, rangeEnd)}
             />
           </div>
@@ -398,7 +465,7 @@ export default function MissionFormPage() {
               type="date"
               className={inputClass}
               value={rangeEnd}
-              min={rangeStart || todayIso()}
+              min={rangeStart || minDate}
               onChange={(e) => changeRange(rangeStart, e.target.value)}
             />
           </div>
@@ -540,7 +607,13 @@ export default function MissionFormPage() {
           Annuler
         </button>
         <button type="submit" className={btnPrimary} disabled={saving}>
-          {saving ? 'Envoi…' : isEdit ? 'Renvoyer à l’agence' : 'Envoyer à l’agence'}
+          {saving
+            ? 'Envoi…'
+            : isRenewal
+              ? 'Proposer le renouvellement'
+              : isEdit
+                ? 'Renvoyer à l’agence'
+                : 'Envoyer à l’agence'}
         </button>
       </div>
     </form>

@@ -59,4 +59,14 @@ public class EmployerMissionController {
             @Valid @RequestBody MissionRequest request) {
         return missionService.update(CurrentUser.id(jwt), id, request);
     }
+
+    /** Demande le renouvellement d'une mission confirmée : l'intérimaire répond en premier. */
+    @PostMapping("/missions/{id}/renew")
+    public ResponseEntity<MissionResponse> renew(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable int id,
+            @Valid @RequestBody MissionRequest request) {
+        MissionResponse renewal = missionService.renew(CurrentUser.id(jwt), id, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(renewal);
+    }
 }

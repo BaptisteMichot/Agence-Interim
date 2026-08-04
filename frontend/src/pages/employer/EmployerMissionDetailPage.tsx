@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getEmployerMission } from '../../api/missions';
-import { btnSecondary, errorBox } from '../../components/ui';
+import { btnPrimary, btnSecondary, errorBox } from '../../components/ui';
 import ContractPanel from '../../missions/ContractPanel';
 import MissionFacts from '../../missions/MissionFacts';
 import MissionSchedule from '../../missions/MissionSchedule';
 import MissionStatusBadge from '../../missions/MissionStatusBadge';
 import type { Mission } from '../../missions/types';
+import { formatDate } from '../../profile/format';
 
 /** Message d'étape affiché à l'employeur selon l'avancement de la mission. */
 function StatusBanner({ mission }: { mission: Mission }) {
@@ -93,12 +94,23 @@ export default function EmployerMissionDetailPage() {
               {mission.candidateFirstName} {mission.candidateLastName} · {mission.candidateEmail}
             </p>
             <p className="text-sm text-slate-500">Offre « {mission.offerTitle} »</p>
+            {mission.renewal && mission.previousStartDate && (
+              <p className="mt-1 text-sm text-violet-700">
+                Renouvellement de la mission du {formatDate(mission.previousStartDate)} au{' '}
+                {formatDate(mission.previousEndDate)}.
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <MissionStatusBadge status={mission.status} renewal={mission.renewal} />
             {mission.status === 'REFUSED' && (
               <Link to={`/employeur/missions/${mission.id}/corriger`} className={btnSecondary}>
                 Corriger la mission
+              </Link>
+            )}
+            {mission.status === 'ACTIVE' && (
+              <Link to={`/employeur/missions/${mission.id}/renouveler`} className={btnPrimary}>
+                Renouveler la mission
               </Link>
             )}
           </div>

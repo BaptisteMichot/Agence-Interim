@@ -73,7 +73,11 @@ export default function App() {
             />
             <Route path="/employeur/missions" element={<EmployerMissionsPage />} />
             <Route path="/employeur/missions/:id" element={<EmployerMissionDetailPage />} />
-            <Route path="/employeur/missions/:id/corriger" element={<MissionFormPage />} />
+            <Route path="/employeur/missions/:id/corriger" element={<MissionFormPage mode="edit" />} />
+            <Route
+              path="/employeur/missions/:id/renouveler"
+              element={<MissionFormPage mode="renew" />}
+            />
           </Route>
           {/* Messagerie : accessible aux deux participants d'une conversation. */}
           <Route element={<ProtectedRoute allowedRoles={['JOBSEEKER', 'EMPLOYER']} />}>
