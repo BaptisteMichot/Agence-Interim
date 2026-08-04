@@ -373,7 +373,7 @@ public class MissionService {
         if (missions.isEmpty()) {
             return List.of();
         }
-        List<Integer> ids = missions.stream().map(Mission::getId).toList();
+        List<Integer> ids = missions.stream().map(mission -> mission.getId()).toList();
         Map<Integer, List<DailySchedule>> slotsByMission =
                 dailyScheduleRepository.findByMissionIdInOrderByDateAscStartTimeAsc(ids).stream()
                         .collect(Collectors.groupingBy(slot -> slot.getMission().getId()));
