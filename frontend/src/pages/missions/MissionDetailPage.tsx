@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { acceptMission, declineMission, getMyMission } from '../../api/missions';
+import { getUnavailabilities } from '../../api/planning';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { btnDanger, btnPrimary, errorBox } from '../../components/ui';
 import ContractPanel from '../../missions/ContractPanel';
 import MissionFacts from '../../missions/MissionFacts';
 import MissionSchedule from '../../missions/MissionSchedule';
 import MissionStatusBadge from '../../missions/MissionStatusBadge';
-import type { Mission } from '../../missions/types';
+import type { Mission, Unavailability } from '../../missions/types';
 import { formatDate } from '../../profile/format';
 
 /**
@@ -24,6 +25,7 @@ export default function MissionDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [declining, setDeclining] = useState(false);
+  const [clashes, setClashes] = useState<Unavailability[]>([]);
 
   const reload = useCallback(async () => {
     setError(null);
@@ -39,6 +41,18 @@ export default function MissionDetailPage() {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // Prévient l'intérimaire si la mission tombe sur une indisponibilité qu'il a déclarée.
+  useEffect(() => {
+    if (!mission || (mission.status !== 'APPROVED' && mission.status !== 'RENEWAL')) {
+      setClashes([]);
+      return;
+    }
+    const workedDays = new Set(mission.slots.map((slot) => slot.date));
+    getUnavailabilities(mission.startDate, mission.endDate)
+      .then((items) => setClashes(items.filter((item) => workedDays.has(item.date))))
+      .catch(() => setClashes([]));
+  }, [mission]);
 
   const respond = async (accept: boolean) => {
     setBusy(true);
@@ -108,6 +122,14 @@ export default function MissionDetailPage() {
               </>
             )}
           </p>
+          {clashes.length > 0 && (
+            <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              ⚠️ Tu t'es déclaré indisponible sur {clashes.length} journée(s) de cette mission (
+              {clashes.map((item) => formatDate(item.date)).join(', ')}). En acceptant, ces
+              indisponibilités seront écrasées par la mission.
+            </p>
+          )}
+
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"

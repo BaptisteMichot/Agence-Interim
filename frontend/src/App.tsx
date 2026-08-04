@@ -23,6 +23,7 @@ import OfferDetailPage from './pages/offers/OfferDetailPage';
 import MyApplicationsPage from './pages/applications/MyApplicationsPage';
 import MyMissionsPage from './pages/missions/MyMissionsPage';
 import MissionDetailPage from './pages/missions/MissionDetailPage';
+import PlanningPage from './pages/planning/PlanningPage';
 import ConversationsPage from './pages/chat/ConversationsPage';
 import ConversationThreadPage from './pages/chat/ConversationThreadPage';
 
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="/interimaire/candidatures" element={<MyApplicationsPage />} />
             <Route path="/interimaire/missions" element={<MyMissionsPage />} />
             <Route path="/interimaire/missions/:id" element={<MissionDetailPage />} />
+            <Route path="/interimaire/planning" element={<PlanningPage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
             <Route path="/employeur" element={<EmployerDashboard />} />

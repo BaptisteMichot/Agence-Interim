@@ -54,14 +54,19 @@ export default function MyMissionsPage() {
 
   return (
     <section className="space-y-6">
-      <div>
-        <Link to="/interimaire" className="text-sm text-indigo-600 hover:underline">
-          ← Retour à mon espace
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <Link to="/interimaire" className="text-sm text-indigo-600 hover:underline">
+            ← Retour à mon espace
+          </Link>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mes missions</h1>
+          <p className="mt-1 text-slate-600">
+            Les missions que tu acceptes apparaissent dans ton planning et donnent lieu à un contrat.
+          </p>
+        </div>
+        <Link to="/interimaire/planning" className={btnSecondary}>
+          Mon planning
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mes missions</h1>
-        <p className="mt-1 text-slate-600">
-          Les missions que tu acceptes apparaissent dans ton planning et donnent lieu à un contrat.
-        </p>
       </div>
 
       {error && <p className={errorBox}>{error}</p>}

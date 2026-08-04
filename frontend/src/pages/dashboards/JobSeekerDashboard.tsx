@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getMissionDecisionCount } from '../../api/missions';
-import DashboardPlaceholder from '../../components/DashboardPlaceholder';
 
 export default function JobSeekerDashboard() {
   const [decisionCount, setDecisionCount] = useState(0);
@@ -14,7 +13,7 @@ export default function JobSeekerDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           to="/interimaire/profil"
           className="block rounded-xl border border-indigo-200 bg-indigo-50 p-6 transition hover:bg-indigo-100"
@@ -60,12 +59,16 @@ export default function JobSeekerDashboard() {
               : 'Consulte tes missions et tes contrats.'}
           </p>
         </Link>
+        <Link
+          to="/interimaire/planning"
+          className="block rounded-xl border border-amber-200 bg-amber-50 p-6 transition hover:bg-amber-100"
+        >
+          <p className="text-lg font-semibold text-amber-800">Mon planning →</p>
+          <p className="mt-1 text-sm text-amber-700">
+            Visualise tes journées de travail et déclare tes indisponibilités.
+          </p>
+        </Link>
       </div>
-
-      <DashboardPlaceholder
-        title="Espace intérimaire"
-        upcoming={['Consulter mon planning et gérer mes disponibilités']}
-      />
     </div>
   );
 }

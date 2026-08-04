@@ -60,6 +60,19 @@ export default function ProfilePage() {
       <SkillSection />
       <DegreeSection />
       <LanguageSection />
+
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Disponibilités</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Tes indisponibilités se déclarent depuis ton planning, à partir de J+8.
+        </p>
+        <Link
+          to="/interimaire/planning"
+          className="mt-3 inline-block text-sm font-medium text-indigo-600 hover:underline"
+        >
+          Ouvrir mon planning →
+        </Link>
+      </section>
     </div>
   );
 }

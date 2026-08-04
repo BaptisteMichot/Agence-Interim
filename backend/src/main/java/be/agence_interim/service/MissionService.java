@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import be.agence_interim.dto.DailySlotRequest;
 import be.agence_interim.dto.MissionRequest;
 import be.agence_interim.dto.MissionResponse;
+import be.agence_interim.dto.ScheduleEntryResponse;
 import be.agence_interim.model.Application;
 import be.agence_interim.model.ApplicationStatus;
 import be.agence_interim.model.Contract;
@@ -29,12 +30,14 @@ import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.JobOfferStatus;
 import be.agence_interim.model.Mission;
 import be.agence_interim.model.MissionStatus;
+import be.agence_interim.model.Unavailability;
 import be.agence_interim.model.User;
 import be.agence_interim.repository.ApplicationRepository;
 import be.agence_interim.repository.ContractRepository;
 import be.agence_interim.repository.DailyScheduleRepository;
 import be.agence_interim.repository.JobOfferRepository;
 import be.agence_interim.repository.MissionRepository;
+import be.agence_interim.repository.UnavailabilityRepository;
 
 /**
  * Cycle de vie des missions d'intérim : création de la mission provisoire par
@@ -62,6 +65,7 @@ public class MissionService {
     private final ContractRepository contractRepository;
     private final ApplicationRepository applicationRepository;
     private final JobOfferRepository jobOfferRepository;
+    private final UnavailabilityRepository unavailabilityRepository;
     private final ContractService contractService;
     private final MailService mailService;
     private final String frontendUrl;
@@ -72,6 +76,7 @@ public class MissionService {
             ContractRepository contractRepository,
             ApplicationRepository applicationRepository,
             JobOfferRepository jobOfferRepository,
+            UnavailabilityRepository unavailabilityRepository,
             ContractService contractService,
             MailService mailService,
             @Value("${app.frontend.url}") String frontendUrl) {
@@ -80,6 +85,7 @@ public class MissionService {
         this.contractRepository = contractRepository;
         this.applicationRepository = applicationRepository;
         this.jobOfferRepository = jobOfferRepository;
+        this.unavailabilityRepository = unavailabilityRepository;
         this.contractService = contractService;
         this.mailService = mailService;
         this.frontendUrl = frontendUrl;
@@ -191,6 +197,20 @@ public class MissionService {
         return toResponse(jobSeekerMission(jobSeekerId, missionId));
     }
 
+    /**
+     * Journées de travail de l'intérimaire sur une période, pour son planning.
+     * Seules les missions confirmées y figurent (cf. analyse).
+     */
+    @Transactional(readOnly = true)
+    public List<ScheduleEntryResponse> schedule(int jobSeekerId, LocalDate from, LocalDate to) {
+        if (to.isBefore(from)) {
+            throw new IllegalArgumentException("La date de fin doit être postérieure à la date de début.");
+        }
+        return dailyScheduleRepository
+                .findForJobSeekerBetween(jobSeekerId, MissionStatus.ACTIVE, from, to)
+                .stream().map(ScheduleEntryResponse::fromEntity).toList();
+    }
+
     /** Nombre de missions en attente d'une décision de l'intérimaire (badge du portail). */
     @Transactional(readOnly = true)
     public long decisionCount(int jobSeekerId) {
@@ -231,6 +251,7 @@ public class MissionService {
         Mission saved = missionRepository.save(mission);
         List<DailySchedule> slots =
                 dailyScheduleRepository.findByMissionIdOrderByDateAscStartTimeAsc(saved.getId());
+        clearConflictingUnavailabilities(saved, slots);
         Contract contract = contractService.generate(saved, slots);
 
         JobOffer offer = saved.getApplication().getJobOffer();
@@ -240,6 +261,26 @@ public class MissionService {
         }
         sendContract(saved, contract);
         return saved;
+    }
+
+    /**
+     * Une mission acceptée l'emporte sur les indisponibilités déclarées sur ses
+     * journées : on les retire pour garder un planning cohérent (l'intérimaire en
+     * est averti avant d'accepter).
+     */
+    private void clearConflictingUnavailabilities(Mission mission, List<DailySchedule> slots) {
+        List<Unavailability> conflicting = unavailabilityRepository
+                .findByUserIdAndDateBetweenOrderByDateAscStartTimeAsc(
+                        mission.getApplication().getJobSeeker().getId(),
+                        mission.getStartDate(), mission.getEndDate())
+                .stream()
+                .filter(item -> slots.stream().anyMatch(slot -> slot.getDate().equals(item.getDate())
+                        && slot.getStartTime().isBefore(item.getEndTime())
+                        && item.getStartTime().isBefore(slot.getEndTime())))
+                .toList();
+        if (!conflicting.isEmpty()) {
+            unavailabilityRepository.deleteAll(conflicting);
+        }
     }
 
     private void sendContract(Mission mission, Contract contract) {

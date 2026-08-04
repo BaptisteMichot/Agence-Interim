@@ -36,6 +36,34 @@ export interface Contract {
   fileName: string;
 }
 
+/** Journée de mission affichée dans le planning. */
+export interface ScheduleEntry {
+  missionId: number;
+  position: string;
+  company: string;
+  workplace: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+/** Indisponibilité déclarée par l'intérimaire (editable = modifiable, cf. délai J+8). */
+export interface Unavailability {
+  id: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason: string | null;
+  editable: boolean;
+}
+
+export interface UnavailabilityPayload {
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason: string | null;
+}
+
 /** Corps envoyé à la création / correction d'une mission. */
 export interface MissionPayload {
   startDate: string;

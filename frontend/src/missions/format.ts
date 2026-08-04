@@ -1,4 +1,4 @@
-import type { DailySlot, DailySlotPayload, Mission, MissionStatus, WorkReason } from './types';
+import type { Mission, MissionStatus, WorkReason } from './types';
 
 /** Libellé et couleur du badge de statut, selon le point de vue. */
 export const MISSION_STATUS: Record<MissionStatus, { label: string; className: string }> = {
@@ -25,16 +25,27 @@ export function shortTime(time: string): string {
   return time.slice(0, 5);
 }
 
+/** Plage horaire minimale nécessaire aux calculs de durée. */
+interface TimeRange {
+  startTime: string;
+  endTime: string;
+}
+
 /** Durée d'un créneau, en minutes. */
-export function slotMinutes(slot: DailySlot | DailySlotPayload): number {
+export function slotMinutes(slot: TimeRange): number {
   const [startHour, startMinute] = shortTime(slot.startTime).split(':').map(Number);
   const [endHour, endMinute] = shortTime(slot.endTime).split(':').map(Number);
   return endHour * 60 + endMinute - (startHour * 60 + startMinute);
 }
 
 /** Total des heures d'une mission, en minutes. */
-export function totalMinutes(slots: (DailySlot | DailySlotPayload)[]): number {
+export function totalMinutes(slots: TimeRange[]): number {
   return slots.reduce((total, slot) => total + Math.max(0, slotMinutes(slot)), 0);
+}
+
+/** Vrai si l'indisponibilité couvre la journée entière (00:00 → 23:59). */
+export function isFullDay(range: TimeRange): boolean {
+  return shortTime(range.startTime) === '00:00' && shortTime(range.endTime) === '23:59';
 }
 
 /** « 7 h 30 » / « 8 h ». */
@@ -91,6 +102,35 @@ export function datesBetween(startIso: string, endIso: string): string[] {
   }
   return dates;
 }
+
+/** Premier jour du mois d'une date ISO. */
+export function startOfMonth(iso: string): string {
+  return `${iso.slice(0, 7)}-01`;
+}
+
+/** Décale une date ISO de n mois (en restant sur le 1er du mois). */
+export function addMonths(iso: string, months: number): string {
+  const date = new Date(`${startOfMonth(iso)}T12:00:00`);
+  date.setMonth(date.getMonth() + months);
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return startOfMonth(date.toISOString().slice(0, 10));
+}
+
+/**
+ * Dates affichées par la grille d'un mois : semaines complètes commençant le lundi,
+ * du lundi précédant le 1er au dimanche suivant le dernier jour.
+ */
+export function monthGrid(monthStart: string): string[] {
+  const first = new Date(`${startOfMonth(monthStart)}T12:00:00`);
+  const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const offset = (first.getDay() + 6) % 7; // 0 = lundi
+  const total = Math.ceil((offset + daysInMonth) / 7) * 7;
+  const start = addDays(startOfMonth(monthStart), -offset);
+  return Array.from({ length: total }, (_, index) => addDays(start, index));
+}
+
+/** Libellés des jours de la semaine, du lundi au dimanche. */
+export const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 /** Classement d'une mission confirmée dans le temps (pour les regroupements). */
 export function missionPeriod(mission: Mission): 'upcoming' | 'current' | 'past' {
