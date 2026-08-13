@@ -1,4 +1,13 @@
-import { isFullDay, isWeekend, monthGrid, monthLabel, shortTime, todayIso, WEEKDAYS } from './format';
+import {
+  isFullDay,
+  isWeekend,
+  monthGrid,
+  monthLabel,
+  scheduleLabel,
+  shortTime,
+  todayIso,
+  WEEKDAYS,
+} from './format';
 import type { ScheduleEntry, Unavailability } from './types';
 
 interface MonthCalendarProps {
@@ -147,10 +156,11 @@ export default function MonthCalendar({
                   {dayMissions.map((entry) => (
                     <span
                       key={`${entry.missionId}-${entry.startTime}`}
-                      className="truncate rounded bg-indigo-500 px-1.5 py-0.5 text-[11px] font-medium text-white"
-                      title={`${entry.position} — ${entry.company} (${shortTime(entry.startTime)}–${shortTime(entry.endTime)})`}
+                      className="rounded bg-indigo-500 px-1.5 py-0.5 text-[11px] font-medium text-white"
+                      title={`${scheduleLabel(entry)} (${shortTime(entry.startTime)}–${shortTime(entry.endTime)})`}
                     >
-                      {shortTime(entry.startTime)} {entry.position}
+                      <span className="block">{shortTime(entry.startTime)}</span>
+                      <span className="block truncate">{scheduleLabel(entry)}</span>
                     </span>
                   ))}
 

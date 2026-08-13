@@ -25,6 +25,11 @@ export function shortTime(time: string): string {
   return time.slice(0, 5);
 }
 
+/** Intitulé d'une journée de mission dans le planning : « Entreprise – Poste ». */
+export function scheduleLabel(entry: { company: string; position: string }): string {
+  return `${entry.company} – ${entry.position}`;
+}
+
 /** Plage horaire minimale nécessaire aux calculs de durée. */
 interface TimeRange {
   startTime: string;

@@ -23,6 +23,7 @@ import {
   formatMinutes,
   isFullDay,
   monthGrid,
+  scheduleLabel,
   shortTime,
   slotMinutes,
   startOfMonth,
@@ -202,10 +203,10 @@ export default function PlanningPage() {
                     className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 transition hover:bg-indigo-100"
                   >
                     <span>
-                      <span className="block font-medium text-indigo-900">{entry.position}</span>
-                      <span className="block text-sm text-indigo-700">
-                        {entry.company} · {entry.workplace}
+                      <span className="block font-medium text-indigo-900">
+                        {scheduleLabel(entry)}
                       </span>
+                      <span className="block text-sm text-indigo-700">{entry.workplace}</span>
                     </span>
                     <span className="text-sm font-medium text-indigo-900">
                       {shortTime(entry.startTime)} – {shortTime(entry.endTime)} (
@@ -335,8 +336,8 @@ export default function PlanningPage() {
                   <span className="block text-sm font-medium capitalize text-slate-900">
                     {weekdayLabel(entry.date)} {formatDate(entry.date)}
                   </span>
-                  <span className="block text-xs text-slate-500">
-                    {entry.position} · {shortTime(entry.startTime)}–{shortTime(entry.endTime)}
+                  <span className="block truncate text-xs text-slate-500">
+                    {scheduleLabel(entry)} · {shortTime(entry.startTime)}–{shortTime(entry.endTime)}
                   </span>
                 </button>
               </li>
