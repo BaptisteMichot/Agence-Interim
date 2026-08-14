@@ -23,12 +23,13 @@ import {
   formatMinutes,
   isFullDay,
   monthGrid,
+  paidMinutes,
   scheduleLabel,
   shortTime,
-  slotMinutes,
   startOfMonth,
   todayIso,
   weekdayLabel,
+  workedRanges,
 } from '../../missions/format';
 import MonthCalendar from '../../missions/MonthCalendar';
 import type { ScheduleEntry, Unavailability } from '../../missions/types';
@@ -94,7 +95,7 @@ export default function PlanningPage() {
     () => missions.filter((entry) => entry.date.slice(0, 7) === monthStart.slice(0, 7)),
     [missions, monthStart],
   );
-  const monthMinutes = monthMissions.reduce((total, entry) => total + slotMinutes(entry), 0);
+  const monthMinutes = monthMissions.reduce((total, entry) => total + paidMinutes(entry), 0);
 
   const upcoming = useMemo(
     () => missions.filter((entry) => entry.date >= todayIso()).slice(0, 5),
@@ -180,7 +181,7 @@ export default function PlanningPage() {
         <span className="font-medium text-slate-900">
           {monthMissions.length} journée(s) de mission
         </span>{' '}
-        · {formatMinutes(monthMinutes)} de travail planifié.
+        · {formatMinutes(monthMinutes)} de travail rémunéré.
       </p>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -208,9 +209,12 @@ export default function PlanningPage() {
                       </span>
                       <span className="block text-sm text-indigo-700">{entry.workplace}</span>
                     </span>
-                    <span className="text-sm font-medium text-indigo-900">
-                      {shortTime(entry.startTime)} – {shortTime(entry.endTime)} (
-                      {formatMinutes(slotMinutes(entry))})
+                    <span className="text-right text-sm font-medium text-indigo-900">
+                      {workedRanges(entry).map((range) => (
+                        <span key={range} className="block">
+                          {range}
+                        </span>
+                      ))}
                     </span>
                   </Link>
                 ))}

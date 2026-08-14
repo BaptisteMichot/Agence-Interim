@@ -392,11 +392,14 @@ public class MissionService {
             if (!dates.add(slot.date())) {
                 throw new IllegalArgumentException("La journée du " + slot.date() + " est renseignée deux fois.");
             }
+            checkBreak(slot);
             DailySchedule entity = new DailySchedule();
             entity.setMission(mission);
             entity.setDate(slot.date());
             entity.setStartTime(slot.startTime());
             entity.setEndTime(slot.endTime());
+            entity.setBreakStart(slot.breakStart());
+            entity.setBreakEnd(slot.breakEnd());
             entities.add(entity);
         }
         if (!dates.contains(mission.getStartDate()) || !dates.contains(mission.getEndDate())) {
@@ -406,6 +409,33 @@ public class MissionService {
         dailyScheduleRepository.deleteByMissionId(mission.getId());
         dailyScheduleRepository.flush();
         dailyScheduleRepository.saveAll(entities);
+    }
+
+    /**
+     * Contrôle la pause fixée par l'employeur. Elle est facultative — l'avertissement
+     * légal des 30 minutes au-delà de 6 heures est laissé à l'appréciation de
+     * l'employeur — mais elle doit rester cohérente avec l'horaire de la journée.
+     */
+    private void checkBreak(DailySlotRequest slot) {
+        if (slot.breakStart() == null && slot.breakEnd() == null) {
+            return;
+        }
+        if (slot.breakStart() == null || slot.breakEnd() == null) {
+            throw new IllegalArgumentException(
+                    "La pause du " + slot.date() + " doit avoir une heure de début et une heure de fin.");
+        }
+        if (!slot.breakEnd().isAfter(slot.breakStart())) {
+            throw new IllegalArgumentException(
+                    "La fin de la pause doit être postérieure à son début (journée du " + slot.date() + ").");
+        }
+        if (slot.breakStart().isBefore(slot.startTime()) || slot.breakEnd().isAfter(slot.endTime())) {
+            throw new IllegalArgumentException(
+                    "La pause du " + slot.date() + " doit être comprise dans l'horaire de la journée.");
+        }
+        if (WorkTime.paidMinutes(slot.startTime(), slot.endTime(), slot.breakStart(), slot.breakEnd()) <= 0) {
+            throw new IllegalArgumentException(
+                    "La pause du " + slot.date() + " ne laisse aucun temps de travail rémunéré.");
+        }
     }
 
     /** Refuse de placer deux missions retenues sur la même période pour un même intérimaire. */

@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -150,9 +149,7 @@ public class ContractService {
     private void write(Contract contract, Mission mission, List<DailySchedule> slots) {
         User employer = mission.getApplication().getJobOffer().getEmployer();
         User worker = mission.getApplication().getJobSeeker();
-        long totalMinutes = slots.stream()
-                .mapToLong(slot -> Duration.between(slot.getStartTime(), slot.getEndTime()).toMinutes())
-                .sum();
+        long totalMinutes = slots.stream().mapToLong(WorkTime::paidMinutes).sum();
 
         StringBuilder text = new StringBuilder();
         text.append("CONTRAT DE TRAVAIL INTÉRIMAIRE\n");
@@ -178,17 +175,21 @@ public class ContractService {
         text.append("  Période          : du ").append(DATE.format(mission.getStartDate()))
                 .append(" au ").append(DATE.format(mission.getEndDate())).append("\n");
         text.append("  Salaire horaire  : ").append(mission.getHourlyWage()).append(" € brut\n");
-        text.append("  Volume total     : ").append(formatDuration(totalMinutes))
-                .append(" réparties sur ").append(slots.size()).append(" journée(s)\n\n");
+        text.append("  Volume rémunéré  : ").append(WorkTime.format(totalMinutes))
+                .append(" réparties sur ").append(slots.size())
+                .append(" journée(s), pauses non comprises\n\n");
 
         text.append("HORAIRE DE TRAVAIL\n");
         for (DailySchedule slot : slots) {
-            long minutes = Duration.between(slot.getStartTime(), slot.getEndTime()).toMinutes();
             text.append("  ").append(DAY.format(slot.getDate())).append(" : ")
-                    .append(TIME.format(slot.getStartTime())).append(" - ").append(TIME.format(slot.getEndTime()))
-                    .append(" (").append(formatDuration(minutes)).append(")\n");
+                    .append(TIME.format(slot.getStartTime())).append(" - ").append(TIME.format(slot.getEndTime()));
+            if (slot.getBreakStart() != null) {
+                text.append(", pause de ").append(TIME.format(slot.getBreakStart()))
+                        .append(" à ").append(TIME.format(slot.getBreakEnd()));
+            }
+            text.append(" (").append(WorkTime.format(WorkTime.paidMinutes(slot))).append(" rémunérées)\n");
         }
-        text.append("\n");
+        text.append("  La pause n'est pas rémunérée.\n\n");
 
         text.append("CONDITIONS PARTICULIÈRES\n");
         text.append("  ").append(mission.getNotes() == null || mission.getNotes().isBlank()
@@ -219,12 +220,5 @@ public class ContractService {
 
     private String signatureLabel(SignatureStatus status) {
         return status == SignatureStatus.SIGNED ? "signé" : "en attente de signature";
-    }
-
-    /** Formate une durée en minutes sous la forme « 7 h 30 ». */
-    private String formatDuration(long minutes) {
-        long hours = minutes / 60;
-        long rest = minutes % 60;
-        return rest == 0 ? hours + " h" : hours + " h " + String.format("%02d", rest);
     }
 }

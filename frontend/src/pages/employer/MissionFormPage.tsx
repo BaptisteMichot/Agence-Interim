@@ -13,27 +13,32 @@ import {
 } from '../../components/ui';
 import {
   addDays,
+  breakMinutes,
+  breakTooShort,
   datesBetween,
   estimatedPay,
   formatMinutes,
   isWeekend,
   monthLabel,
+  paidMinutes,
+  presenceMinutes,
   shortTime,
-  slotMinutes,
   todayIso,
-  totalMinutes,
+  totalPaidMinutes,
   weekdayLabel,
   WORK_REASONS,
 } from '../../missions/format';
 import type { MissionPayload, WorkReason } from '../../missions/types';
 import { formatDate } from '../../profile/format';
 
-/** Une journée de la période, prestée ou non. */
+/** Une journée de la période, prestée ou non. Une pause vide signifie « pas de pause ». */
 interface EditableDay {
   date: string;
   worked: boolean;
   startTime: string;
   endTime: string;
+  breakStart: string;
+  breakEnd: string;
 }
 
 /**
@@ -45,8 +50,48 @@ export type MissionFormMode = 'create' | 'edit' | 'renew';
 /** Au-delà, l'édition jour par jour n'a plus de sens dans un écran. */
 const MAX_DAYS = 92;
 
+/** Colonnes alignées du tableau des journées : jour, horaire, pause, temps rémunéré. */
+const dayGrid = 'grid grid-cols-[minmax(11rem,1fr)_13rem_13rem_7rem] items-center gap-x-4 px-3';
+
+/** Champ horaire compact, adapté à la densité du tableau des journées. */
+const timeInput =
+  'w-24 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-700 outline-none '
+  + 'focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
+
+/** Heure de pause renvoyée par le backend, ramenée à « HH:mm » ou à une saisie vide. */
+function breakOf(time: string | null): string {
+  return time ? shortTime(time) : '';
+}
+
+/**
+ * Contrôle de cohérence de la pause d'une journée (mêmes règles que le backend).
+ * La pause reste facultative : seule une saisie incohérente est refusée.
+ */
+function breakError(day: EditableDay): string | null {
+  const jour = formatDate(day.date);
+  if (!day.breakStart && !day.breakEnd) {
+    return null;
+  }
+  if (!day.breakStart || !day.breakEnd) {
+    return `La pause du ${jour} doit avoir une heure de début et une heure de fin.`;
+  }
+  if (day.breakEnd <= day.breakStart) {
+    return `La fin de la pause du ${jour} doit être postérieure à son début.`;
+  }
+  if (day.breakStart < day.startTime || day.breakEnd > day.endTime) {
+    return `La pause du ${jour} doit être comprise dans l'horaire de la journée.`;
+  }
+  if (paidMinutes(day) <= 0) {
+    return `La pause du ${jour} ne laisse aucun temps de travail rémunéré.`;
+  }
+  return null;
+}
+
+// Journée type : 8 h 30 de présence dont une pause de midi de 30 min non payée = 8 h payées.
 const DEFAULT_START = '08:00';
-const DEFAULT_END = '16:00';
+const DEFAULT_END = '16:30';
+const DEFAULT_BREAK_START = '12:00';
+const DEFAULT_BREAK_END = '12:30';
 
 /**
  * Création de la mission provisoire proposée à un candidat retenu, et correction
@@ -75,6 +120,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   const [days, setDays] = useState<EditableDay[]>([]);
   const [defaultStart, setDefaultStart] = useState(DEFAULT_START);
   const [defaultEnd, setDefaultEnd] = useState(DEFAULT_END);
+  const [defaultBreakStart, setDefaultBreakStart] = useState(DEFAULT_BREAK_START);
+  const [defaultBreakEnd, setDefaultBreakEnd] = useState(DEFAULT_BREAK_END);
 
   const [position, setPosition] = useState('');
   const [workplace, setWorkplace] = useState('');
@@ -104,6 +151,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
             worked: !isWeekend(date),
             startTime: DEFAULT_START,
             endTime: DEFAULT_END,
+            breakStart: DEFAULT_BREAK_START,
+            breakEnd: DEFAULT_BREAK_END,
           },
       ),
     );
@@ -135,8 +184,12 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           const firstSlot = source.slots[0];
           const start = firstSlot ? shortTime(firstSlot.startTime) : DEFAULT_START;
           const end = firstSlot ? shortTime(firstSlot.endTime) : DEFAULT_END;
+          const pauseStart = firstSlot?.breakStart ? shortTime(firstSlot.breakStart) : '';
+          const pauseEnd = firstSlot?.breakEnd ? shortTime(firstSlot.breakEnd) : '';
           setDefaultStart(start);
           setDefaultEnd(end);
+          setDefaultBreakStart(pauseStart);
+          setDefaultBreakEnd(pauseEnd);
           const length = datesBetween(source.startDate, source.endDate).length;
           const nextStart = addDays(source.endDate, 1);
           const nextEnd = addDays(nextStart, length - 1);
@@ -148,6 +201,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
               worked: !isWeekend(date),
               startTime: start,
               endTime: end,
+              breakStart: pauseStart,
+              breakEnd: pauseEnd,
             })),
           );
         } else if (isEdit) {
@@ -177,6 +232,9 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
                 worked: Boolean(slot),
                 startTime: slot ? shortTime(slot.startTime) : DEFAULT_START,
                 endTime: slot ? shortTime(slot.endTime) : DEFAULT_END,
+                // Une journée non prestée reçoit la pause type, au cas où elle serait cochée.
+                breakStart: slot ? breakOf(slot.breakStart) : DEFAULT_BREAK_START,
+                breakEnd: slot ? breakOf(slot.breakEnd) : DEFAULT_BREAK_END,
               };
             }),
           );
@@ -225,7 +283,15 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   const applyDefaultTimes = () => {
     setDays((list) =>
       list.map((day) =>
-        day.worked ? { ...day, startTime: defaultStart, endTime: defaultEnd } : day,
+        day.worked
+          ? {
+              ...day,
+              startTime: defaultStart,
+              endTime: defaultEnd,
+              breakStart: defaultBreakStart,
+              breakEnd: defaultBreakEnd,
+            }
+          : day,
       ),
     );
   };
@@ -237,7 +303,9 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   // Un renouvellement ne peut démarrer qu'après la fin de la mission renouvelée.
   const minDate = previousPeriod ? addDays(previousPeriod.end, 1) : todayIso();
   const workedDays = useMemo(() => days.filter((day) => day.worked), [days]);
-  const minutes = totalMinutes(workedDays);
+  const minutes = totalPaidMinutes(workedDays);
+  // Avertissement légal non bloquant : plus de 6 h de présence sans pause d'au moins 30 min.
+  const daysWithoutBreak = useMemo(() => workedDays.filter(breakTooShort), [workedDays]);
   const wageNumber = Number(hourlyWage.replace(',', '.'));
   const tooManyDays = Boolean(
     rangeStart && rangeEnd && rangeEnd >= rangeStart && datesBetween(rangeStart, rangeEnd).length > MAX_DAYS,
@@ -257,9 +325,14 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
       );
       return;
     }
-    const invalid = workedDays.find((day) => slotMinutes(day) <= 0);
+    const invalid = workedDays.find((day) => presenceMinutes(day) <= 0);
     if (invalid) {
       setError(`L'horaire du ${formatDate(invalid.date)} est incohérent : la fin doit suivre le début.`);
+      return;
+    }
+    const badBreak = workedDays.map(breakError).find((message) => message !== null);
+    if (badBreak) {
+      setError(badBreak);
       return;
     }
     if (!Number.isFinite(wageNumber) || wageNumber <= 0) {
@@ -289,6 +362,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
         date: day.date,
         startTime: day.startTime,
         endTime: day.endTime,
+        breakStart: day.breakStart || null,
+        breakEnd: day.breakEnd || null,
       })),
     };
 
@@ -439,10 +514,11 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-900">Horaire de la mission</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Choisissez la période, puis décochez les jours non prestés et ajustez les horaires.
+          Choisissez la période, puis décochez les jours non prestés et ajustez les horaires. La
+          pause que vous fixez n'est pas rémunérée : elle est déduite du temps de travail payé.
         </p>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className={labelClass} htmlFor="mission-start">
               Du
@@ -491,6 +567,28 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
               />
             </div>
           </div>
+          <div>
+            <label className={labelClass} htmlFor="mission-default-break-start">
+              Pause type (non payée)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="mission-default-break-start"
+                type="time"
+                className={inputClass}
+                value={defaultBreakStart}
+                onChange={(e) => setDefaultBreakStart(e.target.value)}
+              />
+              <span className="text-slate-400">–</span>
+              <input
+                type="time"
+                className={inputClass}
+                value={defaultBreakEnd}
+                aria-label="Fin de la pause type"
+                onChange={(e) => setDefaultBreakEnd(e.target.value)}
+              />
+            </div>
+          </div>
           <div className="flex items-end">
             <button type="button" className={`${btnSecondary} w-full`} onClick={applyDefaultTimes}>
               Appliquer à tous les jours
@@ -527,73 +625,151 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
               </div>
             </div>
 
-            <ul className="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200">
-              {days.map((day, index) => {
-                const newMonth = index === 0 || monthLabel(day.date) !== monthLabel(days[index - 1].date);
-                const duration = slotMinutes(day);
-                return (
-                  <li key={day.date}>
-                    {newMonth && (
-                      <p className="bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        {monthLabel(day.date)}
-                      </p>
-                    )}
-                    <div
-                      className={`flex flex-wrap items-center gap-3 px-3 py-2 ${
-                        day.worked ? '' : 'bg-slate-50/60 text-slate-400'
-                      }`}
-                    >
-                      <label className="flex min-w-44 flex-1 cursor-pointer items-center gap-2">
-                        <input
-                          type="checkbox"
-                          className={checkboxInput}
-                          checked={day.worked}
-                          onChange={(e) => setDay(day.date, { worked: e.target.checked })}
-                        />
-                        <span
-                          className={`text-sm ${
-                            isWeekend(day.date) ? 'text-amber-700' : 'text-slate-700'
+            <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
+              <div className="min-w-[46rem]">
+                <div
+                  className={`${dayGrid} border-b border-slate-200 bg-slate-50 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500`}
+                >
+                  <span>Journée</span>
+                  <span>Horaire</span>
+                  <span>Pause (non payée)</span>
+                  <span className="text-right">Rémunéré</span>
+                </div>
+
+                <ul className="divide-y divide-slate-100">
+                  {days.map((day, index) => {
+                    const newMonth =
+                      index === 0 || monthLabel(day.date) !== monthLabel(days[index - 1].date);
+                    const presence = presenceMinutes(day);
+                    const pause = breakMinutes(day);
+                    const paid = presence - pause;
+                    const warned = day.worked && breakTooShort(day);
+                    return (
+                      <li key={day.date}>
+                        {newMonth && (
+                          <p className="bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            {monthLabel(day.date)}
+                          </p>
+                        )}
+                        <div
+                          className={`${dayGrid} py-1.5 ${
+                            !day.worked ? 'bg-slate-50/60' : warned ? 'bg-amber-50/70' : ''
                           }`}
                         >
-                          <span className="capitalize">{weekdayLabel(day.date)}</span>{' '}
-                          {formatDate(day.date)}
-                        </span>
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="time"
-                          className={`${inputClass} w-28`}
-                          value={day.startTime}
-                          disabled={!day.worked}
-                          aria-label={`Début du ${formatDate(day.date)}`}
-                          onChange={(e) => setDay(day.date, { startTime: e.target.value })}
-                        />
-                        <span className="text-slate-400">–</span>
-                        <input
-                          type="time"
-                          className={`${inputClass} w-28`}
-                          value={day.endTime}
-                          disabled={!day.worked}
-                          aria-label={`Fin du ${formatDate(day.date)}`}
-                          onChange={(e) => setDay(day.date, { endTime: e.target.value })}
-                        />
-                        <span
-                          className={`w-16 text-right text-xs ${
-                            day.worked && duration <= 0 ? 'font-medium text-red-600' : 'text-slate-500'
-                          }`}
-                        >
-                          {day.worked ? formatMinutes(Math.max(0, duration)) : '—'}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                          <label className="flex cursor-pointer items-center gap-2">
+                            <input
+                              type="checkbox"
+                              className={checkboxInput}
+                              checked={day.worked}
+                              onChange={(e) => setDay(day.date, { worked: e.target.checked })}
+                            />
+                            <span
+                              className={`text-sm ${
+                                !day.worked
+                                  ? 'text-slate-400'
+                                  : isWeekend(day.date)
+                                    ? 'text-amber-700'
+                                    : 'text-slate-700'
+                              }`}
+                            >
+                              <span className="capitalize">{weekdayLabel(day.date)}</span>{' '}
+                              {formatDate(day.date)}
+                            </span>
+                          </label>
+
+                          {day.worked ? (
+                            <>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="time"
+                                  className={timeInput}
+                                  value={day.startTime}
+                                  aria-label={`Début du ${formatDate(day.date)}`}
+                                  onChange={(e) => setDay(day.date, { startTime: e.target.value })}
+                                />
+                                <span className="text-slate-300">–</span>
+                                <input
+                                  type="time"
+                                  className={timeInput}
+                                  value={day.endTime}
+                                  aria-label={`Fin du ${formatDate(day.date)}`}
+                                  onChange={(e) => setDay(day.date, { endTime: e.target.value })}
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="time"
+                                  className={timeInput}
+                                  value={day.breakStart}
+                                  aria-label={`Début de la pause du ${formatDate(day.date)}`}
+                                  onChange={(e) => setDay(day.date, { breakStart: e.target.value })}
+                                />
+                                <span className="text-slate-300">–</span>
+                                <input
+                                  type="time"
+                                  className={timeInput}
+                                  value={day.breakEnd}
+                                  aria-label={`Fin de la pause du ${formatDate(day.date)}`}
+                                  onChange={(e) => setDay(day.date, { breakEnd: e.target.value })}
+                                />
+                              </div>
+
+                              <div className="text-right">
+                                <span
+                                  className={`text-sm ${
+                                    paid <= 0 ? 'font-medium text-red-600' : 'text-slate-700'
+                                  }`}
+                                >
+                                  {warned && (
+                                    <span
+                                      className="mr-1 text-amber-600"
+                                      title="Plus de 6 h de présence sans pause d'au moins 30 minutes."
+                                    >
+                                      ⚠
+                                    </span>
+                                  )}
+                                  {formatMinutes(Math.max(0, paid))}
+                                </span>
+                                {pause > 0 && (
+                                  <span className="block text-[11px] text-slate-400">
+                                    sur {formatMinutes(Math.max(0, presence))}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="col-span-3 text-sm text-slate-400">
+                              Journée non prestée
+                            </span>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+
+            {daysWithoutBreak.length > 0 && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-medium">
+                  {daysWithoutBreak.length} journée(s) dépassent 6 h de présence sans pause d'au
+                  moins 30 minutes.
+                </p>
+                <p className="mt-1 text-amber-800">
+                  Une pause est légalement requise au-delà de 6 h de travail. Vous pouvez tout de
+                  même envoyer la mission : l'agence en jugera.
+                </p>
+                <p className="mt-1 text-xs text-amber-700">
+                  Concernées : {daysWithoutBreak.map((day) => formatDate(day.date)).join(', ')}
+                </p>
+              </div>
+            )}
 
             <div className="mt-4 rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
               <span className="font-semibold">{workedDays.length} journée(s)</span> ·{' '}
-              {formatMinutes(minutes)} au total
+              {formatMinutes(minutes)} rémunérées (pauses déduites)
               {Number.isFinite(wageNumber) && wageNumber > 0 && (
                 <> · rémunération brute estimée {estimatedPay(minutes, wageNumber)}</>
               )}

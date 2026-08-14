@@ -12,12 +12,14 @@ export type WorkReason = 'REPLACEMENT' | 'OVERLOAD' | 'EXCEPTION';
 
 export type SignatureStatus = 'PENDING' | 'SIGNED';
 
-/** Journée travaillée d'une mission. */
+/** Journée travaillée d'une mission ; la pause, fixée par l'employeur, n'est pas payée. */
 export interface DailySlot {
   id: number;
   date: string; // yyyy-MM-dd
   startTime: string; // HH:mm[:ss]
   endTime: string;
+  breakStart: string | null;
+  breakEnd: string | null;
 }
 
 /** Journée envoyée au backend (sans identifiant). */
@@ -25,6 +27,8 @@ export interface DailySlotPayload {
   date: string;
   startTime: string;
   endTime: string;
+  breakStart: string | null;
+  breakEnd: string | null;
 }
 
 export interface Contract {
@@ -45,6 +49,8 @@ export interface ScheduleEntry {
   date: string;
   startTime: string;
   endTime: string;
+  breakStart: string | null;
+  breakEnd: string | null;
 }
 
 /** Indisponibilité déclarée par l'intérimaire (editable = modifiable, cf. délai J+8). */

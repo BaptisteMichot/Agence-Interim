@@ -18,7 +18,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Journée travaillée d'une mission : une ligne par jour presté, avec ses horaires.
+ * Journée travaillée d'une mission : une ligne par jour presté, avec ses horaires
+ * et la pause fixée par l'employeur, qui n'est pas rémunérée.
  */
 @Entity
 @Table(name = "daily_schedule")
@@ -44,4 +45,10 @@ public class DailySchedule {
 
     @Column(nullable = false)
     private LocalTime endTime;
+
+    /** Début de la pause non rémunérée ; null lorsque la journée n'en comporte pas. */
+    private LocalTime breakStart;
+
+    /** Fin de la pause non rémunérée ; null lorsque la journée n'en comporte pas. */
+    private LocalTime breakEnd;
 }

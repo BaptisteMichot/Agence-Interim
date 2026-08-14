@@ -1,5 +1,5 @@
 import { formatDate } from '../profile/format';
-import { estimatedPay, formatMinutes, totalMinutes, workReasonLabel } from './format';
+import { estimatedPay, formatMinutes, totalPaidMinutes, workReasonLabel } from './format';
 import type { Mission } from './types';
 
 function Fact({ label, value }: { label: string; value: React.ReactNode }) {
@@ -13,7 +13,7 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
 
 /** Conditions de la mission, telles qu'elles figureront sur le contrat. */
 export default function MissionFacts({ mission }: { mission: Mission }) {
-  const minutes = totalMinutes(mission.slots);
+  const minutes = totalPaidMinutes(mission.slots);
   return (
     <div className="space-y-4">
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -26,7 +26,7 @@ export default function MissionFacts({ mission }: { mission: Mission }) {
         />
         <Fact label="Salaire horaire" value={`${mission.hourlyWage} €/h brut`} />
         <Fact
-          label="Volume"
+          label="Volume rémunéré"
           value={`${formatMinutes(minutes)} · ${estimatedPay(minutes, mission.hourlyWage)} brut`}
         />
       </dl>

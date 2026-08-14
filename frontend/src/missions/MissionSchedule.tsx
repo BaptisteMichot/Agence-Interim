@@ -2,10 +2,9 @@ import {
   formatMinutes,
   isWeekend,
   monthLabel,
-  shortTime,
-  slotMinutes,
-  totalMinutes,
+  totalPaidMinutes,
   weekdayLabel,
+  workedRanges,
 } from './format';
 import type { DailySlot } from './types';
 
@@ -51,10 +50,11 @@ export default function MissionSchedule({ slots }: { slots: DailySlot[] }) {
                 <p className="text-lg font-semibold leading-tight text-slate-900">
                   {slot.date.slice(8, 10)}
                 </p>
-                <p className="text-xs text-slate-600">
-                  {shortTime(slot.startTime)} – {shortTime(slot.endTime)}
-                </p>
-                <p className="text-xs text-slate-400">{formatMinutes(slotMinutes(slot))}</p>
+                {workedRanges(slot).map((range) => (
+                  <p key={range} className="text-xs text-slate-600">
+                    {range}
+                  </p>
+                ))}
               </li>
             ))}
           </ul>
@@ -62,7 +62,7 @@ export default function MissionSchedule({ slots }: { slots: DailySlot[] }) {
       ))}
       <p className="text-sm text-slate-600">
         <span className="font-medium text-slate-900">{slots.length} journée(s)</span> ·{' '}
-        {formatMinutes(totalMinutes(slots))} au total
+        {formatMinutes(totalPaidMinutes(slots))} rémunérées au total (pauses déduites)
       </p>
     </div>
   );

@@ -15,7 +15,9 @@ public record ScheduleEntryResponse(
         String workplace,
         LocalDate date,
         LocalTime startTime,
-        LocalTime endTime) {
+        LocalTime endTime,
+        LocalTime breakStart,
+        LocalTime breakEnd) {
 
     public static ScheduleEntryResponse fromEntity(DailySchedule schedule) {
         Mission mission = schedule.getMission();
@@ -30,6 +32,8 @@ public record ScheduleEntryResponse(
                 mission.getWorkplace(),
                 schedule.getDate(),
                 schedule.getStartTime(),
-                schedule.getEndTime());
+                schedule.getEndTime(),
+                schedule.getBreakStart(),
+                schedule.getBreakEnd());
     }
 }

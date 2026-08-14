@@ -36,16 +36,68 @@ interface TimeRange {
   endTime: string;
 }
 
-/** Durée d'un créneau, en minutes. */
-export function slotMinutes(slot: TimeRange): number {
-  const [startHour, startMinute] = shortTime(slot.startTime).split(':').map(Number);
-  const [endHour, endMinute] = shortTime(slot.endTime).split(':').map(Number);
-  return endHour * 60 + endMinute - (startHour * 60 + startMinute);
+/** Journée travaillée, avec la pause facultative fixée par l'employeur. */
+interface WorkedDay extends TimeRange {
+  breakStart?: string | null;
+  breakEnd?: string | null;
 }
 
-/** Total des heures d'une mission, en minutes. */
-export function totalMinutes(slots: TimeRange[]): number {
-  return slots.reduce((total, slot) => total + Math.max(0, slotMinutes(slot)), 0);
+/**
+ * Pause légalement attendue au-delà de {@link BREAK_THRESHOLD_MINUTES} de présence.
+ * L'employeur reste libre de ne pas en prévoir : l'application se contente de l'avertir.
+ */
+export const LEGAL_BREAK_MINUTES = 30;
+export const BREAK_THRESHOLD_MINUTES = 6 * 60;
+
+/** Minutes écoulées depuis minuit pour une heure « HH:mm » ou « HH:mm:ss ». */
+function timeMinutes(time: string): number {
+  const [hour, minute] = shortTime(time).split(':').map(Number);
+  return hour * 60 + minute;
+}
+
+/** Temps de présence sur le lieu de travail, en minutes. */
+export function presenceMinutes(slot: TimeRange): number {
+  return timeMinutes(slot.endTime) - timeMinutes(slot.startTime);
+}
+
+/** Durée de la pause non payée, en minutes (0 si la journée n'en comporte pas). */
+export function breakMinutes(day: WorkedDay): number {
+  if (!day.breakStart || !day.breakEnd) {
+    return 0;
+  }
+  return Math.max(0, timeMinutes(day.breakEnd) - timeMinutes(day.breakStart));
+}
+
+/** Temps effectivement rémunéré d'une journée, en minutes. */
+export function paidMinutes(day: WorkedDay): number {
+  return presenceMinutes(day) - breakMinutes(day);
+}
+
+/** Total rémunéré d'une mission, en minutes. */
+export function totalPaidMinutes(days: WorkedDay[]): number {
+  return days.reduce((total, day) => total + Math.max(0, paidMinutes(day)), 0);
+}
+
+/**
+ * Plages réellement travaillées d'une journée : la pause coupe l'horaire en deux
+ * créneaux, ce qui évite d'avoir à l'annoncer séparément.
+ */
+export function workedRanges(day: WorkedDay): string[] {
+  const bounds =
+    day.breakStart && day.breakEnd
+      ? [
+          [day.startTime, day.breakStart],
+          [day.breakEnd, day.endTime],
+        ]
+      : [[day.startTime, day.endTime]];
+  return bounds
+    .filter(([from, to]) => shortTime(from) !== shortTime(to))
+    .map(([from, to]) => `${shortTime(from)} – ${shortTime(to)}`);
+}
+
+/** Vrai si la journée dépasse 6 h de présence sans pause suffisante (avertissement, non bloquant). */
+export function breakTooShort(day: WorkedDay): boolean {
+  return presenceMinutes(day) > BREAK_THRESHOLD_MINUTES && breakMinutes(day) < LEGAL_BREAK_MINUTES;
 }
 
 /** Vrai si l'indisponibilité couvre la journée entière (00:00 → 23:59). */

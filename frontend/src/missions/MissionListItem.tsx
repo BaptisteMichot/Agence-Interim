@@ -1,5 +1,5 @@
 import { formatDate } from '../profile/format';
-import { formatMinutes, totalMinutes } from './format';
+import { formatMinutes, totalPaidMinutes } from './format';
 import MissionStatusBadge from './MissionStatusBadge';
 import type { Mission } from './types';
 
@@ -26,7 +26,8 @@ export default function MissionListItem({
           <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
           <p className="mt-0.5 text-sm text-slate-600">
             Du {formatDate(mission.startDate)} au {formatDate(mission.endDate)} ·{' '}
-            {mission.slots.length} journée(s) · {formatMinutes(totalMinutes(mission.slots))} ·{' '}
+            {mission.slots.length} journée(s) · {formatMinutes(totalPaidMinutes(mission.slots))}{' '}
+            payées ·{' '}
             {mission.hourlyWage} €/h
           </p>
           {mission.status === 'REFUSED' && mission.refusalReason && (
