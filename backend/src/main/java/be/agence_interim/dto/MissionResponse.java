@@ -27,6 +27,7 @@ public record MissionResponse(
         String description,
         BigDecimal hourlyWage,
         WorkReason workReason,
+        String replacedWorker,
         String notes,
         String refusalReason,
         /** Vrai si la mission renouvelle une mission précédente. */
@@ -64,6 +65,7 @@ public record MissionResponse(
                 mission.getDescription(),
                 mission.getHourlyWage(),
                 mission.getWorkReason(),
+                mission.getReplacedWorker(),
                 mission.getNotes(),
                 mission.getRefusalReason(),
                 previous != null,

@@ -2,14 +2,11 @@ package be.agence_interim.service;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -18,13 +15,13 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import be.agence_interim.config.AgencyProperties;
 import be.agence_interim.dto.ContractResponse;
 import be.agence_interim.model.Contract;
 import be.agence_interim.model.DailySchedule;
 import be.agence_interim.model.Mission;
 import be.agence_interim.model.SignatureStatus;
 import be.agence_interim.model.User;
-import be.agence_interim.model.WorkReason;
 import be.agence_interim.repository.ContractRepository;
 import be.agence_interim.repository.DailyScheduleRepository;
 import be.agence_interim.repository.MissionRepository;
@@ -37,26 +34,29 @@ import jakarta.annotation.PostConstruct;
 @Service
 public class ContractService {
 
-    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEEE dd/MM/yyyy", Locale.FRENCH);
-    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.FRENCH);
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.FRENCH);
-    private static final DateTimeFormatter TIMESTAMP =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm", Locale.FRENCH);
-
     private final Path storageDir;
     private final ContractRepository contractRepository;
     private final MissionRepository missionRepository;
     private final DailyScheduleRepository dailyScheduleRepository;
+    private final AgencyProperties agency;
+    private final SigningCodeService signingCodeService;
+    private final MailService mailService;
 
     public ContractService(
             @Value("${app.contract.storage-dir:uploads/contracts}") String storageDir,
             ContractRepository contractRepository,
             MissionRepository missionRepository,
-            DailyScheduleRepository dailyScheduleRepository) {
+            DailyScheduleRepository dailyScheduleRepository,
+            AgencyProperties agency,
+            SigningCodeService signingCodeService,
+            MailService mailService) {
         this.storageDir = Paths.get(storageDir).toAbsolutePath().normalize();
         this.contractRepository = contractRepository;
         this.missionRepository = missionRepository;
         this.dailyScheduleRepository = dailyScheduleRepository;
+        this.agency = agency;
+        this.signingCodeService = signingCodeService;
+        this.mailService = mailService;
     }
 
     @PostConstruct
@@ -100,22 +100,62 @@ public class ContractService {
         return new FileSystemResource(file);
     }
 
-    /** Signature simulée du contrat par la partie authentifiée (employeur ou intérimaire). */
-    @Transactional
-    public ContractResponse sign(int missionId, int userId) {
+    /**
+     * Envoie au signataire le code à usage unique qui confirmera sa signature. Le code
+     * part sur l'adresse email de son compte : le saisir prouve qu'il en a le contrôle.
+     */
+    @Transactional(readOnly = true)
+    public void requestSigningCode(int missionId, int userId) {
         Mission mission = accessibleMission(missionId, userId, false);
         Contract contract = loadContract(mission.getId());
-        boolean isEmployer = mission.getApplication().getJobOffer().getEmployer().getId() == userId;
+        boolean isEmployer = isEmployer(mission, userId);
+        requireNotSigned(isEmployer ? contract.getStatusEmployer() : contract.getStatusWorker());
+
+        User signer = signer(mission, isEmployer);
+        String code = signingCodeService.generate(contract.getId(), userId);
+        mailService.send(signer.getEmail(),
+                "Code de signature du contrat n° " + contract.getId(),
+                "Bonjour " + signer.getFirstName() + ",\n\n"
+                        + "Votre code de signature est : " + code + "\n"
+                        + "Il est valable " + signingCodeService.getValidityMinutes() + " minutes.\n\n"
+                        + "Saisissez-le sur la plateforme pour signer le contrat de la mission « "
+                        + mission.getPosition() + " ».\n\n"
+                        + "L'agence d'intérim");
+    }
+
+    /**
+     * Signature du contrat par la partie authentifiée, après vérification du code reçu
+     * par email. Le document est régénéré pour y faire figurer la signature.
+     */
+    @Transactional
+    public ContractResponse sign(int missionId, int userId, String code) {
+        Mission mission = accessibleMission(missionId, userId, false);
+        Contract contract = loadContract(mission.getId());
+        boolean isEmployer = isEmployer(mission, userId);
+        requireNotSigned(isEmployer ? contract.getStatusEmployer() : contract.getStatusWorker());
+        signingCodeService.verify(contract.getId(), userId, code);
+
+        LocalDateTime now = LocalDateTime.now();
         if (isEmployer) {
-            requireNotSigned(contract.getStatusEmployer());
             contract.setStatusEmployer(SignatureStatus.SIGNED);
+            contract.setEmployerSignedAt(now);
         } else {
-            requireNotSigned(contract.getStatusWorker());
             contract.setStatusWorker(SignatureStatus.SIGNED);
+            contract.setWorkerSignedAt(now);
         }
         Contract saved = contractRepository.save(contract);
         write(saved, mission, dailyScheduleRepository.findByMissionIdOrderByDateAscStartTimeAsc(mission.getId()));
         return ContractResponse.fromEntity(saved);
+    }
+
+    private boolean isEmployer(Mission mission, int userId) {
+        return mission.getApplication().getJobOffer().getEmployer().getId() == userId;
+    }
+
+    private User signer(Mission mission, boolean isEmployer) {
+        return isEmployer
+                ? mission.getApplication().getJobOffer().getEmployer()
+                : mission.getApplication().getJobSeeker();
     }
 
     private void requireNotSigned(SignatureStatus status) {
@@ -142,84 +182,16 @@ public class ContractService {
     }
 
     private String fileName(int missionId) {
-        return "contrat-mission-" + missionId + ".txt";
+        return "contrat-mission-" + missionId + ".pdf";
     }
 
     /** Écrit (ou réécrit après signature) le document du contrat sur le disque. */
     private void write(Contract contract, Mission mission, List<DailySchedule> slots) {
-        User employer = mission.getApplication().getJobOffer().getEmployer();
-        User worker = mission.getApplication().getJobSeeker();
-        long totalMinutes = slots.stream().mapToLong(WorkTime::paidMinutes).sum();
-
-        StringBuilder text = new StringBuilder();
-        text.append("CONTRAT DE TRAVAIL INTÉRIMAIRE\n");
-        text.append("==============================\n\n");
-        text.append("Contrat n° ").append(contract.getId())
-                .append(" — généré le ").append(TIMESTAMP.format(contract.getGenerationTime())).append("\n\n");
-
-        text.append("ENTREPRISE UTILISATRICE\n");
-        text.append("  Société : ").append(employer.getCompanyName() == null ? "—" : employer.getCompanyName())
-                .append("\n");
-        text.append("  Contact : ").append(employer.getFirstName()).append(' ').append(employer.getLastName())
-                .append(" (").append(employer.getEmail()).append(")\n\n");
-
-        text.append("TRAVAILLEUR INTÉRIMAIRE\n");
-        text.append("  Nom     : ").append(worker.getFirstName()).append(' ').append(worker.getLastName())
-                .append("\n");
-        text.append("  Email   : ").append(worker.getEmail()).append("\n\n");
-
-        text.append("CONDITIONS DE LA MISSION\n");
-        text.append("  Poste            : ").append(mission.getPosition()).append("\n");
-        text.append("  Lieu de travail  : ").append(mission.getWorkplace()).append("\n");
-        text.append("  Description      : ").append(mission.getDescription()).append("\n");
-        text.append("  Motif de recours : ").append(reasonLabel(mission.getWorkReason())).append("\n");
-        text.append("  Période          : du ").append(DATE.format(mission.getStartDate()))
-                .append(" au ").append(DATE.format(mission.getEndDate())).append("\n");
-        text.append("  Salaire horaire  : ").append(mission.getHourlyWage()).append(" € brut\n");
-        text.append("  Volume rémunéré  : ").append(WorkTime.format(totalMinutes))
-                .append(" réparties sur ").append(slots.size())
-                .append(" journée(s), pauses non comprises\n\n");
-
-        text.append("HORAIRE DE TRAVAIL\n");
-        for (DailySchedule slot : slots) {
-            text.append("  ").append(DAY.format(slot.getDate())).append(" : ")
-                    .append(TIME.format(slot.getStartTime())).append(" - ").append(TIME.format(slot.getEndTime()));
-            if (slot.getBreakStart() != null) {
-                text.append(", pause de ").append(TIME.format(slot.getBreakStart()))
-                        .append(" à ").append(TIME.format(slot.getBreakEnd()));
-            }
-            text.append(" (").append(WorkTime.format(WorkTime.paidMinutes(slot))).append(" rémunérées)\n");
-        }
-        text.append("  La pause n'est pas rémunérée.\n\n");
-
-        text.append("CONDITIONS PARTICULIÈRES\n");
-        text.append("  ").append(mission.getNotes() == null || mission.getNotes().isBlank()
-                ? "Aucune." : mission.getNotes()).append("\n\n");
-
-        text.append("SIGNATURES\n");
-        text.append("  Entreprise utilisatrice : ").append(signatureLabel(contract.getStatusEmployer())).append("\n");
-        text.append("  Travailleur intérimaire : ").append(signatureLabel(contract.getStatusWorker())).append("\n\n");
-
-        text.append("Document généré automatiquement par la plateforme de l'agence d'intérim.\n");
-        text.append("Dans le cadre de ce projet, son envoi et sa signature sont simulés.\n");
-
         Path file = storageDir.resolve(contract.getContractFilePath()).normalize();
         try {
-            Files.writeString(file, text.toString(), StandardCharsets.UTF_8);
+            Files.write(file, new ContractDocument(agency).render(contract, mission, slots));
         } catch (IOException e) {
             throw new UncheckedIOException("Impossible d'écrire le contrat de la mission.", e);
         }
-    }
-
-    private String reasonLabel(WorkReason reason) {
-        return switch (reason) {
-            case REPLACEMENT -> "Remplacement d'un travailleur permanent";
-            case OVERLOAD -> "Surcroît temporaire de travail";
-            case EXCEPTION -> "Travail exceptionnel";
-        };
-    }
-
-    private String signatureLabel(SignatureStatus status) {
-        return status == SignatureStatus.SIGNED ? "signé" : "en attente de signature";
     }
 }

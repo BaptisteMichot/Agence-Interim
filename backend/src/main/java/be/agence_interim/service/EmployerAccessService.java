@@ -8,6 +8,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import be.agence_interim.dto.EmployerCompanyRequest;
+import be.agence_interim.dto.EmployerRegisterRequest;
 import be.agence_interim.model.EmployerAccessRequest;
 import be.agence_interim.model.EmployerAccessStatus;
 import be.agence_interim.model.Role;
@@ -40,23 +42,46 @@ public class EmployerAccessService {
      * demande d'accès employeur au statut PENDING.
      */
     @Transactional
-    public void registerEmployer(
-            String lastName, String firstName, String email, String rawPassword, String companyName) {
-        String normalizedEmail = normalizeEmail(email);
+    public void registerEmployer(EmployerRegisterRequest request) {
+        String normalizedEmail = normalizeEmail(request.email());
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Cet email est déjà utilisé.");
         }
 
         User user = new User();
         user.setRole(Role.EMPLOYER_PENDING);
-        user.setLastName(lastName);
-        user.setFirstName(firstName);
+        user.setLastName(request.lastName());
+        user.setFirstName(request.firstName());
         user.setEmail(normalizedEmail);
-        user.setPassword(passwordEncoder.encode(rawPassword));
-        user.setCompanyName(companyName);
+        user.setPassword(passwordEncoder.encode(request.password()));
+        applyCompany(user, request.companyName(), request.address(), request.companyNumber(),
+                request.jointCommittee());
         User savedUser = userRepository.save(user);
 
         createRequest(savedUser, null);
+    }
+
+    /** Fiche entreprise de l'employeur connecté (mentions légales reprises sur les contrats). */
+    @Transactional
+    public User updateCompany(int userId, EmployerCompanyRequest request) {
+        User user = getUser(userId);
+        applyCompany(user, request.companyName(), request.address(), request.companyNumber(),
+                request.jointCommittee());
+        return userRepository.save(user);
+    }
+
+    /** Contrôle et normalise les mentions légales de l'entreprise utilisatrice. */
+    private void applyCompany(
+            User user, String companyName, String address, String companyNumber, String jointCommittee) {
+        if (!BelgianIdentifiers.isValidCompanyNumber(companyNumber)) {
+            throw new IllegalArgumentException(
+                    "Le numéro d'entreprise est invalide : il compte 10 chiffres commençant par 0 ou 1, "
+                            + "et sa clé de contrôle doit correspondre.");
+        }
+        user.setCompanyName(companyName.trim());
+        user.setAddress(address.trim());
+        user.setCompanyNumber(BelgianIdentifiers.formatCompanyNumber(companyNumber));
+        user.setJointCommittee(jointCommittee.trim());
     }
 
     /** Nouvelle demande après un refus, avec un message justificatif facultatif. */

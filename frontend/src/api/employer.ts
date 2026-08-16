@@ -1,5 +1,25 @@
 import type { EmployerAccessStatus } from '../auth/types';
-import { apiDelete, apiGet, apiPost } from './http';
+import { apiDelete, apiGet, apiPost, apiPut } from './http';
+
+/** Mentions légales de l'entreprise utilisatrice, reprises sur les contrats. */
+export interface EmployerCompany {
+  companyName: string;
+  address: string | null;
+  companyNumber: string | null;
+  jointCommittee: string | null;
+  /** Vrai tant qu'une mention manque : aucune mission ne peut alors être proposée. */
+  incomplete: boolean;
+}
+
+export type EmployerCompanyPayload = Omit<EmployerCompany, 'incomplete'>;
+
+export function getMyCompany(): Promise<EmployerCompany> {
+  return apiGet<EmployerCompany>('/employer/company');
+}
+
+export function updateMyCompany(payload: EmployerCompanyPayload): Promise<EmployerCompany> {
+  return apiPut<EmployerCompany>('/employer/company', payload);
+}
 
 export interface AdminEmployerRequest {
   id: number;

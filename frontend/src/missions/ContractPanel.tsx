@@ -1,15 +1,28 @@
 import { useState } from 'react';
-import { downloadContract, signContract } from '../api/missions';
-import { btnPrimary, btnSecondary, errorBox } from '../components/ui';
+import { downloadContract, requestSigningCode, signContract } from '../api/missions';
+import { btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../components/ui';
 import { formatDateTime } from '../profile/format';
 import type { Contract, Mission } from './types';
 
 type Party = 'employer' | 'worker' | 'agency';
 
-function SignatureLine({ label, signed }: { label: string; signed: boolean }) {
+function SignatureLine({
+  label,
+  signed,
+  signedAt,
+}: {
+  label: string;
+  signed: boolean;
+  signedAt: string | null;
+}) {
   return (
-    <li className="flex items-center justify-between gap-4 py-1.5">
-      <span className="text-sm text-slate-700">{label}</span>
+    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
+      <span>
+        <span className="block text-sm text-slate-700">{label}</span>
+        {signed && signedAt && (
+          <span className="block text-xs text-slate-500">Signé le {formatDateTime(signedAt)}</span>
+        )}
+      </span>
       <span
         className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
           signed ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
@@ -22,8 +35,8 @@ function SignatureLine({ label, signed }: { label: string; signed: boolean }) {
 }
 
 /**
- * Contrat d'une mission confirmée : consultation du document et signature simulée
- * de la partie connectée. L'agence peut consulter sans signer.
+ * Contrat d'une mission confirmée : consultation du document et signature de la
+ * partie connectée, confirmée par un code reçu par email. L'agence consulte sans signer.
  */
 export default function ContractPanel({
   mission,
@@ -37,6 +50,8 @@ export default function ContractPanel({
   const [contract, setContract] = useState<Contract | null>(mission.contract);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState('');
 
   if (!contract) {
     return null;
@@ -55,12 +70,28 @@ export default function ContractPanel({
     }
   };
 
-  const sign = async () => {
+  const sendCode = async () => {
     setBusy(true);
     setError(null);
     try {
-      const signed = await signContract(mission.id);
+      await requestSigningCode(mission.id);
+      setCodeSent(true);
+      setCode('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Le code n'a pas pu être envoyé.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sign = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const signed = await signContract(mission.id, code);
       setContract(signed);
+      setCodeSent(false);
       onSigned?.(signed);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'La signature a échoué.');
@@ -82,9 +113,9 @@ export default function ContractPanel({
           <button type="button" className={btnSecondary} onClick={open}>
             📄 Consulter le contrat
           </button>
-          {party !== 'agency' && !alreadySigned && (
-            <button type="button" className={btnPrimary} onClick={sign} disabled={busy}>
-              {busy ? 'Signature…' : 'Signer le contrat'}
+          {party !== 'agency' && !alreadySigned && !codeSent && (
+            <button type="button" className={btnPrimary} onClick={sendCode} disabled={busy}>
+              {busy ? 'Envoi…' : 'Signer le contrat'}
             </button>
           )}
         </div>
@@ -92,9 +123,50 @@ export default function ContractPanel({
 
       {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
 
+      {party !== 'agency' && !alreadySigned && codeSent && (
+        <form onSubmit={sign} className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+          <p className="text-sm text-indigo-900">
+            Un code à 6 chiffres vient d'être envoyé à votre adresse email. Saisissez-le pour signer
+            le contrat.
+          </p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <div>
+              <label className={labelClass} htmlFor="signing-code">
+                Code de signature
+              </label>
+              <input
+                id="signing-code"
+                className={`${inputClass} w-40 text-center font-mono text-lg tracking-widest`}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                required
+                autoFocus
+              />
+            </div>
+            <button type="submit" className={btnPrimary} disabled={busy}>
+              {busy ? 'Signature…' : 'Valider et signer'}
+            </button>
+            <button type="button" className={btnSecondary} onClick={sendCode} disabled={busy}>
+              Renvoyer un code
+            </button>
+          </div>
+        </form>
+      )}
+
       <ul className="mt-4 divide-y divide-slate-100 border-t border-slate-100 pt-2">
-        <SignatureLine label="Entreprise utilisatrice" signed={contract.statusEmployer === 'SIGNED'} />
-        <SignatureLine label="Travailleur intérimaire" signed={contract.statusWorker === 'SIGNED'} />
+        <SignatureLine
+          label="Entreprise utilisatrice"
+          signed={contract.statusEmployer === 'SIGNED'}
+          signedAt={contract.employerSignedAt}
+        />
+        <SignatureLine
+          label="Travailleur intérimaire"
+          signed={contract.statusWorker === 'SIGNED'}
+          signedAt={contract.workerSignedAt}
+        />
       </ul>
     </section>
   );

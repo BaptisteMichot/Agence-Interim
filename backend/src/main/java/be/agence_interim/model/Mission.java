@@ -37,6 +37,7 @@ public class Mission {
     public static final int WORKPLACE_MAX_LENGTH = 100;
     public static final int WORK_REASON_MAX_LENGTH = 15;
     public static final int DESCRIPTION_MAX_LENGTH = 2000;
+    public static final int REPLACED_WORKER_MAX_LENGTH = 50;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -83,6 +84,13 @@ public class Mission {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = WORK_REASON_MAX_LENGTH)
     private WorkReason workReason;
+
+    /**
+     * Travailleur permanent remplacé : mention légale obligatoire lorsque le motif de
+     * recours est un remplacement, inutile pour les autres motifs.
+     */
+    @Column(nullable = true, length = REPLACED_WORKER_MAX_LENGTH)
+    private String replacedWorker;
 
     /** Conditions particulières facultatives, reprises sur le contrat. */
     @Column(columnDefinition = "TEXT")

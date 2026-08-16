@@ -19,7 +19,14 @@ export default function MissionFacts({ mission }: { mission: Mission }) {
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Fact label="Poste" value={mission.position} />
         <Fact label="Adresse du lieu de travail" value={mission.workplace} />
-        <Fact label="Motif de recours" value={workReasonLabel(mission.workReason)} />
+        <Fact
+          label="Motif de recours"
+          value={
+            mission.replacedWorker
+              ? `${workReasonLabel(mission.workReason)} (${mission.replacedWorker})`
+              : workReasonLabel(mission.workReason)
+          }
+        />
         <Fact
           label="Période"
           value={`du ${formatDate(mission.startDate)} au ${formatDate(mission.endDate)}`}

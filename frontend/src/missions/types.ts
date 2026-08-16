@@ -38,6 +38,8 @@ export interface Contract {
   statusEmployer: SignatureStatus;
   statusWorker: SignatureStatus;
   fileName: string;
+  employerSignedAt: string | null;
+  workerSignedAt: string | null;
 }
 
 /** Journée de mission affichée dans le planning. */
@@ -79,6 +81,8 @@ export interface MissionPayload {
   description: string;
   hourlyWage: number;
   workReason: WorkReason;
+  /** Obligatoire lorsque le motif de recours est un remplacement. */
+  replacedWorker: string | null;
   notes: string | null;
   slots: DailySlotPayload[];
 }
@@ -94,6 +98,7 @@ export interface Mission {
   description: string;
   hourlyWage: number;
   workReason: WorkReason;
+  replacedWorker: string | null;
   notes: string | null;
   refusalReason: string | null;
   renewal: boolean;

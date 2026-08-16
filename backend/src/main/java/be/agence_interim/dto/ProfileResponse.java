@@ -17,6 +17,8 @@ public record ProfileResponse(
         LocalDate birthdate,
         Boolean hasVehicle,
         String cvFilePath,
+        String address,
+        String nationalNumber,
         List<ExperienceResponse> experiences,
         List<FormationResponse> formations) {
 
@@ -30,6 +32,8 @@ public record ProfileResponse(
                 user.getBirthdate(),
                 user.getHasVehicle(),
                 user.getCvFilePath(),
+                user.getAddress(),
+                user.getNationalNumber(),
                 experiences.stream().map(ExperienceResponse::fromEntity).toList(),
                 formations.stream().map(FormationResponse::fromEntity).toList());
     }

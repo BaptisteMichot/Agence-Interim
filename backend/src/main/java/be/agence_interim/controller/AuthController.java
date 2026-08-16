@@ -50,12 +50,7 @@ public class AuthController {
     @PostMapping("/register-employer")
     public ResponseEntity<MessageResponse> registerEmployer(
             @Valid @RequestBody EmployerRegisterRequest request) {
-        employerAccessService.registerEmployer(
-                request.lastName(),
-                request.firstName(),
-                request.email(),
-                request.password(),
-                request.companyName());
+        employerAccessService.registerEmployer(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(new MessageResponse(

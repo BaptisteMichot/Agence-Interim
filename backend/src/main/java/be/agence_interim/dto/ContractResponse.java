@@ -5,14 +5,16 @@ import java.time.LocalDateTime;
 import be.agence_interim.model.Contract;
 import be.agence_interim.model.SignatureStatus;
 
-/** Contrat d'une mission : état de signature des deux parties (signature simulée). */
+/** Contrat d'une mission : état et date de signature de chaque partie. */
 public record ContractResponse(
         int id,
         int missionId,
         LocalDateTime generationTime,
         SignatureStatus statusEmployer,
         SignatureStatus statusWorker,
-        String fileName) {
+        String fileName,
+        LocalDateTime employerSignedAt,
+        LocalDateTime workerSignedAt) {
 
     public static ContractResponse fromEntity(Contract contract) {
         return new ContractResponse(
@@ -21,6 +23,8 @@ public record ContractResponse(
                 contract.getGenerationTime(),
                 contract.getStatusEmployer(),
                 contract.getStatusWorker(),
-                contract.getContractFilePath());
+                contract.getContractFilePath(),
+                contract.getEmployerSignedAt(),
+                contract.getWorkerSignedAt());
     }
 }

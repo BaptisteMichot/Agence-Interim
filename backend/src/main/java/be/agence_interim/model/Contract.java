@@ -19,7 +19,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Contrat généré pour une mission validée. Son envoi est simulé (cf. analyse).
+ * Contrat généré pour une mission validée. Chaque partie le signe en confirmant un
+ * code reçu par email ; la date de signature est conservée et reprise sur le document.
  */
 @Entity
 @Table(name = "contract")
@@ -52,4 +53,13 @@ public class Contract {
 
     @Column(nullable = true, columnDefinition = "TEXT")
     private String contractFilePath;
+
+    /** Date de la signature de l'entreprise utilisatrice. */
+    @Column(nullable = true)
+    private LocalDateTime employerSignedAt;
+
+    /** Date de la signature du travailleur intérimaire. */
+    @Column(nullable = true)
+    private LocalDateTime workerSignedAt;
+
 }

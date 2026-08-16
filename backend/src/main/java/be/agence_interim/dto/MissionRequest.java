@@ -30,6 +30,8 @@ public record MissionRequest(
         @DecimalMin(value = "0.01", message = "Le salaire horaire doit être supérieur à 0.")
         BigDecimal hourlyWage,
         @NotNull(message = "Le motif de recours est obligatoire.") WorkReason workReason,
+        @Size(max = Mission.REPLACED_WORKER_MAX_LENGTH, message = "Le nom du travailleur remplacé est trop long.")
+        String replacedWorker,
         String notes,
         @NotEmpty(message = "La mission doit comporter au moins une journée de travail.")
         @Valid List<DailySlotRequest> slots) {

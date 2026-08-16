@@ -28,6 +28,9 @@ export interface Profile {
   birthdate: string | null;
   hasVehicle: boolean | null;
   cvFilePath: string | null;
+  /** Mentions légales reprises sur le contrat de mission. */
+  address: string | null;
+  nationalNumber: string | null;
   experiences: ExperienceItem[];
   formations: FormationItem[];
 }
@@ -38,6 +41,8 @@ export interface ProfileBasePayload {
   firstName: string;
   birthdate: string | null;
   hasVehicle: boolean | null;
+  address: string | null;
+  nationalNumber: string | null;
 }
 
 /** Corps envoyé aux endpoints expériences. */

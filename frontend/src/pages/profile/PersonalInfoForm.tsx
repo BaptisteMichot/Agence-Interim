@@ -18,12 +18,16 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
   const [lastName, setLastName] = useState(profile.lastName);
   const [birthdate, setBirthdate] = useState(profile.birthdate ?? '');
   const [hasVehicle, setHasVehicle] = useState(profile.hasVehicle ?? false);
+  const [address, setAddress] = useState(profile.address ?? '');
+  const [nationalNumber, setNationalNumber] = useState(profile.nationalNumber ?? '');
 
   const values: ProfileBasePayload = {
     firstName,
     lastName,
     birthdate: birthdate || null,
     hasVehicle,
+    address: address.trim() || null,
+    nationalNumber: nationalNumber.trim() || null,
   };
   // Le backend refuse un nom ou un prénom vide : inutile de l'appeler dans ce cas.
   const namesFilled = firstName.trim() !== '' && lastName.trim() !== '';
@@ -82,6 +86,38 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
             onBlur={flush}
             className={inputClass}
           />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelClass} htmlFor="address">
+            Adresse
+          </label>
+          <input
+            id="address"
+            value={address}
+            maxLength={100}
+            placeholder="Rue, numéro, code postal et localité"
+            onChange={(e) => setAddress(e.target.value)}
+            onBlur={flush}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="nationalNumber">
+            Numéro de registre national
+          </label>
+          <input
+            id="nationalNumber"
+            value={nationalNumber}
+            maxLength={15}
+            placeholder="00.00.00-000.00"
+            onChange={(e) => setNationalNumber(e.target.value)}
+            onBlur={flush}
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Cette information et votre adresse sont obligatoires sur le contrat : sans elles, vous
+            ne pourrez pas accepter de mission.
+          </p>
         </div>
         <div className="flex flex-col justify-end">
           <span className={labelClass}>Véhicule</span>

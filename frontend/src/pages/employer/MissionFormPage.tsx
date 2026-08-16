@@ -128,6 +128,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   const [description, setDescription] = useState('');
   const [hourlyWage, setHourlyWage] = useState('');
   const [workReason, setWorkReason] = useState<WorkReason>('OVERLOAD');
+  const [replacedWorker, setReplacedWorker] = useState('');
   const [notes, setNotes] = useState('');
   const [refusalReason, setRefusalReason] = useState<string | null>(null);
   const [previousPeriod, setPreviousPeriod] = useState<{ start: string; end: string } | null>(null);
@@ -179,6 +180,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setDescription(source.description);
           setHourlyWage(String(source.hourlyWage));
           setWorkReason(source.workReason);
+          setReplacedWorker(source.replacedWorker ?? '');
           setNotes(source.notes ?? '');
           setPreviousPeriod({ start: source.startDate, end: source.endDate });
 
@@ -222,6 +224,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setDescription(mission.description);
           setHourlyWage(String(mission.hourlyWage));
           setWorkReason(mission.workReason);
+          setReplacedWorker(mission.replacedWorker ?? '');
           setNotes(mission.notes ?? '');
           setRefusalReason(mission.refusalReason);
           setRangeStart(mission.startDate);
@@ -361,6 +364,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
       description: description.trim(),
       hourlyWage: wageNumber,
       workReason,
+      replacedWorker: workReason === 'REPLACEMENT' ? replacedWorker.trim() : null,
       notes: notes.trim() ? notes.trim() : null,
       slots: workedDays.map((day) => ({
         date: day.date,
@@ -504,6 +508,25 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
               ))}
             </select>
           </div>
+          {workReason === 'REPLACEMENT' && (
+            <div>
+              <label className={labelClass} htmlFor="mission-replaced">
+                Travailleur remplacé
+              </label>
+              <input
+                id="mission-replaced"
+                className={inputClass}
+                value={replacedWorker}
+                maxLength={50}
+                required
+                placeholder="Nom et prénom"
+                onChange={(e) => setReplacedWorker(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Mention obligatoire sur le contrat lorsque le motif est un remplacement.
+              </p>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <label className={labelClass} htmlFor="mission-description">
               Description du poste

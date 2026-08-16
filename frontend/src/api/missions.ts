@@ -65,8 +65,13 @@ export function declineMission(missionId: number): Promise<Mission> {
 
 // --- Contrat (les deux parties) ---
 
-export function signContract(missionId: number): Promise<Contract> {
-  return apiPost<Contract>(`/contracts/${missionId}/sign`, {});
+/** Envoie par email le code à usage unique confirmant la signature. */
+export function requestSigningCode(missionId: number): Promise<void> {
+  return apiPost<void>(`/contracts/${missionId}/signing-code`, {});
+}
+
+export function signContract(missionId: number, code: string): Promise<Contract> {
+  return apiPost<Contract>(`/contracts/${missionId}/sign`, { code });
 }
 
 export function downloadContract(missionId: number): Promise<Blob> {

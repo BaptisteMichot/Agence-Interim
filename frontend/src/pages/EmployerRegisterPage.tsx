@@ -8,6 +8,9 @@ export default function EmployerRegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [address, setAddress] = useState('');
+  const [companyNumber, setCompanyNumber] = useState('');
+  const [jointCommittee, setJointCommittee] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -17,7 +20,16 @@ export default function EmployerRegisterPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await registerEmployer({ firstName, lastName, email, password, companyName });
+      await registerEmployer({
+        firstName,
+        lastName,
+        email,
+        password,
+        companyName,
+        address,
+        companyNumber,
+        jointCommittee,
+      });
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
@@ -80,6 +92,48 @@ export default function EmployerRegisterPage() {
           onChange={(e) => setCompanyName(e.target.value)}
           className={inputClass}
         />
+
+        <label className={labelClass} htmlFor="companyAddress">
+          Adresse du siège
+        </label>
+        <input
+          id="companyAddress"
+          required
+          maxLength={100}
+          placeholder="Rue, numéro, code postal et localité"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          className={inputClass}
+        />
+
+        <label className={labelClass} htmlFor="companyNumber">
+          Numéro d'entreprise (BCE)
+        </label>
+        <input
+          id="companyNumber"
+          required
+          maxLength={15}
+          placeholder="0000.000.000"
+          value={companyNumber}
+          onChange={(e) => setCompanyNumber(e.target.value)}
+          className={inputClass}
+        />
+
+        <label className={labelClass} htmlFor="jointCommittee">
+          Commission paritaire
+        </label>
+        <input
+          id="jointCommittee"
+          required
+          maxLength={10}
+          placeholder="Par exemple 111 ou 200"
+          value={jointCommittee}
+          onChange={(e) => setJointCommittee(e.target.value)}
+          className={inputClass}
+        />
+        <p className="mb-4 text-xs text-slate-500">
+          Ces mentions sont obligatoires sur les contrats de mission.
+        </p>
 
         <label className={labelClass} htmlFor="firstName">
           Prénom

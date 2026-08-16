@@ -41,4 +41,8 @@ export interface EmployerRegisterPayload {
   email: string;
   password: string;
   companyName: string;
+  /** Mentions légales de l'entreprise utilisatrice, reprises sur les contrats. */
+  address: string;
+  companyNumber: string;
+  jointCommittee: string;
 }

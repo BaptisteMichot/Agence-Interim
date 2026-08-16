@@ -12,12 +12,15 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import be.agence_interim.dto.ContractResponse;
+import be.agence_interim.dto.SignContractRequest;
 import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.ContractService;
+import jakarta.validation.Valid;
 
 /**
  * Contrat d'une mission : consultable et signable par les deux parties, consultable
@@ -43,19 +46,30 @@ public class ContractController {
     @GetMapping("/{missionId}/file")
     public ResponseEntity<Resource> download(@AuthenticationPrincipal Jwt jwt, @PathVariable int missionId) {
         Resource resource = contractService.load(missionId, CurrentUser.id(jwt), CurrentUser.isAdmin(jwt));
-        String fileName = resource.getFilename() != null ? resource.getFilename() : "contrat.txt";
+        String fileName = resource.getFilename() != null ? resource.getFilename() : "contrat.pdf";
         ContentDisposition disposition = ContentDisposition.inline()
                 .filename(fileName, StandardCharsets.UTF_8)
                 .build();
         return ResponseEntity.ok()
-                .contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
+                .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(resource);
     }
 
-    /** Signature simulée par la partie authentifiée. */
+    /** Envoie par email le code à usage unique qui confirmera la signature. */
+    @PostMapping("/{missionId}/signing-code")
+    public ResponseEntity<Void> requestSigningCode(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable int missionId) {
+        contractService.requestSigningCode(missionId, CurrentUser.id(jwt));
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Signature par la partie authentifiée, après vérification du code reçu par email. */
     @PostMapping("/{missionId}/sign")
-    public ContractResponse sign(@AuthenticationPrincipal Jwt jwt, @PathVariable int missionId) {
-        return contractService.sign(missionId, CurrentUser.id(jwt));
+    public ContractResponse sign(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable int missionId,
+            @Valid @RequestBody SignContractRequest request) {
+        return contractService.sign(missionId, CurrentUser.id(jwt), request.code());
     }
 }

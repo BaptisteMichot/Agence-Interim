@@ -6,6 +6,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
 import type { JobOfferSummary } from '../../offers/types';
 import { formatDate } from '../../profile/format';
+import CompanySection from '../employer/CompanySection';
 
 export default function EmployerDashboard() {
   const [offers, setOffers] = useState<JobOfferSummary[]>([]);
@@ -121,6 +122,8 @@ export default function EmployerDashboard() {
           ))}
         </ul>
       </div>
+
+      <CompanySection />
 
       <ConfirmDialog
         open={closing !== null}

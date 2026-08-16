@@ -32,6 +32,7 @@ import be.agence_interim.model.Mission;
 import be.agence_interim.model.MissionStatus;
 import be.agence_interim.model.Unavailability;
 import be.agence_interim.model.User;
+import be.agence_interim.model.WorkReason;
 import be.agence_interim.repository.ApplicationRepository;
 import be.agence_interim.repository.ContractRepository;
 import be.agence_interim.repository.DailyScheduleRepository;
@@ -107,6 +108,7 @@ public class MissionService {
         if (missionRepository.existsByApplicationIdAndStatusIn(applicationId, IN_PROGRESS)) {
             throw new IllegalArgumentException("Une mission est déjà en cours pour cette candidature.");
         }
+        requireCompanyDetails(application.getJobOffer().getEmployer());
 
         Mission mission = new Mission();
         mission.setApplication(application);
@@ -264,6 +266,7 @@ public class MissionService {
     public MissionResponse accept(int jobSeekerId, int missionId) {
         Mission mission = jobSeekerMission(jobSeekerId, missionId);
         requireAwaitingWorker(mission);
+        requireWorkerDetails(mission.getApplication().getJobSeeker());
         if (mission.getStatus() == MissionStatus.RENEWAL) {
             mission.setStatus(MissionStatus.PENDING);
             return toResponse(missionRepository.save(mission));
@@ -341,6 +344,35 @@ public class MissionService {
                         + "L'agence d'intérim");
     }
 
+    /**
+     * Un contrat ne peut pas être établi sans les mentions légales de l'entreprise
+     * utilisatrice : on l'exige avant même de proposer la mission à l'agence.
+     */
+    private void requireCompanyDetails(User employer) {
+        if (isBlank(employer.getCompanyName()) || isBlank(employer.getAddress())
+                || isBlank(employer.getCompanyNumber()) || isBlank(employer.getJointCommittee())) {
+            throw new IllegalArgumentException(
+                    "Complétez la fiche de votre entreprise (adresse, numéro d'entreprise et commission "
+                            + "paritaire) avant de proposer une mission : ces mentions figurent sur le contrat.");
+        }
+    }
+
+    /**
+     * De même côté intérimaire, mais au moment de l'acceptation : c'est lui qui peut
+     * compléter son profil, et c'est son acceptation qui déclenche le contrat.
+     */
+    private void requireWorkerDetails(User worker) {
+        if (isBlank(worker.getAddress()) || isBlank(worker.getNationalNumber())) {
+            throw new IllegalArgumentException(
+                    "Complétez votre adresse et votre numéro de registre national dans votre profil "
+                            + "avant d'accepter : ces mentions sont obligatoires sur le contrat.");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
     private void requireAwaitingWorker(Mission mission) {
         if (!AWAITING_WORKER.contains(mission.getStatus())) {
             throw new IllegalArgumentException("Cette mission n'attend pas de réponse de votre part.");
@@ -360,7 +392,22 @@ public class MissionService {
         mission.setDescription(request.description().trim());
         mission.setHourlyWage(request.hourlyWage());
         mission.setWorkReason(request.workReason());
+        mission.setReplacedWorker(replacedWorker(request));
         mission.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().trim());
+    }
+
+    /**
+     * Le nom du travailleur remplacé est une mention légale obligatoire lorsque le
+     * recours à l'intérim se justifie par un remplacement, et n'a pas de sens sinon.
+     */
+    private String replacedWorker(MissionRequest request) {
+        String value = request.replacedWorker() == null || request.replacedWorker().isBlank()
+                ? null : request.replacedWorker().trim();
+        if (request.workReason() == WorkReason.REPLACEMENT && value == null) {
+            throw new IllegalArgumentException(
+                    "Le nom du travailleur remplacé est obligatoire lorsque le motif est un remplacement.");
+        }
+        return request.workReason() == WorkReason.REPLACEMENT ? value : null;
     }
 
     /** Le salaire convenu doit rester dans la fourchette annoncée dans l'offre. */
