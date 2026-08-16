@@ -46,6 +46,8 @@ export interface JobOfferSummary {
   salaryMax: number | null;
   status: JobOfferStatus;
   companyName: string;
+  /** Faux dès que l'offre est clôturée ou qu'elle a reçu une candidature. */
+  editable: boolean;
 }
 
 /** Offre correspondant au profil, avec son score de correspondance (0-100). */

@@ -39,6 +39,8 @@ export default function OfferFormPage() {
   const [degrees, setDegrees] = useState<OfferDegreeRequirement[]>([]);
   const [languages, setLanguages] = useState<OfferLanguageRequirement[]>([]);
   const [readOnly, setReadOnly] = useState(false);
+  /** Pourquoi l'offre n'est plus modifiable, pour l'expliquer à l'employeur. */
+  const [lockReason, setLockReason] = useState<'closed' | 'applications' | null>(null);
 
   const [skillOptions, setSkillOptions] = useState<SkillOption[]>([]);
   const [degreeOptions, setDegreeOptions] = useState<DegreeOption[]>([]);
@@ -75,7 +77,8 @@ export default function OfferFormPage() {
         setSkills(offer.skills.map((s) => ({ name: s.name, isMandatory: s.isMandatory, requiredLevel: s.requiredLevel })));
         setDegrees(offer.degrees.map((d) => ({ type: d.type, section: d.section, isMandatory: d.isMandatory })));
         setLanguages(offer.languages.map((l) => ({ languageId: l.languageId, isMandatory: l.isMandatory, requiredLevel: l.requiredLevel })));
-        setReadOnly(offer.status === 'CLOSED');
+        setReadOnly(!offer.editable);
+        setLockReason(offer.status === 'CLOSED' ? 'closed' : offer.editable ? null : 'applications');
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Impossible de charger l'offre."))
       .finally(() => setLoading(false));
@@ -136,9 +139,17 @@ export default function OfferFormPage() {
           ← Retour à mes offres
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-          {offerId === null ? 'Nouvelle offre' : readOnly ? "Détail de l'offre (clôturée)" : "Modifier l'offre"}
+          {offerId === null ? 'Nouvelle offre' : readOnly ? "Détail de l'offre" : "Modifier l'offre"}
         </h1>
       </div>
+
+      {lockReason && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          {lockReason === 'closed'
+            ? "Cette offre est clôturée : elle ne peut plus être modifiée."
+            : "Cette offre a déjà reçu une candidature : son contenu est figé, car les candidats ont postulé sur la base du texte publié. Clôturez-la et publiez-en une nouvelle si les conditions ont changé."}
+        </div>
+      )}
 
       {error && <p className={errorBox}>{error}</p>}
 

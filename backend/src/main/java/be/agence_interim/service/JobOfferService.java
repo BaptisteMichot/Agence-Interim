@@ -23,6 +23,7 @@ import be.agence_interim.model.Language;
 import be.agence_interim.model.LanguageJobOffer;
 import be.agence_interim.model.Skill;
 import be.agence_interim.model.SkillJobOffer;
+import be.agence_interim.repository.ApplicationRepository;
 import be.agence_interim.repository.DegreeJobOfferRepository;
 import be.agence_interim.repository.JobOfferRepository;
 import be.agence_interim.repository.LanguageJobOfferRepository;
@@ -42,6 +43,7 @@ public class JobOfferService {
     private final SkillService skillService;
     private final DegreeService degreeService;
     private final UserRepository userRepository;
+    private final ApplicationRepository applicationRepository;
 
     public JobOfferService(
             JobOfferRepository jobOfferRepository,
@@ -51,7 +53,8 @@ public class JobOfferService {
             LanguageRepository languageRepository,
             SkillService skillService,
             DegreeService degreeService,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            ApplicationRepository applicationRepository) {
         this.jobOfferRepository = jobOfferRepository;
         this.skillJobOfferRepository = skillJobOfferRepository;
         this.degreeJobOfferRepository = degreeJobOfferRepository;
@@ -60,6 +63,7 @@ public class JobOfferService {
         this.skillService = skillService;
         this.degreeService = degreeService;
         this.userRepository = userRepository;
+        this.applicationRepository = applicationRepository;
     }
 
     @Transactional
@@ -77,8 +81,13 @@ public class JobOfferService {
 
     @Transactional(readOnly = true)
     public List<JobOfferSummaryResponse> listMine(int employerId) {
+        Set<Integer> withApplications = new HashSet<>(applicationRepository.findOfferIdsWithApplications(employerId));
         return jobOfferRepository.findByEmployerIdOrderByPublishedAtDesc(employerId)
-                .stream().map(JobOfferSummaryResponse::fromEntity).toList();
+                .stream()
+                .map(offer -> JobOfferSummaryResponse.fromEntity(
+                        offer,
+                        offer.getStatus() == JobOfferStatus.OPEN && !withApplications.contains(offer.getId())))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -86,13 +95,21 @@ public class JobOfferService {
         return toResponse(ownedOffer(employerId, offerId));
     }
 
-    /** Met à jour l'offre et remplace ses exigences. Une offre clôturée n'est plus modifiable. */
+    /**
+     * Met à jour l'offre et remplace ses exigences. Une offre clôturée, ou qui a déjà
+     * reçu une candidature, n'est plus modifiable : les candidats se sont engagés sur
+     * le texte publié.
+     */
     @Transactional
     public JobOfferResponse update(int employerId, int offerId, JobOfferRequest request) {
         validateSalaries(request);
         JobOffer offer = ownedOffer(employerId, offerId);
         if (offer.getStatus() == JobOfferStatus.CLOSED) {
             throw new IllegalArgumentException("Une offre clôturée ne peut plus être modifiée.");
+        }
+        if (applicationRepository.existsByJobOfferId(offerId)) {
+            throw new IllegalArgumentException(
+                    "Cette offre a déjà reçu une candidature et ne peut plus être modifiée.");
         }
         applyFields(offer, request);
         JobOffer saved = jobOfferRepository.save(offer);
@@ -197,6 +214,8 @@ public class JobOfferService {
     JobOfferResponse toResponse(JobOffer offer) {
         return JobOfferResponse.of(
                 offer,
+                offer.getStatus() == JobOfferStatus.OPEN
+                        && !applicationRepository.existsByJobOfferId(offer.getId()),
                 skillJobOfferRepository.findByJobOfferIdFetchSkill(offer.getId()),
                 degreeJobOfferRepository.findByJobOfferIdFetchDegree(offer.getId()),
                 languageJobOfferRepository.findByJobOfferIdFetchLanguage(offer.getId()));

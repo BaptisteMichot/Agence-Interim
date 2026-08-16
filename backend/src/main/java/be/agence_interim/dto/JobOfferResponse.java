@@ -27,6 +27,8 @@ public record JobOfferResponse(
         Boolean vehicleMandatory,
         JobOfferStatus status,
         String companyName,
+        /** Faux dès que l'offre est clôturée ou qu'elle a reçu une candidature. */
+        boolean editable,
         List<SkillRequirement> skills,
         List<DegreeRequirement> degrees,
         List<LanguageRequirement> languages) {
@@ -66,6 +68,7 @@ public record JobOfferResponse(
 
     public static JobOfferResponse of(
             JobOffer offer,
+            boolean editable,
             List<SkillJobOffer> skills,
             List<DegreeJobOffer> degrees,
             List<LanguageJobOffer> languages) {
@@ -82,6 +85,7 @@ public record JobOfferResponse(
                 offer.getVehicleMandatory(),
                 offer.getStatus(),
                 offer.getEmployer().getCompanyName(),
+                editable,
                 skills.stream().map(SkillRequirement::fromEntity).toList(),
                 degrees.stream().map(DegreeRequirement::fromEntity).toList(),
                 languages.stream().map(LanguageRequirement::fromEntity).toList());

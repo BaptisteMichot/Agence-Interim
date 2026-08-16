@@ -108,20 +108,13 @@ export default function EmployerDashboard() {
                 <Link to={`/employeur/offres/${offer.id}/candidatures`} className={btnSecondary}>
                   Candidatures ({counts[offer.id] ?? 0})
                 </Link>
+                <Link to={`/employeur/offres/${offer.id}`} className={btnSecondary}>
+                  {offer.editable ? 'Modifier' : 'Consulter'}
+                </Link>
                 {offer.status === 'OPEN' && (
-                  <>
-                    <Link to={`/employeur/offres/${offer.id}`} className={btnSecondary}>
-                      Modifier
-                    </Link>
-                    <button type="button" className={btnDanger} onClick={() => setClosing(offer)}>
-                      Clôturer
-                    </button>
-                  </>
-                )}
-                {offer.status === 'CLOSED' && (
-                  <Link to={`/employeur/offres/${offer.id}`} className={btnSecondary}>
-                    Consulter
-                  </Link>
+                  <button type="button" className={btnDanger} onClick={() => setClosing(offer)}>
+                    Clôturer
+                  </button>
                 )}
               </div>
             </li>

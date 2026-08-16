@@ -16,9 +16,16 @@ public record JobOfferSummaryResponse(
         BigDecimal salaryMin,
         BigDecimal salaryMax,
         JobOfferStatus status,
-        String companyName) {
+        String companyName,
+        /** Faux dès que l'offre est clôturée ou qu'elle a reçu une candidature. */
+        boolean editable) {
 
+    /** Vue destinée à l'intérimaire, qui ne modifie jamais une offre. */
     public static JobOfferSummaryResponse fromEntity(JobOffer offer) {
+        return fromEntity(offer, false);
+    }
+
+    public static JobOfferSummaryResponse fromEntity(JobOffer offer, boolean editable) {
         return new JobOfferSummaryResponse(
                 offer.getId(),
                 offer.getTitle(),
@@ -28,6 +35,7 @@ public record JobOfferSummaryResponse(
                 offer.getSalaryMin(),
                 offer.getSalaryMax(),
                 offer.getStatus(),
-                offer.getEmployer().getCompanyName());
+                offer.getEmployer().getCompanyName(),
+                editable);
     }
 }

@@ -13,6 +13,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
 
     Optional<Application> findByJobSeekerIdAndJobOfferId(int jobSeekerId, int jobOfferId);
 
+    /** Vrai dès qu'une candidature a été déposée sur l'offre, même annulée depuis. */
+    boolean existsByJobOfferId(int jobOfferId);
+
+    /** Offres d'un employeur ayant déjà reçu au moins une candidature (annulées comprises). */
+    @Query("select distinct a.jobOffer.id from Application a where a.jobOffer.employer.id = :employerId")
+    List<Integer> findOfferIdsWithApplications(int employerId);
+
     /** Candidatures d'un intérimaire, avec l'offre et son employeur chargés, les plus récentes d'abord. */
     @Query("select a from Application a join fetch a.jobOffer o join fetch o.employer "
             + "where a.jobSeeker.id = :jobSeekerId order by a.applicationTime desc")
