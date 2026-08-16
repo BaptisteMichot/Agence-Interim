@@ -34,8 +34,9 @@ public class Mission {
 
     public static final int STATUS_MAX_LENGTH = 8;
     public static final int POSITION_MAX_LENGTH = 50;
-    public static final int WORKPLACE_MAX_LENGTH = 50;
+    public static final int WORKPLACE_MAX_LENGTH = 100;
     public static final int WORK_REASON_MAX_LENGTH = 15;
+    public static final int DESCRIPTION_MAX_LENGTH = 2000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -64,9 +65,16 @@ public class Mission {
     @Column(nullable = false, length = POSITION_MAX_LENGTH)
     private String position;
 
-    /** Lieu d'exécution de la mission (pré-rempli avec la ville de l'offre). */
+    /** Adresse exacte du lieu d'exécution (pré-remplie avec la ville de l'offre). */
     @Column(nullable = false, length = WORKPLACE_MAX_LENGTH)
     private String workplace;
+
+    /**
+     * Description du poste rédigée par l'employeur au moment de la mission : c'est
+     * sur elle que l'agence s'appuie pour valider ou refuser la mission.
+     */
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String description;
 
     /** Salaire horaire brut convenu, en euros. */
     @Column(nullable = false)

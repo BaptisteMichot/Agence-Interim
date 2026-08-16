@@ -76,6 +76,7 @@ export interface MissionPayload {
   endDate: string;
   position: string;
   workplace: string;
+  description: string;
   hourlyWage: number;
   workReason: WorkReason;
   notes: string | null;
@@ -90,6 +91,7 @@ export interface Mission {
   endDate: string;
   position: string;
   workplace: string;
+  description: string;
   hourlyWage: number;
   workReason: WorkReason;
   notes: string | null;

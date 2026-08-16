@@ -20,9 +20,12 @@ public record MissionRequest(
         @NotBlank(message = "L'intitulé du poste est obligatoire.")
         @Size(max = Mission.POSITION_MAX_LENGTH, message = "L'intitulé du poste est trop long.")
         String position,
-        @NotBlank(message = "Le lieu de travail est obligatoire.")
-        @Size(max = Mission.WORKPLACE_MAX_LENGTH, message = "Le lieu de travail est trop long.")
+        @NotBlank(message = "L'adresse du lieu de travail est obligatoire.")
+        @Size(max = Mission.WORKPLACE_MAX_LENGTH, message = "L'adresse du lieu de travail est trop longue.")
         String workplace,
+        @NotBlank(message = "La description du poste est obligatoire.")
+        @Size(max = Mission.DESCRIPTION_MAX_LENGTH, message = "La description du poste est trop longue.")
+        String description,
         @NotNull(message = "Le salaire horaire est obligatoire.")
         @DecimalMin(value = "0.01", message = "Le salaire horaire doit être supérieur à 0.")
         BigDecimal hourlyWage,

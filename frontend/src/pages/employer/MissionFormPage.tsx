@@ -125,6 +125,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
 
   const [position, setPosition] = useState('');
   const [workplace, setWorkplace] = useState('');
+  const [description, setDescription] = useState('');
   const [hourlyWage, setHourlyWage] = useState('');
   const [workReason, setWorkReason] = useState<WorkReason>('OVERLOAD');
   const [notes, setNotes] = useState('');
@@ -175,6 +176,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setSalaryMax(offer.salaryMax);
           setPosition(source.position);
           setWorkplace(source.workplace);
+          setDescription(source.description);
           setHourlyWage(String(source.hourlyWage));
           setWorkReason(source.workReason);
           setNotes(source.notes ?? '');
@@ -217,6 +219,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setSalaryMax(offer.salaryMax);
           setPosition(mission.position);
           setWorkplace(mission.workplace);
+          setDescription(mission.description);
           setHourlyWage(String(mission.hourlyWage));
           setWorkReason(mission.workReason);
           setNotes(mission.notes ?? '');
@@ -355,6 +358,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
       endDate: dates[dates.length - 1],
       position: position.trim(),
       workplace: workplace.trim(),
+      description: description.trim(),
       hourlyWage: wageNumber,
       workReason,
       notes: notes.trim() ? notes.trim() : null,
@@ -448,16 +452,20 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           </div>
           <div>
             <label className={labelClass} htmlFor="mission-workplace">
-              Lieu de travail
+              Adresse du lieu de travail
             </label>
             <input
               id="mission-workplace"
               className={inputClass}
               value={workplace}
-              maxLength={50}
+              maxLength={100}
               required
+              placeholder="Rue, numéro, code postal et localité"
               onChange={(e) => setWorkplace(e.target.value)}
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Adresse exacte où l'intérimaire doit se présenter.
+            </p>
           </div>
           <div>
             <label className={labelClass} htmlFor="mission-wage">
@@ -495,6 +503,24 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
                 </option>
               ))}
             </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelClass} htmlFor="mission-description">
+              Description du poste
+            </label>
+            <textarea
+              id="mission-description"
+              className={`${inputClass} min-h-28`}
+              value={description}
+              maxLength={2000}
+              required
+              placeholder="Tâches confiées, matériel utilisé, environnement de travail, horaires particuliers…"
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Décrivez le travail réellement confié : c'est sur cette description que l'agence
+              s'appuie pour valider ou refuser la mission. {description.length}/2000
+            </p>
           </div>
           <div className="sm:col-span-2">
             <label className={labelClass} htmlFor="mission-notes">

@@ -357,6 +357,7 @@ public class MissionService {
         mission.setEndDate(request.endDate());
         mission.setPosition(request.position().trim());
         mission.setWorkplace(request.workplace().trim());
+        mission.setDescription(request.description().trim());
         mission.setHourlyWage(request.hourlyWage());
         mission.setWorkReason(request.workReason());
         mission.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().trim());

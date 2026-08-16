@@ -18,7 +18,7 @@ export default function MissionFacts({ mission }: { mission: Mission }) {
     <div className="space-y-4">
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Fact label="Poste" value={mission.position} />
-        <Fact label="Lieu de travail" value={mission.workplace} />
+        <Fact label="Adresse du lieu de travail" value={mission.workplace} />
         <Fact label="Motif de recours" value={workReasonLabel(mission.workReason)} />
         <Fact
           label="Période"
@@ -30,6 +30,10 @@ export default function MissionFacts({ mission }: { mission: Mission }) {
           value={`${formatMinutes(minutes)} · ${estimatedPay(minutes, mission.hourlyWage)} brut`}
         />
       </dl>
+      <div>
+        <p className="text-xs uppercase tracking-wide text-slate-400">Description du poste</p>
+        <p className="mt-1 whitespace-pre-line text-sm text-slate-700">{mission.description}</p>
+      </div>
       {mission.notes && (
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-400">Conditions particulières</p>

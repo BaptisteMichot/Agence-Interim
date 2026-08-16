@@ -171,6 +171,7 @@ public class ContractService {
         text.append("CONDITIONS DE LA MISSION\n");
         text.append("  Poste            : ").append(mission.getPosition()).append("\n");
         text.append("  Lieu de travail  : ").append(mission.getWorkplace()).append("\n");
+        text.append("  Description      : ").append(mission.getDescription()).append("\n");
         text.append("  Motif de recours : ").append(reasonLabel(mission.getWorkReason())).append("\n");
         text.append("  Période          : du ").append(DATE.format(mission.getStartDate()))
                 .append(" au ").append(DATE.format(mission.getEndDate())).append("\n");
