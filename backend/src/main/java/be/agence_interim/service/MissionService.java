@@ -403,6 +403,7 @@ public class MissionService {
         mission.setPosition(request.position().trim());
         mission.setWorkplace(request.workplace().trim());
         mission.setDescription(request.description().trim());
+        mission.setJointCommittee(request.jointCommittee().trim());
         mission.setHourlyWage(request.hourlyWage());
         mission.setWorkReason(request.workReason());
         mission.setReplacedWorker(replacedWorker(request));

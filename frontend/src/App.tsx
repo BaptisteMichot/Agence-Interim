@@ -15,6 +15,8 @@ import ProfilePage from './pages/profile/ProfilePage';
 import OfferFormPage from './pages/employer/OfferFormPage';
 import OfferApplicationsPage from './pages/employer/OfferApplicationsPage';
 import CandidateProfilePage from './pages/employer/CandidateProfilePage';
+import CompanyPage from './pages/employer/CompanyPage';
+import EmployerOffersPage from './pages/employer/EmployerOffersPage';
 import MissionFormPage from './pages/employer/MissionFormPage';
 import EmployerMissionsPage from './pages/employer/EmployerMissionsPage';
 import EmployerMissionDetailPage from './pages/employer/EmployerMissionDetailPage';
@@ -63,6 +65,8 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['EMPLOYER']} />}>
             <Route path="/employeur" element={<EmployerDashboard />} />
+            <Route path="/employeur/entreprise" element={<CompanyPage />} />
+            <Route path="/employeur/offres" element={<EmployerOffersPage />} />
             <Route path="/employeur/offres/nouvelle" element={<OfferFormPage />} />
             <Route path="/employeur/offres/:id" element={<OfferFormPage />} />
             <Route path="/employeur/offres/:id/candidatures" element={<OfferApplicationsPage />} />

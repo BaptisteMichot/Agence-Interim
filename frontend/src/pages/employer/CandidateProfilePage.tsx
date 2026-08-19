@@ -187,7 +187,7 @@ export default function CandidateProfilePage() {
         profile.formations.length === 0 && (
           <p className="text-sm text-slate-500">
             Ce candidat n'a pas encore complété son profil.{' '}
-            <Link to="/employeur" className="text-indigo-600 hover:underline">
+            <Link to="/employeur/offres" className="text-indigo-600 hover:underline">
               Retour à mes offres
             </Link>
           </p>

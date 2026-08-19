@@ -70,6 +70,7 @@ export interface MissionPayload {
   position: string;
   workplace: string;
   description: string;
+  jointCommittee: string;
   hourlyWage: number;
   workReason: WorkReason;
   /** Obligatoire lorsque le motif de recours est un remplacement. */

@@ -113,7 +113,7 @@ export default function OfferApplicationsPage() {
 
   return (
     <section>
-      <Link to="/employeur" className={linkBack}>
+      <Link to="/employeur/offres" className={linkBack}>
         ← Retour à mes offres
       </Link>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-4">

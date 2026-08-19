@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCandidateProfile } from '../../api/applications';
+import { getMyCompany } from '../../api/employer';
 import { errorMessage } from '../../api/http';
 import { createMission, getEmployerMission, renewMission, updateMission } from '../../api/missions';
 import { getMyOffer } from '../../api/offers';
@@ -245,6 +246,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   const [position, setPosition] = useState('');
   const [workplace, setWorkplace] = useState('');
   const [description, setDescription] = useState('');
+  const [jointCommittee, setJointCommittee] = useState('');
   const [hourlyWage, setHourlyWage] = useState('');
   const [workReason, setWorkReason] = useState<WorkReason>('OVERLOAD');
   const [replacedWorker, setReplacedWorker] = useState('');
@@ -298,6 +300,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setPosition(mission.position);
           setWorkplace(mission.workplace);
           setDescription(mission.description);
+          setJointCommittee(mission.jointCommittee);
           setHourlyWage(String(mission.hourlyWage));
           setWorkReason(mission.workReason);
           setReplacedWorker(mission.replacedWorker ?? '');
@@ -353,6 +356,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
         } else {
           const profile = await getCandidateProfile(applicationId);
           const offer = await getMyOffer(profile.offerId);
+          // Commission paritaire de la fiche entreprise : point de départ, modifiable ensuite.
+          const company = await getMyCompany();
           if (cancelled) {
             return;
           }
@@ -362,6 +367,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setSalaryMax(offer.salaryMax);
           setPosition(offer.title);
           setWorkplace(offer.city);
+          setJointCommittee(company.jointCommittee ?? '');
           setHourlyWage(offer.salaryMin !== null ? String(offer.salaryMin) : '');
           rebuildDays(addDays(todayIso(), 7), addDays(todayIso(), 11), []);
         }
@@ -478,6 +484,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
       position: position.trim(),
       workplace: workplace.trim(),
       description: description.trim(),
+      jointCommittee: jointCommittee.trim(),
       hourlyWage: wageNumber,
       workReason,
       replacedWorker: workReason === 'REPLACEMENT' ? replacedWorker.trim() : null,
@@ -582,6 +589,20 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
             <p className="mt-1 text-xs text-slate-500">
               Adresse exacte où l'intérimaire doit se présenter.
             </p>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="mission-committee">
+              Commission paritaire
+            </label>
+            <input
+              id="mission-committee"
+              className={inputClass}
+              value={jointCommittee}
+              maxLength={10}
+              required
+              placeholder="Par exemple 111 ou 200"
+              onChange={(e) => setJointCommittee(e.target.value)}
+            />
           </div>
           <div>
             <label className={labelClass} htmlFor="mission-wage">

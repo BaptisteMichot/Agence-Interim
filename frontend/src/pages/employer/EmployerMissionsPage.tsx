@@ -15,7 +15,7 @@ export default function EmployerMissionsPage() {
   return (
     <section>
       <Link to="/employeur" className={linkBack}>
-        ← Retour à mes offres
+        ← Retour au tableau de bord
       </Link>
       <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mes missions</h1>
       <p className="mt-1 text-slate-600">

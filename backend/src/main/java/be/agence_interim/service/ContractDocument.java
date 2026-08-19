@@ -83,7 +83,7 @@ public class ContractDocument {
             document.open();
 
             header(document, contract);
-            parties(document, employer, worker);
+            parties(document, employer, worker, mission.getJointCommittee());
             mission(document, mission);
             schedule(document, mission, slots, paidMinutes);
             pay(document, mission, paidMinutes);
@@ -120,7 +120,8 @@ public class ContractDocument {
         document.add(rule());
     }
 
-    private void parties(Document document, User employer, User worker) throws DocumentException {
+    private void parties(Document document, User employer, User worker, String jointCommittee)
+            throws DocumentException {
         section(document, "1. Parties");
 
         PdfPTable table = new PdfPTable(3);
@@ -136,7 +137,7 @@ public class ContractDocument {
                 employer.getCompanyName(),
                 employer.getAddress(),
                 "N° d'entreprise : " + value(employer.getCompanyNumber()),
-                "Commission paritaire : " + value(employer.getJointCommittee()),
+                "Commission paritaire : " + value(jointCommittee),
                 "Contact : " + employer.getFirstName() + " " + employer.getLastName()));
         table.addCell(partyCell("Travailleur intérimaire",
                 worker.getFirstName() + " " + worker.getLastName(),

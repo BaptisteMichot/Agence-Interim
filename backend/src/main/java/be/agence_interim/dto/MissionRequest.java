@@ -26,6 +26,9 @@ public record MissionRequest(
         @NotBlank(message = "La description du poste est obligatoire.")
         @Size(max = Mission.DESCRIPTION_MAX_LENGTH, message = "La description du poste est trop longue.")
         String description,
+        @NotBlank(message = "La commission paritaire est obligatoire.")
+        @Size(max = Mission.JOINT_COMMITTEE_MAX_LENGTH, message = "La commission paritaire est trop longue.")
+        String jointCommittee,
         @NotNull(message = "Le salaire horaire est obligatoire.")
         @DecimalMin(value = "0.01", message = "Le salaire horaire doit être supérieur à 0.")
         BigDecimal hourlyWage,

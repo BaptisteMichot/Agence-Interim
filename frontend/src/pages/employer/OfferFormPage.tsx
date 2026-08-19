@@ -132,7 +132,7 @@ export default function OfferFormPage() {
       } else {
         await updateOffer(offerId, payload);
       }
-      navigate('/employeur');
+      navigate('/employeur/offres');
     } catch (err) {
       setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
@@ -147,7 +147,7 @@ export default function OfferFormPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/employeur" className={linkBack}>
+        <Link to="/employeur/offres" className={linkBack}>
           ← Retour à mes offres
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
@@ -373,7 +373,7 @@ export default function OfferFormPage() {
             <button type="submit" disabled={saving} className={btnPrimary}>
               {saving ? 'Enregistrement…' : offerId === null ? "Publier l'offre" : 'Enregistrer les modifications'}
             </button>
-            <Link to="/employeur" className={btnSecondary}>
+            <Link to="/employeur/offres" className={btnSecondary}>
               Annuler
             </Link>
           </div>

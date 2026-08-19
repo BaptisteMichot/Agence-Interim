@@ -1,0 +1,134 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { getApplicationCounts } from '../../api/applications';
+import { errorMessage } from '../../api/http';
+import { closeOffer, getMyOffers } from '../../api/offers';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { btnDanger, btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import { salarySuffix } from '../../offers/format';
+import type { JobOfferSummary } from '../../offers/types';
+import { formatTimestampDate } from '../../profile/format';
+
+/** Offres publiées par l'employeur, avec le nombre de candidatures reçues par offre. */
+export default function EmployerOffersPage() {
+  const [offers, setOffers] = useState<JobOfferSummary[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [closing, setClosing] = useState<JobOfferSummary | null>(null);
+
+  const reload = useCallback(async () => {
+    setError(null);
+    try {
+      const [myOffers, applicationCounts] = await Promise.all([getMyOffers(), getApplicationCounts()]);
+      setOffers(myOffers);
+      setCounts(applicationCounts);
+    } catch (err) {
+      setError(errorMessage(err, 'Impossible de charger les offres.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const confirmClose = async () => {
+    if (!closing) {
+      return;
+    }
+    const id = closing.id;
+    setClosing(null);
+    setError(null);
+    try {
+      await closeOffer(id);
+      reload();
+    } catch (err) {
+      setError(errorMessage(err, 'Une erreur est survenue.'));
+    }
+  };
+
+  return (
+    <section>
+      <Link to="/employeur" className={linkBack}>
+        ← Retour au tableau de bord
+      </Link>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Mes offres d'emploi</h1>
+          <p className="mt-1 text-slate-600">Vos offres publiées et les candidatures reçues.</p>
+        </div>
+        <Link to="/employeur/offres/nouvelle" className={btnPrimary}>
+          + Nouvelle offre
+        </Link>
+      </div>
+
+      {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
+
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+        {loading && <p className="text-sm text-slate-500">Chargement…</p>}
+        {!loading && offers.length === 0 && (
+          <p className="text-sm text-slate-500">
+            Aucune offre publiée. Créez votre première offre avec « Nouvelle offre ».
+          </p>
+        )}
+
+        <ul className="space-y-3">
+          {offers.map((offer) => (
+            <li
+              key={offer.id}
+              className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 p-4"
+            >
+              <div>
+                <p className="font-medium text-slate-900">
+                  {offer.title}
+                  <span
+                    className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      offer.status === 'OPEN'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {offer.status === 'OPEN' ? 'Ouverte' : 'Clôturée'}
+                  </span>
+                </p>
+                <p className="text-sm text-slate-500">
+                  {offer.sector} · {offer.city}
+                  {salarySuffix(offer.salaryMin, offer.salaryMax)}
+                </p>
+                {offer.publishedAt && (
+                  <p className="text-xs text-slate-400">
+                    Publiée le {formatTimestampDate(offer.publishedAt)}
+                  </p>
+                )}
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Link to={`/employeur/offres/${offer.id}/candidatures`} className={btnSecondary}>
+                  Candidatures ({counts[offer.id] ?? 0})
+                </Link>
+                <Link to={`/employeur/offres/${offer.id}`} className={btnSecondary}>
+                  {offer.editable ? 'Modifier' : 'Consulter'}
+                </Link>
+                {offer.status === 'OPEN' && (
+                  <button type="button" className={btnDanger} onClick={() => setClosing(offer)}>
+                    Clôturer
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <ConfirmDialog
+        open={closing !== null}
+        title="Clôturer l'offre"
+        message={`L'offre « ${closing?.title} » ne sera plus visible des candidats et ne pourra plus être modifiée.`}
+        confirmLabel="Clôturer"
+        onConfirm={confirmClose}
+        onCancel={() => setClosing(null)}
+      />
+    </section>
+  );
+}

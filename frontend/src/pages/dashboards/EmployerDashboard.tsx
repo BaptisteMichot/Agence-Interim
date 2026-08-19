@@ -1,138 +1,60 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getApplicationCounts } from '../../api/applications';
-import { errorMessage } from '../../api/http';
-import { closeOffer, getMyOffers } from '../../api/offers';
-import ConfirmDialog from '../../components/ConfirmDialog';
-import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
-import { salarySuffix } from '../../offers/format';
-import type { JobOfferSummary } from '../../offers/types';
-import { formatTimestampDate } from '../../profile/format';
-import CompanySection from '../employer/CompanySection';
+import { getMyCompany, type EmployerCompany } from '../../api/employer';
 
 export default function EmployerDashboard() {
-  const [offers, setOffers] = useState<JobOfferSummary[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [closing, setClosing] = useState<JobOfferSummary | null>(null);
+  const [company, setCompany] = useState<EmployerCompany | null>(null);
 
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      const [myOffers, applicationCounts] = await Promise.all([getMyOffers(), getApplicationCounts()]);
-      setOffers(myOffers);
-      setCounts(applicationCounts);
-    } catch (err) {
-      setError(errorMessage(err, 'Impossible de charger les offres.'));
-    } finally {
-      setLoading(false);
-    }
+  // Une fiche entreprise incomplète empêche de proposer une mission : la carte le signale
+  // dès l'accueil, la fiche s'éditant désormais sur sa propre page.
+  useEffect(() => {
+    getMyCompany()
+      .then(setCompany)
+      .catch(() => setCompany(null));
   }, []);
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
-  const confirmClose = async () => {
-    if (!closing) {
-      return;
-    }
-    const id = closing.id;
-    setClosing(null);
-    setError(null);
-    try {
-      await closeOffer(id);
-      reload();
-    } catch (err) {
-      setError(errorMessage(err, 'Une erreur est survenue.'));
-    }
-  };
+  const incomplete = company?.incomplete ?? false;
 
   return (
-    <section>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Espace employeur</h1>
-          <p className="mt-1 text-slate-600">Vos offres d'emploi.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/employeur/missions" className={btnSecondary}>
-            Mes missions
-          </Link>
-          <Link to="/employeur/offres/nouvelle" className={btnPrimary}>
-            + Nouvelle offre
-          </Link>
-        </div>
-      </div>
-
-      {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
-
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-        {loading && <p className="text-sm text-slate-500">Chargement…</p>}
-        {!loading && offers.length === 0 && (
-          <p className="text-sm text-slate-500">
-            Aucune offre publiée. Créez votre première offre avec « Nouvelle offre ».
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Link
+          to="/employeur/entreprise"
+          className="block rounded-xl border border-indigo-200 bg-indigo-50 p-6 transition hover:bg-indigo-100"
+        >
+          <p className="text-lg font-semibold text-indigo-800">
+            Mon entreprise →
+            {incomplete && (
+              <span className="ml-2 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
+                À compléter
+              </span>
+            )}
           </p>
-        )}
-
-        <ul className="space-y-3">
-          {offers.map((offer) => (
-            <li
-              key={offer.id}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 p-4"
-            >
-              <div>
-                <p className="font-medium text-slate-900">
-                  {offer.title}
-                  <span
-                    className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      offer.status === 'OPEN'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-slate-200 text-slate-600'
-                    }`}
-                  >
-                    {offer.status === 'OPEN' ? 'Ouverte' : 'Clôturée'}
-                  </span>
-                </p>
-                <p className="text-sm text-slate-500">
-                  {offer.sector} · {offer.city}
-                  {salarySuffix(offer.salaryMin, offer.salaryMax)}
-                </p>
-                {offer.publishedAt && (
-                  <p className="text-xs text-slate-400">
-                    Publiée le {formatTimestampDate(offer.publishedAt)}
-                  </p>
-                )}
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <Link to={`/employeur/offres/${offer.id}/candidatures`} className={btnSecondary}>
-                  Candidatures ({counts[offer.id] ?? 0})
-                </Link>
-                <Link to={`/employeur/offres/${offer.id}`} className={btnSecondary}>
-                  {offer.editable ? 'Modifier' : 'Consulter'}
-                </Link>
-                {offer.status === 'OPEN' && (
-                  <button type="button" className={btnDanger} onClick={() => setClosing(offer)}>
-                    Clôturer
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+          <p className="mt-1 text-sm text-indigo-700">
+            {incomplete
+              ? 'Ces mentions figurent sur les contrats : sans elles, vous ne pouvez pas proposer de mission.'
+              : 'Les mentions légales de votre entreprise, reprises sur chaque contrat.'}
+          </p>
+        </Link>
+        <Link
+          to="/employeur/offres"
+          className="block rounded-xl border border-emerald-200 bg-emerald-50 p-6 transition hover:bg-emerald-100"
+        >
+          <p className="text-lg font-semibold text-emerald-800">Mes offres d'emploi →</p>
+          <p className="mt-1 text-sm text-emerald-700">
+            Publiez vos offres, suivez leur état et consultez les candidatures reçues.
+          </p>
+        </Link>
+        <Link
+          to="/employeur/missions"
+          className="block rounded-xl border border-violet-200 bg-violet-50 p-6 transition hover:bg-violet-100"
+        >
+          <p className="text-lg font-semibold text-violet-800">Mes missions →</p>
+          <p className="mt-1 text-sm text-violet-700">
+            Suivez vos missions, leur validation par l'agence et leurs contrats.
+          </p>
+        </Link>
       </div>
-
-      <CompanySection />
-
-      <ConfirmDialog
-        open={closing !== null}
-        title="Clôturer l'offre"
-        message={`L'offre « ${closing?.title} » ne sera plus visible des candidats et ne pourra plus être modifiée.`}
-        confirmLabel="Clôturer"
-        onConfirm={confirmClose}
-        onCancel={() => setClosing(null)}
-      />
-    </section>
+    </div>
   );
 }

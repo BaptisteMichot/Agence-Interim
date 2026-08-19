@@ -53,7 +53,7 @@ export default function CompanySection() {
   }
 
   return (
-    <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-slate-200 bg-white p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-slate-900">Mon entreprise</h2>
         {!editing && (

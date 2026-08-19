@@ -18,6 +18,7 @@ export default function MissionFacts({ mission }: { mission: Mission }) {
     <div className="space-y-4">
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Fact label="Poste" value={mission.position} />
+        <Fact label="Commission paritaire" value={mission.jointCommittee} />
         <Fact label="Adresse du lieu de travail" value={mission.workplace} />
         <Fact
           label="Motif de recours"

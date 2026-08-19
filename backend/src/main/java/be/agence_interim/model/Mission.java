@@ -36,6 +36,7 @@ public class Mission {
     public static final int WORK_REASON_MAX_LENGTH = 15;
     public static final int DESCRIPTION_MAX_LENGTH = 2000;
     public static final int REPLACED_WORKER_MAX_LENGTH = 50;
+    public static final int JOINT_COMMITTEE_MAX_LENGTH = User.JOINT_COMMITTEE_MAX_LENGTH;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -74,6 +75,14 @@ public class Mission {
      */
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
+
+    /**
+     * Commission paritaire dont relève la fonction exercée, pré-remplie avec celle de
+     * l'entreprise utilisatrice. Elle reste modifiable : une même entreprise relève de
+     * commissions différentes selon que le poste est ouvrier ou employé.
+     */
+    @Column(nullable = false, length = JOINT_COMMITTEE_MAX_LENGTH)
+    private String jointCommittee;
 
     /** Salaire horaire brut convenu, en euros. */
     @Column(nullable = false)
