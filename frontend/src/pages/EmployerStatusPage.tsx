@@ -40,10 +40,15 @@ export default function EmployerStatusPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<EmployerAccessStatus | null | undefined>(undefined);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** Refus définitif prononcé par l'agence : plus aucune nouvelle demande possible. */
+  const [reapplyBlocked, setReapplyBlocked] = useState(false);
 
   const reload = useCallback(() => {
     getMyEmployerRequest()
-      .then((r) => setStatus(r.status))
+      .then((r) => {
+        setStatus(r.status);
+        setReapplyBlocked(r.reapplyBlocked);
+      })
       .catch(() => setStatus(null));
   }, []);
 
@@ -93,7 +98,14 @@ export default function EmployerStatusPage() {
         </p>
         <p className="mt-4 text-slate-600">{content.message}</p>
 
-        {status === 'REFUSED' && <ReapplyForm onDone={reload} />}
+        {status === 'REFUSED' &&
+          (reapplyBlocked ? (
+            <p className="mt-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              L'agence a clos ce dossier : vous ne pouvez plus soumettre de nouvelle demande.
+            </p>
+          ) : (
+            <ReapplyForm onDone={reload} />
+          ))}
 
         <div className="mt-6 flex flex-col gap-3">
           <button
@@ -166,7 +178,7 @@ function ReapplyForm({ onDone }: { onDone: () => void }) {
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Précisez votre demande à l'agence…"
-        className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+        className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
       />
       <p className="mt-1 text-right text-xs text-slate-400">
         {message.length}/{MESSAGE_MAX}

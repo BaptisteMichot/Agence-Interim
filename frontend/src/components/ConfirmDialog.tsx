@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { btnDangerSolid, btnSecondary } from './ui';
 
 interface ConfirmDialogProps {
@@ -6,6 +6,8 @@ interface ConfirmDialogProps {
   title: string;
   message: string;
   confirmLabel?: string;
+  /** Options complémentaires posées avant de confirmer (cases à cocher, précisions). */
+  children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -16,6 +18,7 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Confirmer',
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -45,13 +48,14 @@ export default function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+        className="w-full max-w-sm rounded-xl bg-surface p-6 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 id="confirm-dialog-title" className="text-lg font-semibold text-slate-900">
+        <h2 id="confirm-dialog-title" className="text-lg font-semibold text-ink">
           {title}
         </h2>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
+        {children && <div className="mt-4">{children}</div>}
         <div className="mt-6 flex justify-end gap-3">
           <button type="button" className={btnSecondary} onClick={onCancel}>
             Annuler

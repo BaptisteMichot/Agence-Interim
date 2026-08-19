@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import be.agence_interim.dto.AdminEmployerRequestResponse;
@@ -48,8 +49,8 @@ public class AdminEmployerRequestController {
     }
 
     @PostMapping("/{id}/refuse")
-    public ResponseEntity<Void> refuse(@PathVariable int id) {
-        employerAccessService.refuse(id);
+    public ResponseEntity<Void> refuse(@PathVariable int id, @RequestParam(defaultValue = "false") boolean block) {
+        employerAccessService.refuse(id, block);
         return ResponseEntity.noContent().build();
     }
 }

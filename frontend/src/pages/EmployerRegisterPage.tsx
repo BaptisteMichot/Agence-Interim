@@ -2,6 +2,12 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { registerEmployer } from '../api/client';
 import { errorMessage } from '../api/http';
+import AddressFields, {
+  EMPTY_ADDRESS,
+  formatAddress,
+  type AddressParts,
+} from '../components/AddressFields';
+import PasswordInput from '../components/PasswordInput';
 import { btnAuthSubmit, errorBox, inputClass, labelClass } from '../components/ui';
 
 export default function EmployerRegisterPage() {
@@ -10,7 +16,7 @@ export default function EmployerRegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState<AddressParts>({ ...EMPTY_ADDRESS });
   const [companyNumber, setCompanyNumber] = useState('');
   const [jointCommittee, setJointCommittee] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +34,7 @@ export default function EmployerRegisterPage() {
         email,
         password,
         companyName,
-        address,
+        address: formatAddress(address),
         companyNumber,
         jointCommittee,
       });
@@ -56,7 +62,7 @@ export default function EmployerRegisterPage() {
           </p>
           <Link
             to="/login"
-            className="mt-6 inline-block rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
+            className="mt-6 inline-block rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
           >
             Retour à la connexion
           </Link>
@@ -93,18 +99,15 @@ export default function EmployerRegisterPage() {
           className={inputClassLocal}
         />
 
-        <label className={labelClass} htmlFor="companyAddress">
-          Adresse du siège
-        </label>
-        <input
-          id="companyAddress"
-          required
-          maxLength={100}
-          placeholder="Rue, numéro, code postal et localité"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          className={inputClassLocal}
-        />
+        <span className={labelClass}>Adresse du siège</span>
+        <div className="mb-4">
+          <AddressFields
+            idPrefix="company-address"
+            parts={address}
+            onChange={setAddress}
+            required
+          />
+        </div>
 
         <label className={labelClass} htmlFor="companyNumber">
           Numéro d'entreprise (BCE)
@@ -172,14 +175,15 @@ export default function EmployerRegisterPage() {
         <label className={labelClass} htmlFor="password">
           Mot de passe
         </label>
-        <input
-          id="password"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-2 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-        />
+        <div className="mb-2">
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={setPassword}
+            required
+            autoComplete="new-password"
+          />
+        </div>
         <p className="mb-6 text-xs text-slate-500">
           Au moins 14 caractères, avec une majuscule, une minuscule, un chiffre et un caractère spécial.
         </p>
@@ -193,7 +197,7 @@ export default function EmployerRegisterPage() {
         </button>
 
         <p className="mt-4 text-center text-sm text-slate-600">
-          <Link to="/login" className="font-medium text-indigo-600 hover:underline">
+          <Link to="/login" className="font-medium text-brand-600 hover:underline">
             Retour à la connexion
           </Link>
         </p>

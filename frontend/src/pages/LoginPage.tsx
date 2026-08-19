@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { errorMessage } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
 import { homePathForRole } from '../auth/roleRoutes';
+import PasswordInput from '../components/PasswordInput';
 import { btnAuthSubmit, errorBox } from '../components/ui';
 
 export default function LoginPage() {
@@ -57,20 +58,21 @@ export default function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
         />
 
         <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="password">
           Mot de passe
         </label>
-        <input
-          id="password"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-6 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-        />
+        <div className="mb-6">
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={setPassword}
+            required
+            autoComplete="current-password"
+          />
+        </div>
 
         <button
           type="submit"
@@ -82,13 +84,13 @@ export default function LoginPage() {
 
         <p className="mt-4 text-center text-sm text-slate-600">
           Pas encore de compte ?{' '}
-          <Link to="/register" className="font-medium text-indigo-600 hover:underline">
+          <Link to="/register" className="font-medium text-brand-600 hover:underline">
             Créer un compte
           </Link>
         </p>
         <p className="mt-2 text-center text-sm text-slate-600">
           Vous êtes un employeur ?{' '}
-          <Link to="/inscription-employeur" className="font-medium text-indigo-600 hover:underline">
+          <Link to="/inscription-employeur" className="font-medium text-brand-600 hover:underline">
             Demander un accès
           </Link>
         </p>

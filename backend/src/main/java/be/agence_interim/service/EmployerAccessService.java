@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import be.agence_interim.dto.EmployerCompanyRequest;
+import be.agence_interim.dto.MyEmployerRequestResponse;
 import be.agence_interim.dto.EmployerRegisterRequest;
 import be.agence_interim.model.EmployerAccessRequest;
 import be.agence_interim.model.EmployerAccessStatus;
@@ -91,19 +92,38 @@ public class EmployerAccessService {
         if (user.getRole() != Role.EMPLOYER_PENDING) {
             throw new IllegalArgumentException("Action non autorisee.");
         }
-        EmployerAccessStatus latest = latestStatus(userId);
-        if (latest != EmployerAccessStatus.REFUSED) {
+        EmployerAccessRequest latest = latestRequest(userId);
+        if (latest == null || latest.getStatus() != EmployerAccessStatus.REFUSED) {
             throw new IllegalArgumentException("Vous ne pouvez pas refaire de demande pour le moment.");
+        }
+        if (latest.isReapplyBlocked()) {
+            throw new IllegalArgumentException(
+                    "Votre demande a été refusée définitivement : vous ne pouvez plus en soumettre de nouvelle.");
         }
         String cleaned = Strings.blankToNull(message);
         createRequest(user, cleaned);
     }
 
+    /** Dernière demande de l'utilisateur, ou null s'il n'en a pas. */
+    public EmployerAccessRequest latestRequest(int userId) {
+        return requestRepository.findFirstByUserIdOrderByRequestDateDescIdDesc(userId).orElse(null);
+    }
+
     /** Statut de la dernière demande de l'utilisateur, ou null s'il n'en a pas. */
     public EmployerAccessStatus latestStatus(int userId) {
-        return requestRepository.findFirstByUserIdOrderByRequestDateDescIdDesc(userId)
-                .map(request -> request.getStatus())
-                .orElse(null);
+        EmployerAccessRequest latest = latestRequest(userId);
+        return latest == null ? null : latest.getStatus();
+    }
+
+    /**
+     * Statut de la demande courante, avec l'indication d'un refus définitif : la page de
+     * statut n'a pas à proposer un formulaire que le backend refusera.
+     */
+    public MyEmployerRequestResponse myRequest(int userId) {
+        EmployerAccessRequest latest = latestRequest(userId);
+        return latest == null
+                ? new MyEmployerRequestResponse(null, false)
+                : new MyEmployerRequestResponse(latest.getStatus(), latest.isReapplyBlocked());
     }
 
     /** Toutes les demandes (en attente + historique), ordonnées par id. */
@@ -121,10 +141,15 @@ public class EmployerAccessService {
         requestRepository.save(request);
     }
 
+    /**
+     * Refus de la demande. {@code block} ferme définitivement la porte : l'utilisateur ne
+     * pourra plus resoumettre, ce qui évite qu'un compte éconduit inonde l'agence.
+     */
     @Transactional
-    public void refuse(int requestId) {
+    public void refuse(int requestId, boolean block) {
         EmployerAccessRequest request = pendingRequest(requestId);
         request.setStatus(EmployerAccessStatus.REFUSED);
+        request.setReapplyBlocked(block);
         requestRepository.save(request);
     }
 

@@ -272,7 +272,26 @@ public class MissionService {
         Mission mission = jobSeekerMission(jobSeekerId, missionId);
         requireAwaitingWorker(mission);
         mission.setStatus(MissionStatus.DECLINED);
-        return toResponse(missionRepository.save(mission));
+        Mission saved = missionRepository.save(mission);
+        // Un renouvellement refusé laisse la mission d'origine en cours : le poste reste tenu.
+        if (saved.getPreviousMission() == null) {
+            reopenOffer(saved.getApplication().getJobOffer());
+        }
+        return toResponse(saved);
+    }
+
+    /**
+     * Un refus rend le poste vacant : l'offre repart en ligne et ses candidatures restent
+     * en place, de sorte que l'employeur puisse retenir un autre candidat sans republier.
+     * On s'abstient si un autre candidat tient déjà le poste sur la même offre.
+     */
+    private void reopenOffer(JobOffer offer) {
+        if (offer.getStatus() != JobOfferStatus.CLOSED
+                || missionRepository.existsByApplicationJobOfferIdAndStatusIn(offer.getId(), BOOKED)) {
+            return;
+        }
+        offer.setStatus(JobOfferStatus.OPEN);
+        jobOfferRepository.save(offer);
     }
 
     // ------------------------------------------------------------------ interne

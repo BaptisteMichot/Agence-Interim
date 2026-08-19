@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getMyMissions } from '../../api/missions';
-import { btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import PageHeader from '../../components/PageHeader';
+import { btnPrimary, btnSecondary, errorBox } from '../../components/ui';
 import { useResource } from '../../hooks/useResource';
 import { missionPeriod } from '../../missions/format';
 import MissionListItem from '../../missions/MissionListItem';
@@ -12,7 +13,7 @@ const NO_MISSIONS: Mission[] = [];
 
 /** Missions de l'intérimaire : propositions à confirmer, missions confirmées et historique. */
 export default function MyMissionsPage() {
-  const { data, loading, error } = useResource(getMyMissions, 'Impossible de charger tes missions.');
+  const { data, loading, error } = useResource(getMyMissions, 'Impossible de charger vos missions.');
   const missions = data ?? NO_MISSIONS;
 
   const toConfirm = useMemo(
@@ -42,20 +43,10 @@ export default function MyMissionsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link to="/interimaire" className={linkBack}>
-            ← Retour à mon espace
-          </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mes missions</h1>
-          <p className="mt-1 text-slate-600">
-            Les missions que tu acceptes apparaissent dans ton planning et donnent lieu à un contrat.
-          </p>
-        </div>
-        <Link to="/interimaire/planning" className={btnSecondary}>
-          Mon planning
-        </Link>
-      </div>
+      <PageHeader
+        title="Mes missions"
+        subtitle="Les missions que vous acceptez apparaissent dans votre planning et donnent lieu à un contrat."
+      />
 
       {error && <p className={errorBox}>{error}</p>}
       {loading && <p className="text-sm text-slate-500">Chargement…</p>}
@@ -64,11 +55,11 @@ export default function MyMissionsPage() {
         <div className="rounded-xl border border-sky-200 bg-sky-50 p-6">
           <h2 className="mb-1 text-lg font-semibold text-sky-900">
             {toConfirm.length === 1
-              ? 'Une mission attend ta réponse'
-              : `${toConfirm.length} missions attendent ta réponse`}
+              ? 'Une mission attend votre réponse'
+              : `${toConfirm.length} missions attendent votre réponse`}
           </h2>
           <p className="mb-4 text-sm text-sky-800">
-            Consulte les conditions proposées, puis accepte ou refuse.
+            Consultez les conditions proposées, puis acceptez ou refusez.
           </p>
           <ul className="space-y-3">
             {toConfirm.map((mission) => (
@@ -88,7 +79,7 @@ export default function MyMissionsPage() {
       )}
 
       {waitingAgency.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="rounded-xl border border-line bg-surface p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">En attente de l'agence</h2>
           <ul className="space-y-3">
             {waitingAgency.map((mission) => (
@@ -102,7 +93,7 @@ export default function MyMissionsPage() {
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-line bg-surface p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-900">Missions confirmées</h2>
         {!loading && confirmed.length === 0 && (
           <p className="text-sm text-slate-500">Aucune mission confirmée pour le moment.</p>
@@ -119,7 +110,7 @@ export default function MyMissionsPage() {
       </div>
 
       {history.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="rounded-xl border border-line bg-surface p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">Historique</h2>
           <ul className="space-y-3">
             {history.map((mission) => (

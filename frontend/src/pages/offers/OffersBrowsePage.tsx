@@ -9,7 +9,8 @@ import {
   removeFavoriteOffer,
 } from '../../api/offers';
 import { errorMessage } from '../../api/http';
-import { errorBox, linkBack } from '../../components/ui';
+import PageHeader from '../../components/PageHeader';
+import { errorBox } from '../../components/ui';
 import { salarySuffix } from '../../offers/format';
 import type { JobOfferSummary, MatchingOffer } from '../../offers/types';
 import { formatTimestampDate } from '../../profile/format';
@@ -77,19 +78,17 @@ export default function OffersBrowsePage() {
 
   return (
     <section>
-      <div>
-        <Link to="/interimaire" className={linkBack}>
-          ← Retour au tableau de bord
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Offres d'emploi</h1>
-      </div>
+      <PageHeader
+        title="Offres d'emploi"
+        subtitle="Les offres ouvertes, celles qui correspondent à votre profil et vos favoris."
+      />
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setTab('match')}
           className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-            tab === 'match' ? 'bg-indigo-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
+            tab === 'match' ? 'bg-brand-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
           }`}
         >
           Pour moi ({matching.length})
@@ -98,7 +97,7 @@ export default function OffersBrowsePage() {
           type="button"
           onClick={() => setTab('all')}
           className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-            tab === 'all' ? 'bg-indigo-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
+            tab === 'all' ? 'bg-brand-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
           }`}
         >
           Toutes les offres
@@ -107,7 +106,7 @@ export default function OffersBrowsePage() {
           type="button"
           onClick={() => setTab('favorites')}
           className={`rounded-full px-4 py-1.5 text-sm font-medium ${
-            tab === 'favorites' ? 'bg-indigo-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
+            tab === 'favorites' ? 'bg-brand-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
           }`}
         >
           Mes favoris ({favorites.length})
@@ -116,7 +115,7 @@ export default function OffersBrowsePage() {
 
       {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-6">
+      <div className="mt-4 rounded-xl border border-line bg-surface p-6">
         {loading && <p className="text-sm text-slate-500">Chargement…</p>}
         {!loading && shown.length === 0 && (
           <p className="text-sm text-slate-500">
@@ -136,7 +135,7 @@ export default function OffersBrowsePage() {
             >
               <div className="min-w-0">
                 <p className="font-medium text-slate-900">
-                  <Link to={`/interimaire/offres/${offer.id}`} className="hover:text-indigo-600 hover:underline">
+                  <Link to={`/interimaire/offres/${offer.id}`} className="hover:text-brand-600 hover:underline">
                     {offer.title}
                   </Link>
                   {offer.status === 'CLOSED' && (

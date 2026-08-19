@@ -96,7 +96,7 @@ export default function CandidateProfilePage() {
       {error && <p className={errorBox}>{error}</p>}
 
       {(profile.skills.length > 0 || profile.degrees.length > 0 || profile.languages.length > 0) && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <section className="rounded-xl border border-line bg-surface p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">Compétences et diplômes</h2>
 
           {profile.skills.length > 0 && (
@@ -104,7 +104,7 @@ export default function CandidateProfilePage() {
               <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Compétences</h3>
               <ul className="flex flex-wrap gap-2">
                 {profile.skills.map((s) => (
-                  <li key={s.skillId} className="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
+                  <li key={s.skillId} className="rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">
                     {s.name} · {skillLevelLabel(s.level)}
                   </li>
                 ))}
@@ -142,7 +142,7 @@ export default function CandidateProfilePage() {
       )}
 
       {profile.experiences.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <section className="rounded-xl border border-line bg-surface p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">Expériences professionnelles</h2>
           <ul className="space-y-3">
             {profile.experiences.map((e) => (
@@ -160,7 +160,7 @@ export default function CandidateProfilePage() {
       )}
 
       {profile.formations.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <section className="rounded-xl border border-line bg-surface p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">Formations</h2>
           <ul className="space-y-3">
             {profile.formations.map((f) => (
@@ -187,7 +187,7 @@ export default function CandidateProfilePage() {
         profile.formations.length === 0 && (
           <p className="text-sm text-slate-500">
             Ce candidat n'a pas encore complété son profil.{' '}
-            <Link to="/employeur/offres" className="text-indigo-600 hover:underline">
+            <Link to="/employeur/offres" className="text-brand-600 hover:underline">
               Retour à mes offres
             </Link>
           </p>

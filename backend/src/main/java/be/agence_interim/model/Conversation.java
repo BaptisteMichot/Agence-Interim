@@ -1,5 +1,7 @@
 package be.agence_interim.model;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -39,4 +41,25 @@ public class Conversation {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_application", nullable = false)
     private Application application;
+
+    /**
+     * Masquage par participant : la conversation disparaît de sa liste sans être
+     * supprimée pour l'autre. Un message postérieur à cette date la fait revenir.
+     */
+    private LocalDateTime senderHiddenAt;
+
+    private LocalDateTime receiverHiddenAt;
+
+    /** Date de masquage pour ce participant, ou {@code null} s'il ne l'a pas masquée. */
+    public LocalDateTime hiddenAtFor(int userId) {
+        return sender.getId() == userId ? senderHiddenAt : receiverHiddenAt;
+    }
+
+    public void hideFor(int userId, LocalDateTime moment) {
+        if (sender.getId() == userId) {
+            senderHiddenAt = moment;
+        } else {
+            receiverHiddenAt = moment;
+        }
+    }
 }

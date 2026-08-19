@@ -9,15 +9,14 @@ import {
   removeUnavailability,
 } from '../../api/planning';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import PageHeader from '../../components/PageHeader';
 import {
   btnDanger,
   btnPrimary,
-  btnSecondary,
   checkboxInput,
   errorBox,
   inputClass,
   labelClass,
-  linkBack,
 } from '../../components/ui';
 import {
   addDays,
@@ -146,20 +145,10 @@ export default function PlanningPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link to="/interimaire" className={linkBack}>
-            ← Retour à mon espace
-          </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mon planning</h1>
-          <p className="mt-1 text-slate-600">
-            Tes journées de mission confirmées et les périodes où tu n'es pas disponible.
-          </p>
-        </div>
-        <Link to="/interimaire/missions" className={btnSecondary}>
-          Mes missions
-        </Link>
-      </div>
+      <PageHeader
+        title="Mon planning"
+        subtitle="Vos journées de mission confirmées et les périodes où vous n'êtes pas disponible."
+      />
 
       {error && <p className={errorBox}>{error}</p>}
       {loading && <p className="text-sm text-slate-500">Chargement…</p>}
@@ -187,7 +176,7 @@ export default function PlanningPage() {
       </p>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 lg:col-span-2">
+        <div className="rounded-xl border border-line bg-surface p-6 lg:col-span-2">
           <h2 className="text-lg font-semibold capitalize text-slate-900">
             {selected ? `${weekdayLabel(selected)} ${formatDate(selected)}` : 'Aucun jour sélectionné'}
           </h2>
@@ -203,15 +192,15 @@ export default function PlanningPage() {
                   <Link
                     key={`${entry.missionId}-${entry.startTime}`}
                     to={`/interimaire/missions/${entry.missionId}`}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 transition hover:bg-indigo-100"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 transition hover:bg-brand-100"
                   >
                     <span>
-                      <span className="block font-medium text-indigo-900">
+                      <span className="block font-medium text-brand-900">
                         {scheduleLabel(entry)}
                       </span>
-                      <span className="block text-sm text-indigo-700">{entry.workplace}</span>
+                      <span className="block text-sm text-brand-700">{entry.workplace}</span>
                     </span>
-                    <span className="text-right text-sm font-medium text-indigo-900">
+                    <span className="text-right text-sm font-medium text-brand-900">
                       {workedRanges(entry).map((range) => (
                         <span key={range} className="block">
                           {range}
@@ -250,12 +239,14 @@ export default function PlanningPage() {
                 <h3 className="text-sm font-semibold text-slate-900">Déclarer une indisponibilité</h3>
                 {!canEditSelected ? (
                   <p className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                    🔒 Tes disponibilités ne sont modifiables qu'à partir du{' '}
-                    {formatDate(editableFrom)} (délai de 8 jours).
+                    🔒 Vos disponibilités ne sont modifiables qu'à partir du{' '}
+                    {formatDate(editableFrom)} (délai de 8 jours). En cas d'imprévu — maladie,
+                    accident, urgence — prévenez l'agence par téléphone : elle seule peut libérer
+                    une journée dans ce délai.
                   </p>
                 ) : selectedMissions.length > 0 ? (
                   <p className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                    Une mission confirmée est planifiée ce jour-là : contacte l'agence si tu ne peux
+                    Une mission confirmée est planifiée ce jour-là : contactez l'agence si vous ne pouvez
                     pas l'assurer.
                   </p>
                 ) : (
@@ -323,7 +314,7 @@ export default function PlanningPage() {
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="rounded-xl border border-line bg-surface p-6">
           <h2 className="text-lg font-semibold text-slate-900">Prochaines journées</h2>
           {upcoming.length === 0 && (
             <p className="mt-3 text-sm text-slate-500">Aucune journée de mission planifiée.</p>
@@ -333,7 +324,7 @@ export default function PlanningPage() {
               <li key={`${entry.missionId}-${entry.date}`}>
                 <button
                   type="button"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-left hover:border-indigo-300"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-left hover:border-brand-300"
                   onClick={() => {
                     setMonthStart(startOfMonth(entry.date));
                     setSelected(entry.date);
@@ -355,7 +346,7 @@ export default function PlanningPage() {
       <ConfirmDialog
         open={deleting !== null}
         title="Supprimer l'indisponibilité"
-        message={`L'indisponibilité du ${deleting ? formatDate(deleting.date) : ''} sera supprimée : tu redeviens disponible ce jour-là.`}
+        message={`L'indisponibilité du ${deleting ? formatDate(deleting.date) : ''} sera supprimée : vous redevenez disponible ce jour-là.`}
         confirmLabel="Supprimer"
         onConfirm={confirmDelete}
         onCancel={() => setDeleting(null)}

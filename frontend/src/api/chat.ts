@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './http';
+import { apiDelete, apiGet, apiPost } from './http';
 import type { ChatMessage, Conversation } from '../chat/types';
 
 export function getConversations(): Promise<Conversation[]> {
@@ -12,6 +12,11 @@ export function getConversation(id: number): Promise<Conversation> {
 /** Historique du fil ; marque au passage les messages reçus comme lus. */
 export function getMessages(conversationId: number): Promise<ChatMessage[]> {
   return apiGet<ChatMessage[]>(`/chat/conversations/${conversationId}/messages`);
+}
+
+/** Retire la conversation de sa propre liste ; l'autre partie la conserve. */
+export function hideConversation(id: number): Promise<void> {
+  return apiDelete(`/chat/conversations/${id}`);
 }
 
 export function getUnreadCount(): Promise<{ count: number }> {

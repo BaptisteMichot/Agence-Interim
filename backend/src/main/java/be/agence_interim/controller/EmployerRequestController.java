@@ -30,7 +30,7 @@ public class EmployerRequestController {
 
     @GetMapping("/me")
     public MyEmployerRequestResponse myRequest(@AuthenticationPrincipal Jwt jwt) {
-        return new MyEmployerRequestResponse(employerAccessService.latestStatus(CurrentUser.id(jwt)));
+        return employerAccessService.myRequest(CurrentUser.id(jwt));
     }
 
     /** Nouvelle demande après un refus (message justificatif facultatif). */

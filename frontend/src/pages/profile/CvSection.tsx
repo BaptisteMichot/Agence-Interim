@@ -82,7 +82,7 @@ export default function CvSection({ cvFilePath, onChanged }: CvSectionProps) {
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-line bg-surface p-6">
       <h2 className="mb-4 text-lg font-semibold text-slate-900">CV</h2>
 
       {error && <p className={`mb-4 ${errorBox}`}>{error}</p>}
@@ -92,14 +92,14 @@ export default function CvSection({ cvFilePath, onChanged }: CvSectionProps) {
           type="button"
           onClick={view}
           title="Ouvrir le CV"
-          className="mb-4 flex w-full items-center gap-3 rounded-lg border border-slate-200 p-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40"
+          className="mb-4 flex w-full items-center gap-3 rounded-lg border border-slate-200 p-3 text-left transition hover:border-brand-300 hover:bg-brand-50/40"
         >
           <PdfIcon />
           <span className="min-w-0 flex-1">
             <span className="block truncate font-medium text-slate-900">{cvFilePath}</span>
             <span className="block text-xs text-slate-500">Document PDF</span>
           </span>
-          <span className="shrink-0 text-sm font-medium text-indigo-600">Ouvrir →</span>
+          <span className="shrink-0 text-sm font-medium text-brand-600">Ouvrir →</span>
         </button>
       ) : (
         <p className="mb-4 text-sm text-slate-500">Aucun CV déposé.</p>
@@ -111,7 +111,7 @@ export default function CvSection({ cvFilePath, onChanged }: CvSectionProps) {
           type="file"
           accept="application/pdf,.pdf"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+          className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
         />
         <div className="flex flex-wrap gap-3">
           <button type="button" className={btnPrimary} disabled={busy || !file} onClick={upload}>

@@ -1,22 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { getMissionDecisionCount } from '../api/missions';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { getAdminMissions, getMissionDecisionCount } from '../api/missions';
 import { useAuth } from '../auth/AuthContext';
-import { homePathForRole, ROLE_LABEL } from '../auth/roleRoutes';
 import { useChat } from '../chat/ChatContext';
+import ConfirmDialog from './ConfirmDialog';
+import Sidebar from './Sidebar';
 
-/** Coquille commune aux pages authentifiées : barre de navigation + contenu. */
+/** Coquille commune aux pages authentifiées : barre latérale + contenu. */
 export default function Layout() {
   const { user, logout } = useAuth();
   const { unreadCount } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
-  const canChat = user?.role === 'JOBSEEKER' || user?.role === 'EMPLOYER';
-  const isJobSeeker = user?.role === 'JOBSEEKER';
-  const [missionsToConfirm, setMissionsToConfirm] = useState(0);
 
-  // Notification portail : missions validées par l'agence en attente d'une réponse.
-  // Rafraîchie à chaque navigation, la réponse se donnant depuis une page de l'app.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [missionsToConfirm, setMissionsToConfirm] = useState(0);
+  const [missionsToValidate, setMissionsToValidate] = useState(0);
+
+  const isJobSeeker = user?.role === 'JOBSEEKER';
+  const isAdmin = user?.role === 'ADMIN';
+
+  // Compteurs de la barre latérale, rafraîchis à chaque navigation : les décisions
+  // qu'ils annoncent se prennent depuis une page de l'application.
   useEffect(() => {
     if (!isJobSeeker) {
       setMissionsToConfirm(0);
@@ -27,69 +33,72 @@ export default function Layout() {
       .catch(() => setMissionsToConfirm(0));
   }, [isJobSeeker, location.pathname]);
 
+  useEffect(() => {
+    if (!isAdmin) {
+      setMissionsToValidate(0);
+      return;
+    }
+    getAdminMissions()
+      .then((missions) => setMissionsToValidate(missions.filter((m) => m.status === 'PENDING').length))
+      .catch(() => setMissionsToValidate(0));
+  }, [isAdmin, location.pathname]);
+
+  // Le tiroir mobile se referme dès qu'une page est ouverte.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   const handleLogout = () => {
+    setConfirmLogout(false);
     logout();
     navigate('/login', { replace: true });
   };
 
+  if (!user) {
+    return null;
+  }
+
   return (
-    <div className="min-h-full bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link
-            to={user ? homePathForRole(user.role) : '/'}
-            className="text-lg font-semibold text-indigo-600 hover:text-indigo-700"
+    <div className="min-h-full lg:flex">
+      <Sidebar
+        user={user}
+        counters={{
+          missionsToConfirm,
+          unreadMessages: unreadCount,
+          missionsToValidate,
+        }}
+        onLogout={() => setConfirmLogout(true)}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* En-tête réduit au strict nécessaire : il n'existe que sous `lg`. */}
+        <header className="flex items-center gap-3 border-b border-line bg-surface px-4 py-3 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Ouvrir le menu"
+            className="rounded-md border border-line px-2.5 py-1.5 text-slate-700 transition hover:bg-slate-50"
           >
-            Agence d'intérim
-          </Link>
-          {user && (
-            <div className="flex items-center gap-4 text-sm">
-              {isJobSeeker && (
-                <Link
-                  to="/interimaire/missions"
-                  className="relative font-medium text-slate-700 hover:text-indigo-600"
-                >
-                  Missions
-                  {missionsToConfirm > 0 && (
-                    <span className="absolute -right-4 -top-2 rounded-full bg-violet-600 px-1.5 py-0.5 text-xs font-semibold text-white">
-                      {missionsToConfirm}
-                    </span>
-                  )}
-                </Link>
-              )}
-              {canChat && (
-                <Link
-                  to="/messages"
-                  className="relative font-medium text-slate-700 hover:text-indigo-600"
-                >
-                  Messages
-                  {unreadCount > 0 && (
-                    <span className="absolute -right-4 -top-2 rounded-full bg-indigo-600 px-1.5 py-0.5 text-xs font-semibold text-white">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Link>
-              )}
-              <span className="text-slate-600">
-                {user.firstName} {user.lastName}
-                <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                  {ROLE_LABEL[user.role]}
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100"
-              >
-                Déconnexion
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">
-        <Outlet />
-      </main>
+            ☰
+          </button>
+          <span className="text-base font-semibold text-brand-600">Agence d'intérim</span>
+        </header>
+
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8">
+          <Outlet />
+        </main>
+      </div>
+
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Se déconnecter"
+        message="Vous devrez saisir à nouveau votre email et votre mot de passe pour revenir."
+        confirmLabel="Se déconnecter"
+        onConfirm={handleLogout}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </div>
   );
 }

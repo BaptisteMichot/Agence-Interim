@@ -46,6 +46,13 @@ public class EmployerAccessRequest {
     @Column(nullable = false, length = STATUS_MAX_LENGTH)
     private EmployerAccessStatus status;
 
+    /**
+     * Refus définitif : l'administrateur a fermé la porte à toute nouvelle demande.
+ * Sans cette barrière, un utilisateur éconduit peut resoumettre indéfiniment.
+ */
+    @Column(nullable = false)
+    private boolean reapplyBlocked;
+
     /** Message justificatif facultatif, saisi lors d'une nouvelle demande après refus. */
     @Column(length = MESSAGE_MAX_LENGTH)
     private String message;

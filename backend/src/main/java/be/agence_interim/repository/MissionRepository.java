@@ -43,6 +43,9 @@ public interface MissionRepository extends JpaRepository<Mission, Integer> {
             int jobSeekerId, Collection<MissionStatus> statuses, LocalDate startDate, LocalDate endDate,
             int excludedId);
 
+    /** Le poste d'une offre est-il déjà tenu (mission acceptée, ou en attente de réponse) ? */
+    boolean existsByApplicationJobOfferIdAndStatusIn(int jobOfferId, Collection<MissionStatus> statuses);
+
     /** Nombre de missions attendant une décision de l'intérimaire (badge du portail). */
     long countByApplicationJobSeekerIdAndStatusIn(int jobSeekerId, Collection<MissionStatus> statuses);
 }

@@ -128,7 +128,7 @@ export default function OfferDetailPage() {
 
       {error && <p className={errorBox}>{error}</p>}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-line bg-surface p-6">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">Description</h2>
         <p className="whitespace-pre-line text-slate-700">{offer.description}</p>
 
@@ -155,7 +155,7 @@ export default function OfferDetailPage() {
       </section>
 
       {(offer.skills.length > 0 || offer.degrees.length > 0 || offer.languages.length > 0) && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <section className="rounded-xl border border-line bg-surface p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">Profil recherché</h2>
 
           {offer.skills.length > 0 && (
@@ -165,7 +165,7 @@ export default function OfferDetailPage() {
                 {offer.skills.map((s) => (
                   <li
                     key={s.skillId}
-                    className="rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-800"
+                    className="rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700"
                   >
                     {s.name} · {skillLevelLabel(s.requiredLevel)}
                     {s.isMandatory && <span className="ml-1 font-semibold" title="Obligatoire">*</span>}

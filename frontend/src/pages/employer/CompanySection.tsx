@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getMyCompany, updateMyCompany, type EmployerCompany } from '../../api/employer';
 import { errorMessage } from '../../api/http';
+import AddressFields, {
+  EMPTY_ADDRESS,
+  formatAddress,
+  parseAddress,
+  type AddressParts,
+} from '../../components/AddressFields';
 import { btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
 
 /**
@@ -14,14 +20,14 @@ export default function CompanySection() {
   const [saving, setSaving] = useState(false);
 
   const [companyName, setCompanyName] = useState('');
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState<AddressParts>({ ...EMPTY_ADDRESS });
   const [companyNumber, setCompanyNumber] = useState('');
   const [jointCommittee, setJointCommittee] = useState('');
 
   const fill = useCallback((data: EmployerCompany) => {
     setCompany(data);
     setCompanyName(data.companyName ?? '');
-    setAddress(data.address ?? '');
+    setAddress(parseAddress(data.address));
     setCompanyNumber(data.companyNumber ?? '');
     setJointCommittee(data.jointCommittee ?? '');
   }, []);
@@ -39,7 +45,14 @@ export default function CompanySection() {
     setSaving(true);
     setError(null);
     try {
-      fill(await updateMyCompany({ companyName, address, companyNumber, jointCommittee }));
+      fill(
+        await updateMyCompany({
+          companyName,
+          address: formatAddress(address),
+          companyNumber,
+          jointCommittee,
+        }),
+      );
       setEditing(false);
     } catch (err) {
       setError(errorMessage(err, "L'enregistrement a échoué."));
@@ -53,7 +66,7 @@ export default function CompanySection() {
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-line bg-surface p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-slate-900">Mon entreprise</h2>
         {!editing && (
@@ -88,17 +101,12 @@ export default function CompanySection() {
             />
           </div>
           <div className="sm:col-span-2">
-            <label className={labelClass} htmlFor="company-address">
-              Adresse du siège
-            </label>
-            <input
-              id="company-address"
+            <span className={`${labelClass} mb-2`}>Adresse du siège</span>
+            <AddressFields
+              idPrefix="company-address"
+              parts={address}
+              onChange={setAddress}
               required
-              maxLength={100}
-              placeholder="Rue, numéro, code postal et localité"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className={inputClass}
             />
           </div>
           <div>

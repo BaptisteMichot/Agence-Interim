@@ -27,7 +27,7 @@ export default function ExperienceSection({ experiences, onChanged }: Experience
   );
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-line bg-surface p-6">
       <SectionHeader
         title="Expériences professionnelles"
         showAdd={mode.type === 'closed'}

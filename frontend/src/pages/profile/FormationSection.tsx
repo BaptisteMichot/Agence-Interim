@@ -23,7 +23,7 @@ export default function FormationSection({ formations, onChanged }: FormationSec
   );
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-line bg-surface p-6">
       <SectionHeader
         title="Formations"
         showAdd={mode.type === 'closed'}

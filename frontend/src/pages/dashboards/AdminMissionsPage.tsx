@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { errorMessage } from '../../api/http';
 import { downloadContract, getAdminMissions, refuseMission, validateMission } from '../../api/missions';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import PromptDialog from '../../components/PromptDialog';
-import { btnDanger, btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import PageHeader from '../../components/PageHeader';
+import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
 import { useResource } from '../../hooks/useResource';
 import MissionFacts from '../../missions/MissionFacts';
 import MissionListItem from '../../missions/MissionListItem';
@@ -128,22 +128,16 @@ export default function AdminMissionsPage() {
 
   return (
     <section className="space-y-6">
-      <div>
-        <Link to="/admin" className={linkBack}>
-          ← Retour à l'espace administrateur
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Missions d'intérim</h1>
-        <p className="mt-1 text-slate-600">
-          Validez les missions proposées par les employeurs : une mission validée est ensuite
-          soumise à l'intérimaire, qui déclenche la génération du contrat en l'acceptant.
-        </p>
-      </div>
+      <PageHeader
+        title="Missions d'intérim"
+        subtitle="Traitement des missions proposées par les employeurs : une mission validée est ensuite soumise à l'intérimaire, qui déclenche la génération du contrat en l'acceptant."
+      />
 
       {error && <p className={errorBox}>{error}</p>}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-line bg-surface p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-900">
-          À valider {pending.length > 0 && <span className="text-slate-400">({pending.length})</span>}
+          Missions à valider {pending.length > 0 && <span className="text-slate-400">({pending.length})</span>}
         </h2>
         {loading && <p className="text-sm text-slate-500">Chargement…</p>}
         {!loading && pending.length === 0 && (
@@ -162,8 +156,8 @@ export default function AdminMissionsPage() {
       </div>
 
       {others.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Suivi</h2>
+        <div className="rounded-xl border border-line bg-surface p-6">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Historique</h2>
           <ul className="space-y-3">
             {others.map((mission) => (
               <MissionListItem
@@ -179,7 +173,6 @@ export default function AdminMissionsPage() {
                 {mission.contract && (
                   <>
                     <span className="text-xs text-slate-500">
-                      Contrat n° {mission.contract.id} ·{' '}
                       {mission.contract.statusEmployer === 'SIGNED' &&
                       mission.contract.statusWorker === 'SIGNED'
                         ? 'signé par les deux parties'

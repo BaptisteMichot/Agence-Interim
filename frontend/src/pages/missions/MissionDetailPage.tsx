@@ -88,7 +88,7 @@ export default function MissionDetailPage() {
               {company} · {mission.workplace}
             </p>
             <p className="text-sm text-slate-500">
-              Suite à ta candidature à l'offre « {mission.offerTitle} »
+              Suite à votre candidature à l'offre « {mission.offerTitle} »
             </p>
           </div>
           <MissionStatusBadge status={mission.status} renewal={mission.renewal} />
@@ -102,22 +102,22 @@ export default function MissionDetailPage() {
           <h2 className="text-lg font-semibold text-sky-900">
             {mission.status === 'RENEWAL'
               ? 'Renouvellement de mission proposé'
-              : 'Cette mission t’est proposée'}
+              : 'Cette mission vous est proposée'}
           </h2>
           <p className="mt-1 text-sm text-sky-800">
-            L'agence a validé les conditions ci-dessous. En acceptant, la mission est ajoutée à ton
-            planning et ton contrat est généré.
+            L'agence a validé les conditions ci-dessous. En acceptant, la mission est ajoutée à votre
+            planning et votre contrat est généré.
             {mission.renewal && mission.previousStartDate && (
               <>
                 {' '}
-                Il s'agit du renouvellement de ta mission du {formatDate(mission.previousStartDate)}{' '}
+                Il s'agit du renouvellement de votre mission du {formatDate(mission.previousStartDate)}{' '}
                 au {formatDate(mission.previousEndDate)}.
               </>
             )}
           </p>
           {clashes.length > 0 && (
             <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              ⚠️ Tu t'es déclaré indisponible sur {clashes.length} journée(s) de cette mission (
+              ⚠️ Vous vous ètes déclaré indisponible sur {clashes.length} journée(s) de cette mission (
               {clashes.map((item) => formatDate(item.date)).join(', ')}). En acceptant, ces
               indisponibilités seront écrasées par la mission.
             </p>
@@ -146,23 +146,23 @@ export default function MissionDetailPage() {
 
       {mission.status === 'PENDING' && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Tu as accepté ce renouvellement : l'agence doit encore le valider avant de générer le
+          Vous avez accepté ce renouvellement : l'agence doit encore le valider avant de générer le
           contrat.
         </p>
       )}
 
       {mission.status === 'DECLINED' && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-          Tu as refusé cette mission.
+          Vous avez refusé cette mission.
         </p>
       )}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-line bg-surface p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-900">Conditions proposées</h2>
         <MissionFacts mission={mission} />
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-line bg-surface p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-900">Horaire</h2>
         <MissionSchedule slots={mission.slots} />
       </section>

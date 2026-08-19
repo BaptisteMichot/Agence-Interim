@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cancelApplication, getMyApplications } from '../../api/applications';
 import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import PageHeader from '../../components/PageHeader';
 import { btnDanger, btnSecondary, errorBox } from '../../components/ui';
 import { useResource } from '../../hooks/useResource';
 import type { MyApplication } from '../../applications/types';
@@ -50,17 +51,16 @@ export default function MyApplicationsPage() {
 
   return (
     <section>
-      <h1 className="text-2xl font-semibold text-slate-900">Mes candidatures</h1>
-      <p className="mt-1 text-slate-600">Suivez l'avancement de vos candidatures.</p>
+      <PageHeader title="Mes candidatures" subtitle="Suivez l'avancement de vos candidatures." />
 
-      {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
+      {error && <p className={errorBox}>{error}</p>}
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+      <div className="mt-6 rounded-xl border border-line bg-surface p-6">
         {loading && <p className="text-sm text-slate-500">Chargement…</p>}
         {!loading && applications.length === 0 && (
           <p className="text-sm text-slate-500">
             Aucune candidature pour le moment. Postulez depuis la page{' '}
-            <Link to="/interimaire/offres" className="text-indigo-600 hover:underline">
+            <Link to="/interimaire/offres" className="text-brand-600 hover:underline">
               Offres d'emploi
             </Link>
             .

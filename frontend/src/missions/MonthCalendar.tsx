@@ -91,7 +91,7 @@ export default function MonthCalendar({
         </div>
         <ul className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
           <li className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm bg-indigo-500" /> Mission confirmée
+            <span className="h-2.5 w-2.5 rounded-sm bg-brand-500" /> Mission confirmée
           </li>
           <li className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-sm bg-amber-400" /> Indisponibilité
@@ -130,15 +130,15 @@ export default function MonthCalendar({
                   aria-pressed={selected === date}
                   className={`flex min-h-24 flex-col gap-1 rounded-lg border p-1.5 text-left transition ${
                     selected === date
-                      ? 'border-indigo-500 ring-2 ring-indigo-200'
-                      : 'border-slate-200 hover:border-indigo-300'
+                      ? 'border-brand-500 ring-2 ring-brand-200'
+                      : 'border-slate-200 hover:border-brand-300'
                   } ${!inMonth ? 'bg-slate-50/60 opacity-60' : locked ? 'bg-slate-50' : 'bg-white'}`}
                 >
                   <span className="flex items-center justify-between">
                     <span
                       className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                         isToday
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-brand-600 text-white'
                           : isWeekend(date)
                             ? 'text-amber-700'
                             : 'text-slate-700'
@@ -156,7 +156,7 @@ export default function MonthCalendar({
                   {dayMissions.map((entry) => (
                     <span
                       key={`${entry.missionId}-${entry.startTime}`}
-                      className="rounded bg-indigo-500 px-1.5 py-0.5 text-[11px] font-medium text-white"
+                      className="rounded bg-brand-500 px-1.5 py-0.5 text-[11px] font-medium text-white"
                       title={`${scheduleLabel(entry)} (${shortTime(entry.startTime)}–${shortTime(entry.endTime)})`}
                     >
                       <span className="block">{shortTime(entry.startTime)}</span>

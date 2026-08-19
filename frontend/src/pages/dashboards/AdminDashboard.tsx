@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import {
   acceptEmployerRequest,
   getEmployerRequests,
@@ -7,9 +6,20 @@ import {
   type AdminEmployerRequest,
 } from '../../api/employer';
 import { errorMessage } from '../../api/http';
-import { getAdminMissions } from '../../api/missions';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { btnDanger, btnPrimary, errorBox } from '../../components/ui';
+import EmptyState from '../../components/EmptyState';
+import PageHeader from '../../components/PageHeader';
+import { SkeletonRows } from '../../components/Skeleton';
+import StatusBadge from '../../components/StatusBadge';
+import {
+  btnDanger,
+  btnPrimary,
+  card,
+  checkboxInput,
+  checkboxRow,
+  errorBox,
+  sectionTitle,
+} from '../../components/ui';
 import { useResource } from '../../hooks/useResource';
 import { formatDate } from '../../profile/format';
 
@@ -25,15 +35,9 @@ const NO_REQUESTS: AdminEmployerRequest[] = [];
 
 export default function AdminDashboard() {
   const [pending, setPending] = useState<PendingAction | null>(null);
-  const [pendingMissions, setPendingMissions] = useState(0);
+  /** Refus définitif : coché, l'utilisateur ne pourra plus soumettre de demande. */
+  const [blockReapply, setBlockReapply] = useState(false);
 
-  useEffect(() => {
-    getAdminMissions()
-      .then((missions) => setPendingMissions(missions.filter((m) => m.status === 'PENDING').length))
-      .catch(() => setPendingMissions(0));
-  }, []);
-
-  // Déclaré après l'effet ci-dessus : le chargement des demandes part toujours en second.
   const { data, loading, error, setError, reload } = useResource(
     getEmployerRequests,
     'Impossible de charger les demandes.',
@@ -51,10 +55,11 @@ export default function AdminDashboard() {
       return;
     }
     const { id, action } = pending;
+    const block = blockReapply;
     setPending(null);
     setError(null);
     try {
-      await (action === 'accept' ? acceptEmployerRequest(id) : refuseEmployerRequest(id));
+      await (action === 'accept' ? acceptEmployerRequest(id) : refuseEmployerRequest(id, block));
       reload();
     } catch (err) {
       setError(errorMessage(err, 'Une erreur est survenue.'));
@@ -62,38 +67,22 @@ export default function AdminDashboard() {
   };
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Espace administrateur</h1>
-        <p className="mt-1 text-slate-600">Accès employeur et validation des missions d'intérim.</p>
-      </div>
+    <>
+      <PageHeader
+        title="Espace administrateur"
+        subtitle="Traitement des demandes d'accès employeur."
+      />
 
-      <Link
-        to="/admin/missions"
-        className="block rounded-xl border border-violet-200 bg-violet-50 p-6 transition hover:bg-violet-100"
-      >
-        <p className="text-lg font-semibold text-violet-800">
-          Missions à valider →
-          {pendingMissions > 0 && (
-            <span className="ml-2 rounded-full bg-violet-600 px-2 py-0.5 text-xs font-semibold text-white">
-              {pendingMissions}
-            </span>
-          )}
-        </p>
-        <p className="mt-1 text-sm text-violet-700">
-          {pendingMissions > 0
-            ? `${pendingMissions} mission(s) provisoire(s) en attente de votre validation.`
-            : 'Aucune mission en attente. Consultez le suivi des missions en cours.'}
-        </p>
-      </Link>
+      {error && <p className={`mb-6 ${errorBox}`}>{error}</p>}
 
-      {error && <p className={errorBox}>{error}</p>}
-
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">En attente</h2>
-        {loading && <p className="text-sm text-slate-500">Chargement…</p>}
+      <section className={card}>
+        <h2 className={`mb-4 ${sectionTitle}`}>Demandes d'accès en attente</h2>
+        {loading && <SkeletonRows rows={2} />}
         {!loading && waiting.length === 0 && (
-          <p className="text-sm text-slate-500">Aucune demande en attente.</p>
+          <EmptyState
+            title="Aucune demande en attente"
+            description="Les demandes d'accès employeur apparaîtront ici dès qu'un utilisateur en formulera une."
+          />
         )}
         <ul className="space-y-3">
           {waiting.map((request) => (
@@ -101,41 +90,40 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 className={btnPrimary}
-                onClick={() => setPending({ id: request.id, company: request.companyName, action: 'accept' })}
+                onClick={() =>
+                  setPending({ id: request.id, company: request.companyName, action: 'accept' })
+                }
               >
                 Accepter
               </button>
               <button
                 type="button"
                 className={btnDanger}
-                onClick={() => setPending({ id: request.id, company: request.companyName, action: 'refuse' })}
+                onClick={() => {
+                  setBlockReapply(false);
+                  setPending({ id: request.id, company: request.companyName, action: 'refuse' });
+                }}
               >
                 Refuser
               </button>
             </RequestCard>
           ))}
         </ul>
-      </div>
+      </section>
 
       {history.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Historique</h2>
+        <section className={`mt-6 ${card}`}>
+          <h2 className={`mb-4 ${sectionTitle}`}>Historique</h2>
           <ul className="space-y-3">
             {history.map((request) => (
               <RequestCard key={request.id} request={request}>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    request.status === 'ACCEPTED'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
-                  }`}
-                >
+                <StatusBadge tone={request.status === 'ACCEPTED' ? 'success' : 'danger'}>
                   {STATUS_LABEL[request.status]}
-                </span>
+                </StatusBadge>
               </RequestCard>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       <ConfirmDialog
@@ -149,8 +137,20 @@ export default function AdminDashboard() {
         confirmLabel={pending?.action === 'accept' ? 'Accepter' : 'Refuser'}
         onConfirm={confirm}
         onCancel={() => setPending(null)}
-      />
-    </section>
+      >
+        {pending?.action === 'refuse' && (
+          <label className={checkboxRow}>
+            <input
+              type="checkbox"
+              checked={blockReapply}
+              onChange={(event) => setBlockReapply(event.target.checked)}
+              className={checkboxInput}
+            />
+            Interdire toute nouvelle demande
+          </label>
+        )}
+      </ConfirmDialog>
+    </>
   );
 }
 
@@ -164,25 +164,25 @@ function RequestCard({
   const [showMessage, setShowMessage] = useState(false);
 
   return (
-    <li className="rounded-lg border border-slate-200 p-4">
+    <li className="rounded-lg border border-line p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="font-medium text-slate-900">
+          <p className="font-medium text-ink">
             {request.companyName}
             {request.resubmission && (
-              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                Nouvelle demande après refus
+              <span className="ml-2">
+                <StatusBadge tone="warning">Nouvelle demande après refus</StatusBadge>
               </span>
             )}
           </p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted">
             {request.firstName} {request.lastName} · {request.email}
           </p>
           <p className="text-xs text-slate-400">Demande du {formatDate(request.requestDate)}</p>
           {request.message && (
             <button
               type="button"
-              className="mt-1 text-xs font-medium text-indigo-600 hover:underline"
+              className="mt-1 text-xs font-medium text-brand-600 hover:underline"
               onClick={() => setShowMessage((v) => !v)}
             >
               {showMessage ? 'Masquer le message' : 'Voir le message'}

@@ -46,7 +46,7 @@ export default function LanguageSection() {
   };
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-line bg-surface p-6">
       <SectionHeader
         title="Langues"
         showAdd={!adding && availableOptions.length > 0}

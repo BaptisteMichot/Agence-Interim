@@ -167,7 +167,7 @@ export default function OfferFormPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <fieldset disabled={readOnly} className="space-y-6">
-          <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <section className="rounded-xl border border-line bg-surface p-6">
             <h2 className="mb-4 text-lg font-semibold text-slate-900">Le poste</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -205,7 +205,7 @@ export default function OfferFormPage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <section className="rounded-xl border border-line bg-surface p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Compétences requises</h2>
               {!readOnly && (
@@ -260,7 +260,7 @@ export default function OfferFormPage() {
             </datalist>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <section className="rounded-xl border border-line bg-surface p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Diplômes requis</h2>
               {!readOnly && (
@@ -315,7 +315,7 @@ export default function OfferFormPage() {
             </datalist>
           </section>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-6">
+          <section className="rounded-xl border border-line bg-surface p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Langues requises</h2>
               {!readOnly && languageOptions.length > 0 && (

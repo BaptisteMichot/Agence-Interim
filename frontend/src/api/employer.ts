@@ -13,6 +13,12 @@ export interface EmployerCompany {
 
 export type EmployerCompanyPayload = Omit<EmployerCompany, 'incomplete'>;
 
+/** Statut de la demande courante ; `reapplyBlocked` = refus définitif, plus de nouvelle demande. */
+export interface MyEmployerRequest {
+  status: EmployerAccessStatus | null;
+  reapplyBlocked: boolean;
+}
+
 export function getMyCompany(): Promise<EmployerCompany> {
   return apiGet<EmployerCompany>('/employer/company');
 }
@@ -35,8 +41,8 @@ export interface AdminEmployerRequest {
 }
 
 /** Statut de la demande d'accès employeur de l'utilisateur courant. */
-export function getMyEmployerRequest(): Promise<{ status: EmployerAccessStatus | null }> {
-  return apiGet<{ status: EmployerAccessStatus | null }>('/employer-requests/me');
+export function getMyEmployerRequest(): Promise<MyEmployerRequest> {
+  return apiGet<MyEmployerRequest>('/employer-requests/me');
 }
 
 /** Nouvelle demande après un refus (message facultatif, ≤ 150 caractères). */
@@ -60,6 +66,7 @@ export function acceptEmployerRequest(id: number): Promise<void> {
   return apiPost<void>(`/admin/employer-requests/${id}/accept`, {});
 }
 
-export function refuseEmployerRequest(id: number): Promise<void> {
-  return apiPost<void>(`/admin/employer-requests/${id}/refuse`, {});
+/** `block` interdit définitivement une nouvelle demande de cet utilisateur. */
+export function refuseEmployerRequest(id: number, block: boolean): Promise<void> {
+  return apiPost<void>(`/admin/employer-requests/${id}/refuse?block=${block}`, {});
 }

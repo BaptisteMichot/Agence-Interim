@@ -4,7 +4,8 @@ import { getApplicationCounts } from '../../api/applications';
 import { errorMessage } from '../../api/http';
 import { closeOffer, getMyOffers } from '../../api/offers';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { btnDanger, btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import PageHeader from '../../components/PageHeader';
+import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
 import { salarySuffix } from '../../offers/format';
 import type { JobOfferSummary } from '../../offers/types';
 import { formatTimestampDate } from '../../profile/format';
@@ -51,22 +52,19 @@ export default function EmployerOffersPage() {
 
   return (
     <section>
-      <Link to="/employeur" className={linkBack}>
-        ← Retour au tableau de bord
-      </Link>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Mes offres d'emploi</h1>
-          <p className="mt-1 text-slate-600">Vos offres publiées et les candidatures reçues.</p>
-        </div>
-        <Link to="/employeur/offres/nouvelle" className={btnPrimary}>
-          + Nouvelle offre
-        </Link>
-      </div>
+      <PageHeader
+        title="Mes offres d'emploi"
+        subtitle="Vos offres publiées et les candidatures reçues."
+        actions={
+          <Link to="/employeur/offres/nouvelle" className={btnPrimary}>
+            + Nouvelle offre
+          </Link>
+        }
+      />
 
-      {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
+      {error && <p className={errorBox}>{error}</p>}
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+      <div className="mt-6 rounded-xl border border-line bg-surface p-6">
         {loading && <p className="text-sm text-slate-500">Chargement…</p>}
         {!loading && offers.length === 0 && (
           <p className="text-sm text-slate-500">

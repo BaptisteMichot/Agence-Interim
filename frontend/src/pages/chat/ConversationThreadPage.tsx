@@ -120,11 +120,11 @@ export default function ConversationThreadPage() {
               <li key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                    mine ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800'
+                    mine ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-800'
                   }`}
                 >
                   <p className="whitespace-pre-line break-words">{message.content}</p>
-                  <p className={`mt-1 text-xs ${mine ? 'text-indigo-200' : 'text-slate-400'}`}>
+                  <p className={`mt-1 text-xs ${mine ? 'text-brand-200' : 'text-slate-400'}`}>
                     {formatDateTime(message.sentTime)}
                   </p>
                 </div>

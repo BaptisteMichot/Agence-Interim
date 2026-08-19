@@ -118,12 +118,12 @@ export default function EmployerMissionDetailPage() {
         </div>
       )}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-line bg-surface p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-900">Conditions</h2>
         <MissionFacts mission={mission} />
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-line bg-surface p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-900">Horaire</h2>
         <MissionSchedule slots={mission.slots} />
       </section>

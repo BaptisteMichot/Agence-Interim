@@ -1,8 +1,22 @@
 import { useCallback, useState } from 'react';
 import { updateProfile } from '../../api/profile';
+import AddressFields, {
+  formatAddress,
+  parseAddress,
+  type AddressParts,
+} from '../../components/AddressFields';
 import { checkboxInput, checkboxRow, errorBox, inputClass, labelClass } from '../../components/ui';
 import type { Profile, ProfileBasePayload } from '../../profile/types';
 import { useAutoSave } from '../../profile/useAutoSave';
+
+/**
+ * Regroupe l'IBAN par quatre caractères pendant la frappe, comme sur un relevé bancaire.
+ * Le backend applique la même mise en forme : autant l'afficher tout de suite.
+ */
+function groupIban(value: string): string {
+  const compact = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  return compact.replace(/(.{4})(?=.)/g, '$1 ');
+}
 
 interface PersonalInfoFormProps {
   profile: Profile;
@@ -18,16 +32,16 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
   const [lastName, setLastName] = useState(profile.lastName);
   const [birthdate, setBirthdate] = useState(profile.birthdate ?? '');
   const [hasVehicle, setHasVehicle] = useState(profile.hasVehicle ?? false);
-  const [address, setAddress] = useState(profile.address ?? '');
+  const [address, setAddress] = useState<AddressParts>(() => parseAddress(profile.address));
   const [nationalNumber, setNationalNumber] = useState(profile.nationalNumber ?? '');
-  const [iban, setIban] = useState(profile.iban ?? '');
+  const [iban, setIban] = useState(groupIban(profile.iban ?? ''));
 
   const values: ProfileBasePayload = {
     firstName,
     lastName,
     birthdate: birthdate || null,
     hasVehicle,
-    address: address.trim() || null,
+    address: formatAddress(address) || null,
     nationalNumber: nationalNumber.trim() || null,
     iban: iban.trim() || null,
   };
@@ -44,8 +58,8 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
   const { error, flush, saveNow } = useAutoSave(values, persist, { valid: namesFilled });
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">Informations personnelles</h2>
+    <section className="rounded-xl border border-line bg-surface p-6">
+      <h2 className="mb-4 text-lg font-semibold text-ink">Informations personnelles</h2>
 
       {error && <p className={`mb-4 ${errorBox}`}>{error}</p>}
 
@@ -89,20 +103,28 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
             className={inputClass}
           />
         </div>
-        <div className="sm:col-span-2">
-          <label className={labelClass} htmlFor="address">
-            Adresse
+        <div className="flex flex-col justify-end">
+          <span className={labelClass}>Véhicule</span>
+          <label className={checkboxRow}>
+            <input
+              type="checkbox"
+              checked={hasVehicle}
+              onChange={(e) => {
+                // Une case à cocher n'a pas de frappe : on enregistre sans attendre.
+                setHasVehicle(e.target.checked);
+                saveNow({ ...values, hasVehicle: e.target.checked });
+              }}
+              className={checkboxInput}
+            />
+            Je possède un véhicule
           </label>
-          <input
-            id="address"
-            value={address}
-            maxLength={100}
-            placeholder="Rue, numéro, code postal et localité"
-            onChange={(e) => setAddress(e.target.value)}
-            onBlur={flush}
-            className={inputClass}
-          />
         </div>
+
+        <div className="sm:col-span-2">
+          <span className={`${labelClass} mb-2`}>Adresse</span>
+          <AddressFields idPrefix="profile-address" parts={address} onChange={setAddress} onBlur={flush} />
+        </div>
+
         <div>
           <label className={labelClass} htmlFor="nationalNumber">
             Numéro de registre national
@@ -126,32 +148,16 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
             value={iban}
             maxLength={42}
             placeholder="BE68 5390 0754 7034"
-            onChange={(e) => setIban(e.target.value)}
+            onChange={(e) => setIban(groupIban(e.target.value))}
             onBlur={flush}
             className={inputClass}
           />
         </div>
-        <p className="text-xs text-slate-500 sm:col-span-2">
+        <p className="text-xs text-muted sm:col-span-2">
           Votre adresse et votre numéro de registre national figurent sur le contrat, votre numéro
           de compte sert au paiement de votre salaire : sans ces informations, vous ne pourrez pas
           accepter de mission.
         </p>
-        <div className="flex flex-col justify-end">
-          <span className={labelClass}>Véhicule</span>
-          <label className={checkboxRow}>
-            <input
-              type="checkbox"
-              checked={hasVehicle}
-              onChange={(e) => {
-                // Une case à cocher n'a pas de frappe : on enregistre sans attendre.
-                setHasVehicle(e.target.checked);
-                saveNow({ ...values, hasVehicle: e.target.checked });
-              }}
-              className={checkboxInput}
-            />
-            Je possède un véhicule
-          </label>
-        </div>
       </div>
     </section>
   );

@@ -141,7 +141,7 @@ export default function OfferApplicationsPage() {
 
       {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+      <div className="mt-6 rounded-xl border border-line bg-surface p-6">
         {applications.length === 0 && (
           <p className="text-sm text-slate-500">Aucune candidature reçue pour cette offre.</p>
         )}

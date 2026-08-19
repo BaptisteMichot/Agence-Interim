@@ -34,7 +34,7 @@ export function SectionHeader({
   );
 }
 
-/** Enveloppe des formulaires d'ajout/édition : encart indigo en grille deux colonnes. */
+/** Enveloppe des formulaires d'ajout/édition : encart de marque en grille deux colonnes. */
 export function SectionForm({
   onSubmit,
   error,
@@ -45,7 +45,7 @@ export function SectionForm({
   children: ReactNode;
 }) {
   return (
-    <form onSubmit={onSubmit} className="mt-4 grid gap-4 rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="mt-4 grid gap-4 rounded-lg border border-brand-200 bg-brand-50/40 p-4 sm:grid-cols-2">
       {error && <p className={`sm:col-span-2 ${errorBox}`}>{error}</p>}
       {children}
     </form>

@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCandidateProfile } from '../../api/applications';
 import { getMyCompany } from '../../api/employer';
+import AddressFields, {
+  EMPTY_ADDRESS,
+  formatAddress,
+  parseAddress,
+  type AddressParts,
+} from '../../components/AddressFields';
 import { errorMessage } from '../../api/http';
 import { createMission, getEmployerMission, renewMission, updateMission } from '../../api/missions';
 import { getMyOffer } from '../../api/offers';
@@ -59,7 +65,7 @@ const dayGrid = 'grid grid-cols-[minmax(11rem,1fr)_13rem_13rem_7rem] items-cente
 /** Champ horaire compact, adapté à la densité du tableau des journées. */
 const timeInput =
   'w-24 rounded-md border border-slate-300 px-2 py-1 text-sm text-slate-700 outline-none '
-  + 'focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
+  + 'focus:border-brand-500 focus:ring-1 focus:ring-brand-500';
 
 /** Heure de pause renvoyée par le backend, ramenée à « HH:mm » ou à une saisie vide. */
 function breakOf(time: string | null): string {
@@ -244,7 +250,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   const [defaultBreakEnd, setDefaultBreakEnd] = useState(DEFAULT_BREAK_END);
 
   const [position, setPosition] = useState('');
-  const [workplace, setWorkplace] = useState('');
+  const [workplace, setWorkplace] = useState<AddressParts>({ ...EMPTY_ADDRESS });
   const [description, setDescription] = useState('');
   const [jointCommittee, setJointCommittee] = useState('');
   const [hourlyWage, setHourlyWage] = useState('');
@@ -298,7 +304,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setSalaryMin(offer.salaryMin);
           setSalaryMax(offer.salaryMax);
           setPosition(mission.position);
-          setWorkplace(mission.workplace);
+          setWorkplace(parseAddress(mission.workplace));
           setDescription(mission.description);
           setJointCommittee(mission.jointCommittee);
           setHourlyWage(String(mission.hourlyWage));
@@ -366,7 +372,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setSalaryMin(offer.salaryMin);
           setSalaryMax(offer.salaryMax);
           setPosition(offer.title);
-          setWorkplace(offer.city);
+          // L'offre ne porte que la localité : le reste de l'adresse revient à l'employeur.
+          setWorkplace({ ...EMPTY_ADDRESS, city: offer.city });
           setJointCommittee(company.jointCommittee ?? '');
           setHourlyWage(offer.salaryMin !== null ? String(offer.salaryMin) : '');
           rebuildDays(addDays(todayIso(), 7), addDays(todayIso(), 11), []);
@@ -482,7 +489,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
       startDate: dates[0],
       endDate: dates[dates.length - 1],
       position: position.trim(),
-      workplace: workplace.trim(),
+      workplace: formatAddress(workplace),
       description: description.trim(),
       jointCommittee: jointCommittee.trim(),
       hourlyWage: wageNumber,
@@ -557,7 +564,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
 
       {error && <p className={errorBox}>{error}</p>}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-line bg-surface p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-900">Conditions du contrat</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -573,20 +580,15 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
               onChange={(e) => setPosition(e.target.value)}
             />
           </div>
-          <div>
-            <label className={labelClass} htmlFor="mission-workplace">
-              Adresse du lieu de travail
-            </label>
-            <input
-              id="mission-workplace"
-              className={inputClass}
-              value={workplace}
-              maxLength={100}
+          <div className="sm:col-span-2">
+            <span className={`${labelClass} mb-2`}>Adresse du lieu de travail</span>
+            <AddressFields
+              idPrefix="mission-workplace"
+              parts={workplace}
+              onChange={setWorkplace}
               required
-              placeholder="Rue, numéro, code postal et localité"
-              onChange={(e) => setWorkplace(e.target.value)}
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted">
               Adresse exacte où l'intérimaire doit se présenter.
             </p>
           </div>
@@ -693,7 +695,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-xl border border-line bg-surface p-6">
         <h2 className="text-lg font-semibold text-slate-900">Horaire de la mission</h2>
         <p className="mt-1 text-sm text-slate-500">
           Choisissez la période, puis décochez les jours non prestés et ajustez les horaires. La
@@ -791,7 +793,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="text-xs font-medium text-indigo-600 hover:underline"
+                  className="text-xs font-medium text-brand-600 hover:underline"
                   onClick={() => setAllWorked(true)}
                 >
                   Tout cocher
@@ -799,7 +801,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
                 <span className="text-xs text-slate-300">|</span>
                 <button
                   type="button"
-                  className="text-xs font-medium text-indigo-600 hover:underline"
+                  className="text-xs font-medium text-brand-600 hover:underline"
                   onClick={() => setAllWorked(false)}
                 >
                   Tout décocher
@@ -852,7 +854,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
               </div>
             )}
 
-            <div className="mt-4 rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+            <div className="mt-4 rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-900">
               <span className="font-semibold">{workedDays.length} journée(s)</span> ·{' '}
               {formatMinutes(minutes)} rémunérées (pauses déduites)
               {Number.isFinite(wageNumber) && wageNumber > 0 && (

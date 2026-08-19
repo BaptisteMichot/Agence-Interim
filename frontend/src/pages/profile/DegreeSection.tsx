@@ -31,7 +31,7 @@ export default function DegreeSection() {
   );
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6">
+    <section className="rounded-xl border border-line bg-surface p-6">
       <SectionHeader
         title="Diplômes"
         showAdd={mode.type === 'closed'}

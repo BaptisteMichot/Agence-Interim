@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { errorMessage } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
 import { homePathForRole } from '../auth/roleRoutes';
+import PasswordInput from '../components/PasswordInput';
 import { btnAuthSubmit, errorBox, inputClass, labelClass } from '../components/ui';
 
 export default function RegisterPage() {
@@ -83,14 +84,15 @@ export default function RegisterPage() {
         <label className={labelClass} htmlFor="password">
           Mot de passe
         </label>
-        <input
-          id="password"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-2 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-        />
+        <div className="mb-2">
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={setPassword}
+            required
+            autoComplete="new-password"
+          />
+        </div>
         <p className="mb-6 text-xs text-slate-500">
           Au moins 14 caractères, avec une majuscule, une minuscule, un chiffre et un caractère spécial.
         </p>
@@ -105,13 +107,13 @@ export default function RegisterPage() {
 
         <p className="mt-4 text-center text-sm text-slate-600">
           Déjà inscrit ?{' '}
-          <Link to="/login" className="font-medium text-indigo-600 hover:underline">
+          <Link to="/login" className="font-medium text-brand-600 hover:underline">
             Se connecter
           </Link>
         </p>
         <p className="mt-2 text-center text-sm text-slate-600">
           Vous êtes un employeur ?{' '}
-          <Link to="/inscription-employeur" className="font-medium text-indigo-600 hover:underline">
+          <Link to="/inscription-employeur" className="font-medium text-brand-600 hover:underline">
             Demander un accès
           </Link>
         </p>

@@ -95,6 +95,7 @@ public class ChatService {
         }
 
         return conversations.stream()
+                .filter(conversation -> visible(conversation, userId, lastMessages.get(conversation.getId())))
                 .map(conversation -> toResponse(
                         conversation,
                         userId,
@@ -152,6 +153,27 @@ public class ChatService {
         Message saved = messageRepository.save(message);
 
         return new SentMessage(ChatMessageResponse.fromEntity(saved), other(conversation, userId).getId(), userId);
+    }
+
+    /**
+     * Masque la conversation pour ce participant : elle quitte sa liste mais reste
+     * intacte pour l'autre, et reviendra dès qu'un message y sera posté.
+     */
+    @Transactional
+    public void hide(int userId, int conversationId) {
+        Conversation conversation = participantConversation(userId, conversationId);
+        conversation.hideFor(userId, LocalDateTime.now());
+        conversationRepository.save(conversation);
+    }
+
+    /**
+     * Une conversation masquée reste cachée tant qu'aucun message n'y a été posté
+     * depuis le masquage.
+     */
+    private boolean visible(Conversation conversation, int userId, Message lastMessage) {
+        LocalDateTime hiddenAt = conversation.hiddenAtFor(userId);
+        return hiddenAt == null
+                || (lastMessage != null && lastMessage.getSentTime().isAfter(hiddenAt));
     }
 
     /** Charge une conversation en vérifiant que l'utilisateur y participe. */

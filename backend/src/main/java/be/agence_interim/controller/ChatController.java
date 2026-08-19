@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -79,6 +80,16 @@ public class ChatController {
         sessionRegistry.sendToUser(sent.senderId(), frame);
         sessionRegistry.sendToUser(sent.recipientId(), frame);
         return ResponseEntity.status(HttpStatus.CREATED).body(sent.message());
+    }
+
+    /**
+     * Retire la conversation de la liste de l'appelant. L'autre partie la conserve, et un
+     * nouveau message la fera revenir chez celui qui l'avait retirée.
+     */
+    @DeleteMapping("/conversations/{id}")
+    public ResponseEntity<Void> hide(@AuthenticationPrincipal Jwt jwt, @PathVariable int id) {
+        chatService.hide(CurrentUser.id(jwt), id);
+        return ResponseEntity.noContent().build();
     }
 
     /** Démarre (ou retrouve) la conversation liée à une candidature reçue — réservé à l'employeur. */
