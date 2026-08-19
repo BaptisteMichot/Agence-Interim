@@ -26,6 +26,8 @@ export interface Profile {
   /** Mentions légales reprises sur le contrat de mission. */
   address: string | null;
   nationalNumber: string | null;
+  /** IBAN sur lequel le salaire des missions est versé. */
+  iban: string | null;
   experiences: ExperienceItem[];
   formations: FormationItem[];
 }
@@ -38,6 +40,7 @@ export interface ProfileBasePayload {
   hasVehicle: boolean | null;
   address: string | null;
   nationalNumber: string | null;
+  iban: string | null;
 }
 
 /** Corps envoyé aux endpoints expériences. */

@@ -373,10 +373,12 @@ public class MissionService {
      * compléter son profil, et c'est son acceptation qui déclenche le contrat.
      */
     private void requireWorkerDetails(User worker) {
-        if (isBlank(worker.getAddress()) || isBlank(worker.getNationalNumber())) {
+        if (isBlank(worker.getAddress()) || isBlank(worker.getNationalNumber())
+                || isBlank(worker.getIban())) {
             throw new IllegalArgumentException(
-                    "Complétez votre adresse et votre numéro de registre national dans votre profil "
-                            + "avant d'accepter : ces mentions sont obligatoires sur le contrat.");
+                    "Complétez votre adresse, votre numéro de registre national et votre numéro "
+                            + "de compte dans votre profil avant d'accepter : le contrat ne peut pas "
+                            + "être établi ni votre salaire versé sans eux.");
         }
     }
 

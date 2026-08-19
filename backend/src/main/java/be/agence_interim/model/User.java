@@ -29,6 +29,7 @@ public class User {
     public static final int PASSWORD_MIN_LENGTH = 14;
     public static final int ADDRESS_MAX_LENGTH = 100;
     public static final int NATIONAL_NUMBER_MAX_LENGTH = 15;
+    public static final int IBAN_MAX_LENGTH = 42; // 34 caracteres + les espaces des groupes de quatre
     public static final int COMPANY_NUMBER_MAX_LENGTH = 15;
     public static final int JOINT_COMMITTEE_MAX_LENGTH = 10;
 
@@ -69,6 +70,10 @@ public class User {
     /** Numéro de registre national de l'intérimaire (mention légale du contrat). */
     @Column(length = NATIONAL_NUMBER_MAX_LENGTH)
     private String nationalNumber;
+
+    /** Compte bancaire sur lequel le salaire de l'intérimaire est versé. */
+    @Column(length = IBAN_MAX_LENGTH)
+    private String iban;
 
     /** Numéro d'entreprise (BCE) de l'entreprise utilisatrice. */
     @Column(length = COMPANY_NUMBER_MAX_LENGTH)

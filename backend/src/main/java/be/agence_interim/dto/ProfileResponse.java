@@ -19,6 +19,7 @@ public record ProfileResponse(
         String cvFilePath,
         String address,
         String nationalNumber,
+        String iban,
         List<ExperienceResponse> experiences,
         List<FormationResponse> formations) {
 
@@ -34,6 +35,7 @@ public record ProfileResponse(
                 user.getCvFilePath(),
                 user.getAddress(),
                 user.getNationalNumber(),
+                user.getIban(),
                 experiences.stream().map(ExperienceResponse::fromEntity).toList(),
                 formations.stream().map(FormationResponse::fromEntity).toList());
     }

@@ -20,7 +20,7 @@ public class ProfileService {
         return userRepository.requireById(userId);
     }
 
-    /** Met à jour les champs de base du profil, adresse et registre national compris. */
+    /** Met à jour les champs de base du profil, mentions du contrat comprises. */
     public User updateBase(int userId, UpdateProfileRequest request) {
         User user = getUser(userId);
         user.setLastName(request.lastName());
@@ -29,6 +29,7 @@ public class ProfileService {
         user.setHasVehicle(request.hasVehicle());
         user.setAddress(Strings.blankToNull(request.address()));
         user.setNationalNumber(nationalNumber(request.nationalNumber()));
+        user.setIban(iban(request.iban()));
         return userRepository.save(user);
     }
 
@@ -44,5 +45,19 @@ public class ProfileService {
                             + "et sa clé de contrôle doit correspondre.");
         }
         return BelgianIdentifiers.formatNationalNumber(cleaned);
+    }
+
+    /** Normalise le numéro de compte et refuse un IBAN dont la clé ne correspond pas. */
+    private String iban(String value) {
+        String cleaned = Strings.blankToNull(value);
+        if (cleaned == null) {
+            return null;
+        }
+        if (!Iban.isValid(cleaned)) {
+            throw new IllegalArgumentException(
+                    "Le numéro de compte est invalide : indiquez un IBAN complet, "
+                            + "code pays compris (par exemple BE68 5390 0754 7034).");
+        }
+        return Iban.format(cleaned);
     }
 }

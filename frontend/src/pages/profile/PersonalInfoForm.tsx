@@ -20,6 +20,7 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
   const [hasVehicle, setHasVehicle] = useState(profile.hasVehicle ?? false);
   const [address, setAddress] = useState(profile.address ?? '');
   const [nationalNumber, setNationalNumber] = useState(profile.nationalNumber ?? '');
+  const [iban, setIban] = useState(profile.iban ?? '');
 
   const values: ProfileBasePayload = {
     firstName,
@@ -28,6 +29,7 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
     hasVehicle,
     address: address.trim() || null,
     nationalNumber: nationalNumber.trim() || null,
+    iban: iban.trim() || null,
   };
   // Le backend refuse un nom ou un prénom vide : inutile de l'appeler dans ce cas.
   const namesFilled = firstName.trim() !== '' && lastName.trim() !== '';
@@ -114,11 +116,26 @@ export default function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormP
             onBlur={flush}
             className={inputClass}
           />
-          <p className="mt-1 text-xs text-slate-500">
-            Cette information et votre adresse sont obligatoires sur le contrat : sans elles, vous
-            ne pourrez pas accepter de mission.
-          </p>
         </div>
+        <div>
+          <label className={labelClass} htmlFor="iban">
+            Numéro de compte bancaire
+          </label>
+          <input
+            id="iban"
+            value={iban}
+            maxLength={42}
+            placeholder="BE68 5390 0754 7034"
+            onChange={(e) => setIban(e.target.value)}
+            onBlur={flush}
+            className={inputClass}
+          />
+        </div>
+        <p className="text-xs text-slate-500 sm:col-span-2">
+          Votre adresse et votre numéro de registre national figurent sur le contrat, votre numéro
+          de compte sert au paiement de votre salaire : sans ces informations, vous ne pourrez pas
+          accepter de mission.
+        </p>
         <div className="flex flex-col justify-end">
           <span className={labelClass}>Véhicule</span>
           <label className={checkboxRow}>
