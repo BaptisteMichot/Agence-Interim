@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { applyToOffer, getAppliedOfferIds } from '../../api/applications';
+import { errorMessage } from '../../api/http';
 import {
   addFavoriteOffer,
   getFavoriteOfferIds,
   getOfferDetail,
   removeFavoriteOffer,
 } from '../../api/offers';
-import { btnPrimary, btnSecondary, errorBox } from '../../components/ui';
+import { btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
 import type { JobOfferDetail } from '../../offers/types';
-import { degreeTypeLabel, formatDate, skillLevelLabel } from '../../profile/format';
+import { degreeTypeLabel, formatTimestampDate, skillLevelLabel } from '../../profile/format';
 
 /** Détail d'une offre pour l'intérimaire : exigences, favori et candidature. */
 export default function OfferDetailPage() {
@@ -35,7 +36,7 @@ export default function OfferDetailPage() {
       setFavorite(favoriteIds.includes(offerId));
       setApplied(appliedIds.includes(offerId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible de charger l'offre.");
+      setError(errorMessage(err, "Impossible de charger l'offre."));
     } finally {
       setLoading(false);
     }
@@ -55,7 +56,7 @@ export default function OfferDetailPage() {
       }
       setFavorite((v) => !v);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
@@ -66,7 +67,7 @@ export default function OfferDetailPage() {
       await applyToOffer(offerId);
       setApplied(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setApplying(false);
     }
@@ -83,7 +84,7 @@ export default function OfferDetailPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/interimaire/offres" className="text-sm text-indigo-600 hover:underline">
+        <Link to="/interimaire/offres" className={linkBack}>
           ← Retour aux offres
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
@@ -100,7 +101,7 @@ export default function OfferDetailPage() {
               {offer.companyName} · {offer.sector} · {offer.city}
             </p>
             {offer.publishedAt && (
-              <p className="text-xs text-slate-400">Publiée le {formatDate(offer.publishedAt.slice(0, 10))}</p>
+              <p className="text-xs text-slate-400">Publiée le {formatTimestampDate(offer.publishedAt)}</p>
             )}
           </div>
           {offer.status === 'OPEN' && (

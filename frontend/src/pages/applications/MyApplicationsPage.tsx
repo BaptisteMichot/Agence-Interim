@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cancelApplication, getMyApplications } from '../../api/applications';
+import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { btnDanger, btnSecondary, errorBox } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import type { MyApplication } from '../../applications/types';
-import { formatDate } from '../../profile/format';
+import { formatTimestampDate } from '../../profile/format';
 
 /** Chip de suivi : statut de la candidature, en tenant compte d'une offre clôturée. */
 function statusChip(application: MyApplication) {
@@ -23,25 +25,13 @@ function statusChip(application: MyApplication) {
 
 /** Suivi des candidatures de l'intérimaire, avec annulation d'une candidature en cours. */
 export default function MyApplicationsPage() {
-  const [applications, setApplications] = useState<MyApplication[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [canceling, setCanceling] = useState<MyApplication | null>(null);
 
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setApplications(await getMyApplications());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les candidatures.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const { data, loading, error, setError, reload } = useResource(
+    getMyApplications,
+    'Impossible de charger les candidatures.',
+  );
+  const applications = data ?? [];
 
   const confirmCancel = async () => {
     if (!canceling) {
@@ -54,7 +44,7 @@ export default function MyApplicationsPage() {
       await cancelApplication(id);
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
@@ -92,7 +82,7 @@ export default function MyApplicationsPage() {
                   {application.offer.companyName} · {application.offer.sector} · {application.offer.city}
                 </p>
                 <p className="text-xs text-slate-400">
-                  Postulée le {formatDate(application.applicationTime.slice(0, 10))}
+                  Postulée le {formatTimestampDate(application.applicationTime)}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">

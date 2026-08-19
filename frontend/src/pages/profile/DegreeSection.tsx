@@ -1,67 +1,42 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { addDegree, deleteDegree, getDegreeOptions, getUserDegrees, updateDegree } from '../../api/profile';
+import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { btnDanger, btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
+import { btnDanger, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
 import { DEGREE_TYPES, degreeTypeLabel } from '../../profile/format';
-import type { DegreeOption, DegreeType, UserDegree } from '../../profile/types';
-
-type FormMode = { type: 'closed' } | { type: 'new' } | { type: 'edit'; item: UserDegree };
+import type { DegreeOption, DegreeType, FormMode, UserDegree } from '../../profile/types';
+import { useConfirmDelete } from '../../profile/useConfirmDelete';
+import { useProfileCollection } from '../../profile/useProfileCollection';
+import { FormActions, SectionForm, SectionHeader } from './SectionParts';
 
 export default function DegreeSection() {
-  const [degrees, setDegrees] = useState<UserDegree[]>([]);
-  const [options, setOptions] = useState<DegreeOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<FormMode>({ type: 'closed' });
-  const [confirmId, setConfirmId] = useState<number | null>(null);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      const [userDegrees, degreeOptions] = await Promise.all([getUserDegrees(), getDegreeOptions()]);
-      setDegrees(userDegrees);
-      setOptions(degreeOptions);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les diplômes.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const {
+    items: degrees,
+    options,
+    loading,
+    error,
+    setError,
+    reload,
+  } = useProfileCollection<UserDegree, DegreeOption>(
+    getUserDegrees,
+    getDegreeOptions,
+    'Impossible de charger les diplômes.',
+  );
+  const [mode, setMode] = useState<FormMode<UserDegree>>({ type: 'closed' });
+  const { confirmId, setConfirmId, confirmDelete } = useConfirmDelete(deleteDegree, reload, setError);
 
   const sections = useMemo(
     () => Array.from(new Set(options.map((o) => o.section))).sort(),
     [options],
   );
 
-  const confirmDelete = async () => {
-    if (confirmId === null) {
-      return;
-    }
-    const id = confirmId;
-    setConfirmId(null);
-    setError(null);
-    try {
-      await deleteDegree(id);
-      reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
-    }
-  };
-
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Diplômes</h2>
-        {mode.type === 'closed' && (
-          <button type="button" className={btnSecondary} onClick={() => setMode({ type: 'new' })}>
-            + Ajouter
-          </button>
-        )}
-      </div>
+      <SectionHeader
+        title="Diplômes"
+        showAdd={mode.type === 'closed'}
+        onAdd={() => setMode({ type: 'new' })}
+      />
 
       {error && <p className={`mb-4 ${errorBox}`}>{error}</p>}
       {loading && <p className="text-sm text-slate-500">Chargement…</p>}
@@ -157,16 +132,14 @@ function DegreeForm({ item, sections, onCancel, onSaved }: DegreeFormProps) {
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 grid gap-4 rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 sm:grid-cols-2">
-      {error && <p className={`sm:col-span-2 ${errorBox}`}>{error}</p>}
-
+    <SectionForm onSubmit={handleSubmit} error={error}>
       {editing ? (
         <p className="sm:col-span-2 text-sm font-medium text-slate-700">
           {degreeTypeLabel(type)} — {section}
@@ -229,14 +202,12 @@ function DegreeForm({ item, sections, onCancel, onSaved }: DegreeFormProps) {
         />
       </div>
 
-      <div className="sm:col-span-2 flex gap-3">
-        <button type="submit" disabled={saving} className={btnPrimary}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
-        <button type="button" className={btnSecondary} onClick={onCancel}>
-          Annuler
-        </button>
-      </div>
-    </form>
+      <FormActions
+        saving={saving}
+        submitLabel="Enregistrer"
+        savingLabel="Enregistrement…"
+        onCancel={onCancel}
+      />
+    </SectionForm>
   );
 }

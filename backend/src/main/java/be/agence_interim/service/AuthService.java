@@ -27,7 +27,7 @@ public class AuthService {
      * @return utilisateur persiste avec un mot de passe BCrypt
      */
     public User register(User newUser) {
-        String email = normalizeEmail(newUser.getEmail());
+        String email = Strings.normalizeEmail(newUser.getEmail());
         newUser.setEmail(email);
         newUser.setRole(Role.JOBSEEKER);
         // Lance une exception car le mail est déjà utilisé
@@ -48,7 +48,7 @@ public class AuthService {
      * @return utilisateur authentifie
      */
     public User login(String rawEmail, String rawPassword) {
-        String email = normalizeEmail(rawEmail);
+        String email = Strings.normalizeEmail(rawEmail);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException(""));
@@ -63,10 +63,5 @@ public class AuthService {
     /** Genere un token apres une authentification reussie. */
     public String createToken(User user) {
         return jwtService.generateToken(user);
-    }
-
-    /** Uniformise l'email pour la recherche et la contrainte d'unicite. */
-    private String normalizeEmail(String email) {
-        return email == null ? null : email.trim().toLowerCase();
     }
 }

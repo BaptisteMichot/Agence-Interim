@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getMyCompany, updateMyCompany, type EmployerCompany } from '../../api/employer';
+import { errorMessage } from '../../api/http';
 import { btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
 
 /**
@@ -29,7 +30,7 @@ export default function CompanySection() {
     getMyCompany()
       .then(fill)
       .catch((err) =>
-        setError(err instanceof Error ? err.message : "Impossible de charger la fiche entreprise."),
+        setError(errorMessage(err, "Impossible de charger la fiche entreprise.")),
       );
   }, [fill]);
 
@@ -41,7 +42,7 @@ export default function CompanySection() {
       fill(await updateMyCompany({ companyName, address, companyNumber, jointCommittee }));
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "L'enregistrement a échoué.");
+      setError(errorMessage(err, "L'enregistrement a échoué."));
     } finally {
       setSaving(false);
     }

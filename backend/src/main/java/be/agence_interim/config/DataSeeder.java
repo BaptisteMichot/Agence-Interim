@@ -3,6 +3,7 @@ package be.agence_interim.config;
 import java.util.List;
 import java.util.Map;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +19,7 @@ import be.agence_interim.repository.DegreeRepository;
 import be.agence_interim.repository.LanguageRepository;
 import be.agence_interim.repository.SkillRepository;
 import be.agence_interim.repository.UserRepository;
+import be.agence_interim.service.Strings;
 
 /**
  * Insère au démarrage les listes de base (référentiels globaux) si elles sont
@@ -74,7 +76,7 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) {
+    public void run(String @NonNull ... args) {
         seedLanguages();
         seedSkills();
         seedDegrees();
@@ -86,7 +88,7 @@ public class DataSeeder implements CommandLineRunner {
         if (adminEmail.isBlank() || adminPassword.isBlank()) {
             return;
         }
-        String email = adminEmail.trim().toLowerCase();
+        String email = Strings.normalizeEmail(adminEmail);
         if (userRepository.existsByEmail(email)) {
             return;
         }

@@ -7,6 +7,10 @@ export const labelClass = 'mb-1 block text-sm font-medium text-slate-700';
 export const btnPrimary =
   'rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60';
 
+// Bouton de soumission pleine largeur des pages d'authentification.
+export const btnAuthSubmit =
+  'w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-60';
+
 export const btnSecondary =
   'rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100';
 
@@ -17,6 +21,9 @@ export const btnDangerSolid =
   'rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60';
 
 export const errorBox = 'whitespace-pre-line rounded-md bg-red-50 px-3 py-2 text-sm text-red-700';
+
+// Lien / bouton « ← Retour » en tête de page.
+export const linkBack = 'text-sm text-indigo-600 hover:underline';
 
 // Case à cocher intégrée comme un champ : encadré, même hauteur/padding que les inputs.
 export const checkboxRow =

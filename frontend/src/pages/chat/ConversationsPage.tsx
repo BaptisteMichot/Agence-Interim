@@ -1,33 +1,25 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getConversations } from '../../api/chat';
 import { useChat } from '../../chat/ChatContext';
 import { errorBox } from '../../components/ui';
-import type { Conversation } from '../../chat/types';
+import { useResource } from '../../hooks/useResource';
 import { formatDateTime } from '../../profile/format';
 
 /** Liste des conversations de l'utilisateur, la plus active en premier. */
 export default function ConversationsPage() {
   const { subscribe, setActiveConversation } = useChat();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setConversations(await getConversations());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les conversations.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Déclaré avant useResource : on quitte la conversation active avant le chargement de la liste.
   useEffect(() => {
     setActiveConversation(null);
-    reload();
-  }, [reload, setActiveConversation]);
+  }, [setActiveConversation]);
+
+  const { data, loading, error, reload } = useResource(
+    getConversations,
+    'Impossible de charger les conversations.',
+  );
+  const conversations = data ?? [];
 
   // Un message reçu pendant qu'on est sur la liste la fait remonter à jour.
   useEffect(() => subscribe(() => reload()), [subscribe, reload]);

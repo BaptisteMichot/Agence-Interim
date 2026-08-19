@@ -43,7 +43,7 @@ public class EmployerAccessService {
      */
     @Transactional
     public void registerEmployer(EmployerRegisterRequest request) {
-        String normalizedEmail = normalizeEmail(request.email());
+        String normalizedEmail = Strings.normalizeEmail(request.email());
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new IllegalArgumentException("Cet email est déjà utilisé.");
         }
@@ -64,7 +64,7 @@ public class EmployerAccessService {
     /** Fiche entreprise de l'employeur connecté (mentions légales reprises sur les contrats). */
     @Transactional
     public User updateCompany(int userId, EmployerCompanyRequest request) {
-        User user = getUser(userId);
+        User user = userRepository.requireById(userId);
         applyCompany(user, request.companyName(), request.address(), request.companyNumber(),
                 request.jointCommittee());
         return userRepository.save(user);
@@ -87,7 +87,7 @@ public class EmployerAccessService {
     /** Nouvelle demande après un refus, avec un message justificatif facultatif. */
     @Transactional
     public void reapply(int userId, String message) {
-        User user = getUser(userId);
+        User user = userRepository.requireById(userId);
         if (user.getRole() != Role.EMPLOYER_PENDING) {
             throw new IllegalArgumentException("Action non autorisee.");
         }
@@ -95,7 +95,7 @@ public class EmployerAccessService {
         if (latest != EmployerAccessStatus.REFUSED) {
             throw new IllegalArgumentException("Vous ne pouvez pas refaire de demande pour le moment.");
         }
-        String cleaned = message == null || message.isBlank() ? null : message.trim();
+        String cleaned = Strings.blankToNull(message);
         createRequest(user, cleaned);
     }
 
@@ -131,7 +131,7 @@ public class EmployerAccessService {
     /** Suppression du compte par un employeur en attente (et de ses demandes). */
     @Transactional
     public void deleteAccount(int userId) {
-        User user = getUser(userId);
+        User user = userRepository.requireById(userId);
         if (user.getRole() != Role.EMPLOYER_PENDING) {
             throw new IllegalArgumentException("Action non autorisee.");
         }
@@ -155,14 +155,5 @@ public class EmployerAccessService {
             throw new IllegalArgumentException("Cette demande a déjà été traitée.");
         }
         return request;
-    }
-
-    private User getUser(int userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("Utilisateur introuvable."));
-    }
-
-    private String normalizeEmail(String email) {
-        return email == null ? null : email.trim().toLowerCase();
     }
 }

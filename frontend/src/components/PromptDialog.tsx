@@ -7,9 +7,7 @@ interface PromptDialogProps {
   message: string;
   label: string;
   placeholder?: string;
-  maxLength?: number;
   confirmLabel?: string;
-  cancelLabel?: string;
   onConfirm: (value: string) => void;
   onCancel: () => void;
 }
@@ -21,9 +19,7 @@ export default function PromptDialog({
   message,
   label,
   placeholder,
-  maxLength = 500,
   confirmLabel = 'Confirmer',
-  cancelLabel = 'Annuler',
   onConfirm,
   onCancel,
 }: PromptDialogProps) {
@@ -80,19 +76,19 @@ export default function PromptDialog({
           id="prompt-dialog-value"
           className={`${inputClass} mt-1 min-h-24`}
           value={value}
-          maxLength={maxLength}
+          maxLength={500}
           placeholder={placeholder}
           required
           autoFocus
           onChange={(event) => setValue(event.target.value)}
         />
         <p className="mt-1 text-right text-xs text-slate-400">
-          {value.length}/{maxLength}
+          {value.length}/500
         </p>
 
         <div className="mt-4 flex justify-end gap-3">
           <button type="button" className={btnSecondary} onClick={onCancel}>
-            {cancelLabel}
+            Annuler
           </button>
           <button type="submit" className={btnPrimary} disabled={value.trim().length === 0}>
             {confirmLabel}

@@ -10,12 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import be.agence_interim.model.DegreeJobOffer;
+import be.agence_interim.model.DegreeUser;
 import be.agence_interim.model.Experience;
 import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.LanguageJobOffer;
 import be.agence_interim.model.LanguageLevel;
+import be.agence_interim.model.LanguageUser;
 import be.agence_interim.model.SkillJobOffer;
 import be.agence_interim.model.SkillLevel;
+import be.agence_interim.model.SkillUser;
 import be.agence_interim.model.User;
 import be.agence_interim.repository.DegreeJobOfferRepository;
 import be.agence_interim.repository.DegreeUserRepository;
@@ -125,70 +128,130 @@ public class MatchingService {
     }
 
     /**
-     * Évalue la correspondance entre un intérimaire et une offre.
-     *
-     * Déroulement : (1) charger le profil du candidat, (2) évaluer chaque critère
-     * de l'offre (taux de satisfaction + poids) dans l'accumulateur, (3) en déduire
-     * le score final et l'éligibilité.
+     * Profil d'un candidat, chargé une seule fois puis réutilisé pour évaluer
+     * plusieurs offres (évite de relire le profil en base à chaque offre).
+     * Les compétences et langues sont indexées par identifiant pour être
+     * retrouvées en O(1) quand on parcourt les exigences d'une offre. Les
+     * expériences sont gardées telles quelles : la durée d'une expérience « en
+     * cours » dépend du jour courant et n'est calculée qu'au moment du score.
+     */
+    public record CandidateProfile(
+            User jobSeeker,
+            Map<Integer, SkillLevel> skills,
+            Map<Integer, LanguageLevel> languages,
+            List<Integer> degreeIds,
+            List<Experience> experiences) {
+    }
+
+    /** Charge le profil d'un candidat (compétences, langues, diplômes, expériences). */
+    @Transactional(readOnly = true)
+    public CandidateProfile loadProfile(User jobSeeker) {
+        int userId = jobSeeker.getId();
+        return buildProfile(
+                jobSeeker,
+                skillUserRepository.findByUserIdFetchSkill(userId),
+                languageUserRepository.findByUserIdFetchLanguage(userId),
+                degreeUserRepository.findByUserIdFetchDegree(userId),
+                experienceRepository.findByUserIdOrderByStartDateDesc(userId));
+    }
+
+    /**
+     * Charge les profils de plusieurs candidats en quatre requêtes groupées (au
+     * lieu de quatre par candidat), dans l'ordre de la liste reçue.
      */
     @Transactional(readOnly = true)
-    public MatchScore score(User jobSeeker, OfferRequirements requirements) {
+    public List<CandidateProfile> loadProfiles(List<User> jobSeekers) {
+        if (jobSeekers.isEmpty()) {
+            return List.of();
+        }
+        List<Integer> userIds = jobSeekers.stream().map(jobSeeker -> jobSeeker.getId()).toList();
+        Map<Integer, List<SkillUser>> skills = skillUserRepository.findByUserIdInFetchSkill(userIds)
+                .stream().collect(Collectors.groupingBy(su -> su.getUser().getId()));
+        Map<Integer, List<LanguageUser>> languages = languageUserRepository.findByUserIdInFetchLanguage(userIds)
+                .stream().collect(Collectors.groupingBy(lu -> lu.getUser().getId()));
+        Map<Integer, List<DegreeUser>> degrees = degreeUserRepository.findByUserIdInFetchDegree(userIds)
+                .stream().collect(Collectors.groupingBy(du -> du.getUser().getId()));
+        Map<Integer, List<Experience>> experiences = experienceRepository.findByUserIdInOrderByStartDateDesc(userIds)
+                .stream().collect(Collectors.groupingBy(experience -> experience.getUser().getId()));
+        return jobSeekers.stream()
+                .map(jobSeeker -> buildProfile(
+                        jobSeeker,
+                        skills.getOrDefault(jobSeeker.getId(), List.of()),
+                        languages.getOrDefault(jobSeeker.getId(), List.of()),
+                        degrees.getOrDefault(jobSeeker.getId(), List.of()),
+                        experiences.getOrDefault(jobSeeker.getId(), List.of())))
+                .toList();
+    }
 
-        // ---------- ÉTAPE 1 : charger le profil du candidat ----------
-        // On indexe ses compétences et langues par identifiant pour les retrouver
-        // en O(1) quand on parcourt les exigences de l'offre.
-        int userId = jobSeeker.getId();
-        Map<Integer, SkillLevel> userSkills = skillUserRepository.findByUserIdFetchSkill(userId)
-                .stream().collect(Collectors.toMap(su -> su.getSkill().getId(), su -> su.getLevel()));
-        Map<Integer, LanguageLevel> userLanguages = languageUserRepository.findByUserIdFetchLanguage(userId)
-                .stream().collect(Collectors.toMap(lu -> lu.getLanguage().getId(), lu -> lu.getLevel()));
-        List<Integer> userDegreeIds = degreeUserRepository.findByUserIdFetchDegree(userId)
-                .stream().map(du -> du.getDegree().getId()).toList();
+    private CandidateProfile buildProfile(
+            User jobSeeker,
+            List<SkillUser> skills,
+            List<LanguageUser> languages,
+            List<DegreeUser> degrees,
+            List<Experience> experiences) {
+        return new CandidateProfile(
+                jobSeeker,
+                skills.stream().collect(Collectors.toMap(su -> su.getSkill().getId(), su -> su.getLevel())),
+                languages.stream().collect(Collectors.toMap(lu -> lu.getLanguage().getId(), lu -> lu.getLevel())),
+                degrees.stream().map(du -> du.getDegree().getId()).toList(),
+                experiences);
+    }
 
-        // ---------- ÉTAPE 2 : évaluer chaque critère de l'offre ----------
+    /**
+     * Évalue la correspondance entre un intérimaire et une offre.
+     *
+     * Déroulement : (1) évaluer chaque critère de l'offre (taux de satisfaction
+     * + poids) dans l'accumulateur, (2) en déduire le score final et
+     * l'éligibilité. Le profil du candidat a été chargé au préalable par
+     * {@link #loadProfile} ou {@link #loadProfiles}, une seule fois quel que
+     * soit le nombre d'offres évaluées.
+     */
+    public MatchScore score(CandidateProfile profile, OfferRequirements requirements) {
+
+        // ---------- ÉTAPE 1 : évaluer chaque critère de l'offre ----------
         ScoreAccumulator accumulator = new ScoreAccumulator();
 
-        // 2a. Compétences requises : crédit partiel si le niveau du candidat est
+        // 1a. Compétences requises : crédit partiel si le niveau du candidat est
         // inférieur au niveau demandé (voir levelRatio).
         for (SkillJobOffer required : requirements.skills()) {
-            SkillLevel userLevel = userSkills.get(required.getSkill().getId());
+            SkillLevel userLevel = profile.skills().get(required.getSkill().getId());
             double ratio = levelRatio(
                     userLevel == null ? null : userLevel.ordinal(),
                     required.getRequiredLevel() == null ? null : required.getRequiredLevel().ordinal());
             accumulator.add(ratio, Boolean.TRUE.equals(required.getIsMandatory()));
         }
 
-        // 2b. Diplômes requis : pas de notion de niveau → tout ou rien
+        // 1b. Diplômes requis : pas de notion de niveau → tout ou rien
         // (1 si le candidat possède le diplôme, 0 sinon).
         for (DegreeJobOffer required : requirements.degrees()) {
-            double ratio = userDegreeIds.contains(required.getDegree().getId()) ? 1.0 : 0.0;
+            double ratio = profile.degreeIds().contains(required.getDegree().getId()) ? 1.0 : 0.0;
             accumulator.add(ratio, Boolean.TRUE.equals(required.getIsMandatory()));
         }
 
-        // 2c. Langues requises : même logique de crédit partiel que les compétences,
+        // 1c. Langues requises : même logique de crédit partiel que les compétences,
         // avec les niveaux CECR (A1 < A2 < B1 < B2 < C1 < C2).
         for (LanguageJobOffer required : requirements.languages()) {
-            LanguageLevel userLevel = userLanguages.get(required.getLanguage().getId());
+            LanguageLevel userLevel = profile.languages().get(required.getLanguage().getId());
             double ratio = levelRatio(
                     userLevel == null ? null : userLevel.ordinal(),
                     required.getRequiredLevel() == null ? null : required.getRequiredLevel().ordinal());
             accumulator.add(ratio, Boolean.TRUE.equals(required.getIsMandatory()));
         }
 
-        // 2d. Véhicule : n'est un critère QUE si l'offre l'exige. Dans ce cas il est
+        // 1d. Véhicule : n'est un critère QUE si l'offre l'exige. Dans ce cas il est
         // obligatoire par nature (tout ou rien).
         if (Boolean.TRUE.equals(requirements.offer().getVehicleMandatory())) {
-            accumulator.add(Boolean.TRUE.equals(jobSeeker.getHasVehicle()) ? 1.0 : 0.0, true);
+            accumulator.add(Boolean.TRUE.equals(profile.jobSeeker().getHasVehicle()) ? 1.0 : 0.0, true);
         }
 
-        // 2e. Expérience minimum : critère optionnel, proportionnel aux années
+        // 1e. Expérience minimum : critère optionnel, proportionnel aux années
         // accumulées. Ex. 2 ans d'expérience quand l'offre en demande 4 → 0,5.
         Integer requiredYears = parseYears(requirements.offer().getExperienceTime());
         if (requiredYears != null && requiredYears > 0) {
-            accumulator.add(Math.min(1.0, totalExperienceYears(userId) / requiredYears), false);
+            accumulator.add(Math.min(1.0, totalExperienceYears(profile.experiences()) / requiredYears), false);
         }
 
-        // ---------- ÉTAPE 3 : score final ----------
+        // ---------- ÉTAPE 2 : score final ----------
         return accumulator.toScore();
     }
 
@@ -265,9 +328,9 @@ public class MatchingService {
      * compte jusqu'à aujourd'hui. Résultat en années décimales (730 jours ≈ 2,0
      * ans).
      */
-    private double totalExperienceYears(int userId) {
+    private double totalExperienceYears(List<Experience> experiences) {
         long totalDays = 0;
-        for (Experience experience : experienceRepository.findByUserIdOrderByStartDateDesc(userId)) {
+        for (Experience experience : experiences) {
             LocalDate end = experience.getEndDate() != null ? experience.getEndDate() : LocalDate.now();
             if (end.isAfter(experience.getStartDate())) {
                 totalDays += ChronoUnit.DAYS.between(experience.getStartDate(), end);

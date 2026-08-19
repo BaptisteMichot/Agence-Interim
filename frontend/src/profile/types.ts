@@ -2,20 +2,15 @@ import type { Role } from '../auth/types';
 
 export type FormationStatus = 'EN_COURS' | 'TERMINE';
 
-export interface ExperienceItem {
+/** État du formulaire d'ajout/édition d'une section du profil. */
+export type FormMode<T> = { type: 'closed' } | { type: 'new' } | { type: 'edit'; item: T };
+
+export interface ExperienceItem extends ExperiencePayload {
   id: number;
-  companyName: string;
-  position: string;
-  startDate: string; // ISO yyyy-MM-dd
-  endDate: string | null; // null = en cours
 }
 
-export interface FormationItem {
+export interface FormationItem extends FormationPayload {
   id: number;
-  title: string;
-  institution: string;
-  startDate: string;
-  endDate: string | null; // null = en cours
   status: FormationStatus; // déduit côté backend
 }
 
@@ -49,8 +44,8 @@ export interface ProfileBasePayload {
 export interface ExperiencePayload {
   companyName: string;
   position: string;
-  startDate: string;
-  endDate: string | null;
+  startDate: string; // ISO yyyy-MM-dd
+  endDate: string | null; // null = en cours
 }
 
 /** Corps envoyé aux endpoints formations (le statut est déduit du endDate). */
@@ -58,7 +53,7 @@ export interface FormationPayload {
   title: string;
   institution: string;
   startDate: string;
-  endDate: string | null;
+  endDate: string | null; // null = en cours
 }
 
 // --- Compétences / diplômes / langues (incrément 3b) ---

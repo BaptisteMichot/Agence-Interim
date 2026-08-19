@@ -76,7 +76,8 @@ public class JobOfferService {
         applyFields(offer, request);
         JobOffer saved = jobOfferRepository.save(offer);
         saveRequirements(employerId, saved, request);
-        return toResponse(saved);
+        // Offre tout juste créée : elle ne peut pas encore avoir reçu de candidature.
+        return toResponse(saved, false);
     }
 
     @Transactional(readOnly = true)
@@ -117,7 +118,8 @@ public class JobOfferService {
         degreeJobOfferRepository.deleteByJobOfferId(offerId);
         languageJobOfferRepository.deleteByJobOfferId(offerId);
         saveRequirements(employerId, saved, request);
-        return toResponse(saved);
+        // L'absence de candidature vient d'être vérifiée : inutile de re-requêter.
+        return toResponse(saved, false);
     }
 
     @Transactional
@@ -212,10 +214,14 @@ public class JobOfferService {
 
     /** Charge les exigences et assemble la réponse complète (dans la transaction courante). */
     JobOfferResponse toResponse(JobOffer offer) {
+        return toResponse(offer, applicationRepository.existsByJobOfferId(offer.getId()));
+    }
+
+    /** Variante sans requête pour les appelants qui savent déjà si l'offre a reçu une candidature. */
+    private JobOfferResponse toResponse(JobOffer offer, boolean hasApplications) {
         return JobOfferResponse.of(
                 offer,
-                offer.getStatus() == JobOfferStatus.OPEN
-                        && !applicationRepository.existsByJobOfferId(offer.getId()),
+                offer.getStatus() == JobOfferStatus.OPEN && !hasApplications,
                 skillJobOfferRepository.findByJobOfferIdFetchSkill(offer.getId()),
                 degreeJobOfferRepository.findByJobOfferIdFetchDegree(offer.getId()),
                 languageJobOfferRepository.findByJobOfferIdFetchLanguage(offer.getId()));

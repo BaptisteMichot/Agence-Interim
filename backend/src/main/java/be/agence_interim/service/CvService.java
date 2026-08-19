@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -57,7 +58,7 @@ public class CvService {
             throw new IllegalArgumentException("Le CV doit etre un fichier PDF.");
         }
 
-        User user = getUser(userId);
+        User user = userRepository.requireById(userId);
         deleteCurrentFile(user);
 
         String fileName = safeName(file.getOriginalFilename());
@@ -75,20 +76,20 @@ public class CvService {
     }
 
     public Resource load(int userId) {
-        User user = getUser(userId);
+        User user = userRepository.requireById(userId);
         String fileName = user.getCvFilePath();
         if (fileName == null) {
             throw new NoSuchElementException("Aucun CV n'a ete depose.");
         }
         Path path = resolveInUser(userId, fileName);
-        if (!Files.exists(path)) {
+        if (path == null || !Files.exists(path)) {
             throw new NoSuchElementException("Aucun CV n'a ete depose.");
         }
         return new FileSystemResource(path);
     }
 
     public void delete(int userId) {
-        User user = getUser(userId);
+        User user = userRepository.requireById(userId);
         if (user.getCvFilePath() == null) {
             return;
         }
@@ -107,11 +108,6 @@ public class CvService {
         } catch (IOException e) {
             throw new IllegalStateException("Suppression du CV impossible.", e);
         }
-    }
-
-    private User getUser(int userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("Utilisateur introuvable."));
     }
 
     private Path userDir(int userId) {
@@ -150,14 +146,7 @@ public class CvService {
     }
 
     private boolean isPdf(byte[] bytes) {
-        if (bytes.length < PDF_MAGIC.length) {
-            return false;
-        }
-        for (int i = 0; i < PDF_MAGIC.length; i++) {
-            if (bytes[i] != PDF_MAGIC[i]) {
-                return false;
-            }
-        }
-        return true;
+        return bytes.length >= PDF_MAGIC.length
+                && Arrays.equals(bytes, 0, PDF_MAGIC.length, PDF_MAGIC, 0, PDF_MAGIC.length);
     }
 }

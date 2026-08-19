@@ -1,34 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getEmployerMissions } from '../../api/missions';
-import { btnSecondary, errorBox } from '../../components/ui';
+import { btnSecondary, errorBox, linkBack } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import MissionListItem from '../../missions/MissionListItem';
-import type { Mission } from '../../missions/types';
 
 /** Suivi des missions proposées par l'employeur, de la proposition au contrat. */
 export default function EmployerMissionsPage() {
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setMissions(await getEmployerMissions());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les missions.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const { data, loading, error } = useResource(
+    getEmployerMissions,
+    'Impossible de charger les missions.',
+  );
+  const missions = data ?? [];
 
   return (
     <section>
-      <Link to="/employeur" className="text-sm text-indigo-600 hover:underline">
+      <Link to="/employeur" className={linkBack}>
         ← Retour à mes offres
       </Link>
       <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mes missions</h1>

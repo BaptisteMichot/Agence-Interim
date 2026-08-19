@@ -2,6 +2,7 @@ package be.agence_interim.repository;
 
 import be.agence_interim.model.SkillUser;
 import be.agence_interim.model.SkillUserId;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,10 @@ public interface SkillUserRepository extends JpaRepository<SkillUser, SkillUserI
 
     @Query("select su from SkillUser su join fetch su.skill where su.user.id = :userId order by su.skill.name")
     List<SkillUser> findByUserIdFetchSkill(int userId);
+
+    /** Compétences de plusieurs utilisateurs en une requête (contact automatique des candidats). */
+    @Query("select su from SkillUser su join fetch su.skill where su.user.id in :userIds order by su.skill.name")
+    List<SkillUser> findByUserIdInFetchSkill(Collection<Integer> userIds);
 
     Optional<SkillUser> findByUserIdAndSkillId(int userId, int skillId);
 

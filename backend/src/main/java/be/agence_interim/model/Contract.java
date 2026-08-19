@@ -13,7 +13,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,7 +26,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Contract {
 
     public static final int STATUS_MAX_LENGTH = 8;
@@ -40,7 +38,6 @@ public class Contract {
     @JoinColumn(name = "id_mission", nullable = false)
     private Mission mission;
 
-    @Column(nullable = true)
     private LocalDateTime generationTime;
 
     @Enumerated(EnumType.STRING)
@@ -51,15 +48,13 @@ public class Contract {
     @Column(nullable = false, length = STATUS_MAX_LENGTH)
     private SignatureStatus statusWorker = SignatureStatus.PENDING;
 
-    @Column(nullable = true, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String contractFilePath;
 
     /** Date de la signature de l'entreprise utilisatrice. */
-    @Column(nullable = true)
     private LocalDateTime employerSignedAt;
 
     /** Date de la signature du travailleur intérimaire. */
-    @Column(nullable = true)
     private LocalDateTime workerSignedAt;
 
 }

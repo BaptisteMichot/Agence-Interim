@@ -2,6 +2,8 @@ package be.agence_interim.chat;
 
 import java.util.Map;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -21,6 +23,7 @@ import be.agence_interim.security.CurrentUser;
  * ({@code ?token=...}) puis vérifié ici ; l'identifiant utilisateur est placé dans les
  * attributs de session.
  */
+@NullMarked
 @Component
 public class ChatHandshakeInterceptor implements HandshakeInterceptor {
 
@@ -66,7 +69,7 @@ public class ChatHandshakeInterceptor implements HandshakeInterceptor {
             ServerHttpRequest request,
             ServerHttpResponse response,
             WebSocketHandler handler,
-            Exception exception) {
+            @Nullable Exception exception) {
         // Rien à faire après la poignée de main.
     }
 }

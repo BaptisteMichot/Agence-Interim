@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { errorMessage } from '../api/http';
 import { downloadContract, requestSigningCode, signContract } from '../api/missions';
 import { btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../components/ui';
 import { formatDateTime } from '../profile/format';
 import type { Contract, Mission } from './types';
 
-type Party = 'employer' | 'worker' | 'agency';
+type Party = 'employer' | 'worker';
 
 function SignatureLine({
   label,
@@ -36,7 +37,7 @@ function SignatureLine({
 
 /**
  * Contrat d'une mission confirmée : consultation du document et signature de la
- * partie connectée, confirmée par un code reçu par email. L'agence consulte sans signer.
+ * partie connectée (employeur ou intérimaire), confirmée par un code reçu par email.
  */
 export default function ContractPanel({
   mission,
@@ -66,7 +67,7 @@ export default function ContractPanel({
       const blob = await downloadContract(mission.id);
       window.open(URL.createObjectURL(blob), '_blank', 'noopener');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Le contrat n’a pas pu être ouvert.');
+      setError(errorMessage(err, 'Le contrat n’a pas pu être ouvert.'));
     }
   };
 
@@ -78,7 +79,7 @@ export default function ContractPanel({
       setCodeSent(true);
       setCode('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Le code n'a pas pu être envoyé.");
+      setError(errorMessage(err, "Le code n'a pas pu être envoyé."));
     } finally {
       setBusy(false);
     }
@@ -94,7 +95,7 @@ export default function ContractPanel({
       setCodeSent(false);
       onSigned?.(signed);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'La signature a échoué.');
+      setError(errorMessage(err, 'La signature a échoué.'));
     } finally {
       setBusy(false);
     }
@@ -113,7 +114,7 @@ export default function ContractPanel({
           <button type="button" className={btnSecondary} onClick={open}>
             📄 Consulter le contrat
           </button>
-          {party !== 'agency' && !alreadySigned && !codeSent && (
+          {!alreadySigned && !codeSent && (
             <button type="button" className={btnPrimary} onClick={sendCode} disabled={busy}>
               {busy ? 'Envoi…' : 'Signer le contrat'}
             </button>
@@ -123,7 +124,7 @@ export default function ContractPanel({
 
       {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
 
-      {party !== 'agency' && !alreadySigned && codeSent && (
+      {!alreadySigned && codeSent && (
         <form onSubmit={sign} className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
           <p className="text-sm text-indigo-900">
             Un code à 6 chiffres vient d'être envoyé à votre adresse email. Saisissez-le pour signer

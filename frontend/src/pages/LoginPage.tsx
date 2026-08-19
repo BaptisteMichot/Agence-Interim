@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { errorMessage } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
-import { homePathForUser } from '../auth/roleRoutes';
+import { homePathForRole } from '../auth/roleRoutes';
+import { btnAuthSubmit, errorBox } from '../components/ui';
 
 export default function LoginPage() {
   const { login, sessionExpired } = useAuth();
@@ -18,9 +20,9 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const user = await login(email, password);
-      navigate(homePathForUser(user), { replace: true });
+      navigate(homePathForRole(user.role), { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSubmitting(false);
     }
@@ -41,7 +43,7 @@ export default function LoginPage() {
         )}
 
         {error && (
-          <p className="mb-4 whitespace-pre-line rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className={`mb-4 ${errorBox}`}>
             {error}
           </p>
         )}
@@ -73,7 +75,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          className={btnAuthSubmit}
         >
           {submitting ? 'Connexion…' : 'Se connecter'}
         </button>

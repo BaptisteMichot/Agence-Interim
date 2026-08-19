@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getConversation, getMessages } from '../../api/chat';
+import { errorMessage } from '../../api/http';
 import { useAuth } from '../../auth/AuthContext';
 import { useChat } from '../../chat/ChatContext';
-import { btnPrimary, errorBox, inputClass } from '../../components/ui';
+import { btnPrimary, errorBox, inputClass, linkBack } from '../../components/ui';
 import type { ChatMessage, Conversation } from '../../chat/types';
 import { formatDateTime } from '../../profile/format';
 
@@ -36,7 +37,7 @@ export default function ConversationThreadPage() {
     Promise.all([getConversation(conversationId), reloadMessages()])
       .then(([detail]) => setConversation(detail))
       .catch((err) =>
-        setError(err instanceof Error ? err.message : 'Impossible de charger la conversation.'),
+        setError(errorMessage(err, 'Impossible de charger la conversation.')),
       )
       .finally(() => setLoading(false));
 
@@ -74,7 +75,7 @@ export default function ConversationThreadPage() {
       // arrive quand même, il déclenche le même rechargement — le résultat est identique.
       await reloadMessages();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Le message n'a pas pu être envoyé.");
+      setError(errorMessage(err, "Le message n'a pas pu être envoyé."));
     } finally {
       setSending(false);
     }
@@ -91,7 +92,7 @@ export default function ConversationThreadPage() {
   return (
     <section className="space-y-4">
       <div>
-        <Link to="/messages" className="text-sm text-indigo-600 hover:underline">
+        <Link to="/messages" className={linkBack}>
           ← Retour aux messages
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">{conversation.otherPartyName}</h1>

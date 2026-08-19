@@ -1,7 +1,5 @@
 package be.agence_interim.service;
 
-import java.util.NoSuchElementException;
-
 import org.springframework.stereotype.Service;
 
 import be.agence_interim.dto.UpdateProfileRequest;
@@ -19,8 +17,7 @@ public class ProfileService {
     }
 
     public User getUser(int userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("Utilisateur introuvable."));
+        return userRepository.requireById(userId);
     }
 
     /** Met à jour les champs de base du profil, adresse et registre national compris. */
@@ -30,14 +27,14 @@ public class ProfileService {
         user.setFirstName(request.firstName());
         user.setBirthdate(request.birthdate());
         user.setHasVehicle(request.hasVehicle());
-        user.setAddress(blankToNull(request.address()));
+        user.setAddress(Strings.blankToNull(request.address()));
         user.setNationalNumber(nationalNumber(request.nationalNumber()));
         return userRepository.save(user);
     }
 
     /** Normalise le numéro de registre national et refuse une clé de contrôle incorrecte. */
     private String nationalNumber(String value) {
-        String cleaned = blankToNull(value);
+        String cleaned = Strings.blankToNull(value);
         if (cleaned == null) {
             return null;
         }
@@ -47,9 +44,5 @@ public class ProfileService {
                             + "et sa clé de contrôle doit correspondre.");
         }
         return BelgianIdentifiers.formatNationalNumber(cleaned);
-    }
-
-    private String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
     }
 }

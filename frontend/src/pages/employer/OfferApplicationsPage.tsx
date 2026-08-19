@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getOfferApplications, rateApplication } from '../../api/applications';
 import { openConversationForApplication } from '../../api/chat';
+import { errorMessage } from '../../api/http';
 import { getMyOffer } from '../../api/offers';
-import { btnPrimary, btnSecondary, errorBox, inputClass } from '../../components/ui';
+import { btnPrimary, btnSecondary, errorBox, inputClass, linkBack } from '../../components/ui';
 import type { OfferApplication } from '../../applications/types';
 import type { JobOfferDetail } from '../../offers/types';
-import { formatDate } from '../../profile/format';
+import { formatTimestampDate } from '../../profile/format';
 
 type SortKey = 'date-desc' | 'date-asc' | 'rating-desc';
 
@@ -71,7 +72,7 @@ export default function OfferApplicationsPage() {
       setOffer(detail);
       setApplications(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les candidatures.');
+      setError(errorMessage(err, 'Impossible de charger les candidatures.'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +88,7 @@ export default function OfferApplicationsPage() {
       const updated = await rateApplication(applicationId, rating);
       setApplications((list) => list.map((a) => (a.id === updated.id ? updated : a)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
@@ -98,7 +99,7 @@ export default function OfferApplicationsPage() {
       const conversation = await openConversationForApplication(applicationId);
       navigate(`/messages/${conversation.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "La discussion n'a pas pu être ouverte.");
+      setError(errorMessage(err, "La discussion n'a pas pu être ouverte."));
     }
   };
 
@@ -112,7 +113,7 @@ export default function OfferApplicationsPage() {
 
   return (
     <section>
-      <Link to="/employeur" className="text-sm text-indigo-600 hover:underline">
+      <Link to="/employeur" className={linkBack}>
         ← Retour à mes offres
       </Link>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
@@ -157,7 +158,7 @@ export default function OfferApplicationsPage() {
                 </p>
                 <p className="text-sm text-slate-500">{application.email}</p>
                 <p className="text-xs text-slate-400">
-                  Reçue le {formatDate(application.applicationTime.slice(0, 10))}
+                  Reçue le {formatTimestampDate(application.applicationTime)}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-4">

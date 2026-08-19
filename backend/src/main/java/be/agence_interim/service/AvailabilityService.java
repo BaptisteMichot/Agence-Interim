@@ -71,8 +71,7 @@ public class AvailabilityService {
         unavailability.setDate(request.date());
         unavailability.setStartTime(request.startTime());
         unavailability.setEndTime(request.endTime());
-        unavailability.setReason(
-                request.reason() == null || request.reason().isBlank() ? null : request.reason().trim());
+        unavailability.setReason(Strings.blankToNull(request.reason()));
         return UnavailabilityResponse.of(unavailabilityRepository.save(unavailability), editableFrom());
     }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { deleteAccount, getMyEmployerRequest, reapplyEmployer } from '../api/employer';
+import { errorMessage } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
 import type { EmployerAccessStatus } from '../auth/types';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -138,7 +139,7 @@ function ReapplyForm({ onDone }: { onDone: () => void }) {
       await reapplyEmployer(message.trim());
       onDone();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSubmitting(false);
     }

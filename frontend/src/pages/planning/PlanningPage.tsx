@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { errorMessage } from '../../api/http';
 import {
   addUnavailability,
   getEditableFrom,
@@ -16,6 +17,7 @@ import {
   errorBox,
   inputClass,
   labelClass,
+  linkBack,
 } from '../../components/ui';
 import {
   addDays,
@@ -40,11 +42,11 @@ const FULL_DAY_END = '23:59';
 
 /** Planning de l'intérimaire : missions confirmées et indisponibilités déclarées. */
 export default function PlanningPage() {
-  const [monthStart, setMonthStart] = useState(startOfMonth(todayIso()));
-  const [selected, setSelected] = useState<string | null>(todayIso());
+  const [monthStart, setMonthStart] = useState(() => startOfMonth(todayIso()));
+  const [selected, setSelected] = useState<string | null>(() => todayIso());
   const [missions, setMissions] = useState<ScheduleEntry[]>([]);
   const [unavailabilities, setUnavailabilities] = useState<Unavailability[]>([]);
-  const [editableFrom, setEditableFrom] = useState(addDays(todayIso(), 8));
+  const [editableFrom, setEditableFrom] = useState(() => addDays(todayIso(), 8));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Unavailability | null>(null);
@@ -72,7 +74,7 @@ export default function PlanningPage() {
       setUnavailabilities(unavailable);
       setEditableFrom(editable.editableFrom);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger le planning.');
+      setError(errorMessage(err, 'Impossible de charger le planning.'));
     } finally {
       setLoading(false);
     }
@@ -121,7 +123,7 @@ export default function PlanningPage() {
       setReason('');
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "L'indisponibilité n'a pas pu être ajoutée.");
+      setError(errorMessage(err, "L'indisponibilité n'a pas pu être ajoutée."));
     } finally {
       setSaving(false);
     }
@@ -138,7 +140,7 @@ export default function PlanningPage() {
       await removeUnavailability(id);
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'La suppression a échoué.');
+      setError(errorMessage(err, 'La suppression a échoué.'));
     }
   };
 
@@ -146,7 +148,7 @@ export default function PlanningPage() {
     <section className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link to="/interimaire" className="text-sm text-indigo-600 hover:underline">
+          <Link to="/interimaire" className={linkBack}>
             ← Retour à mon espace
           </Link>
           <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mon planning</h1>

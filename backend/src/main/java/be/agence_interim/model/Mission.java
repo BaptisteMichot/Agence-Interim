@@ -14,7 +14,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,7 +28,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Mission {
 
     public static final int STATUS_MAX_LENGTH = 8;
@@ -89,7 +87,7 @@ public class Mission {
      * Travailleur permanent remplacé : mention légale obligatoire lorsque le motif de
      * recours est un remplacement, inutile pour les autres motifs.
      */
-    @Column(nullable = true, length = REPLACED_WORKER_MAX_LENGTH)
+    @Column(length = REPLACED_WORKER_MAX_LENGTH)
     private String replacedWorker;
 
     /** Conditions particulières facultatives, reprises sur le contrat. */

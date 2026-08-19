@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getEmployerMission } from '../../api/missions';
-import { btnPrimary, btnSecondary, errorBox } from '../../components/ui';
+import { btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import ContractPanel from '../../missions/ContractPanel';
 import MissionFacts from '../../missions/MissionFacts';
 import MissionSchedule from '../../missions/MissionSchedule';
@@ -50,24 +51,13 @@ export default function EmployerMissionDetailPage() {
   const missionId = Number(id);
   const navigate = useNavigate();
 
-  const [mission, setMission] = useState<Mission | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setMission(await getEmployerMission(missionId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger la mission.');
-    } finally {
-      setLoading(false);
-    }
-  }, [missionId]);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const fetcher = useCallback(() => getEmployerMission(missionId), [missionId]);
+  const {
+    data: mission,
+    setData: setMission,
+    loading,
+    error,
+  } = useResource(fetcher, 'Impossible de charger la mission.');
 
   if (loading) {
     return <p className="text-slate-500">Chargement…</p>;
@@ -83,7 +73,7 @@ export default function EmployerMissionDetailPage() {
         <button
           type="button"
           onClick={() => navigate('/employeur/missions')}
-          className="text-sm text-indigo-600 hover:underline"
+          className={linkBack}
         >
           ← Retour à mes missions
         </button>

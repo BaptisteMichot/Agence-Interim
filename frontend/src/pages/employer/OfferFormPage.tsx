@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { errorMessage } from '../../api/http';
 import { createOffer, getMyOffer, updateOffer } from '../../api/offers';
 import { getDegreeOptions, getLanguageOptions, getSkillOptions } from '../../api/profile';
 import {
@@ -11,6 +12,7 @@ import {
   errorBox,
   inputClass,
   labelClass,
+  linkBack,
 } from '../../components/ui';
 import type {
   JobOfferPayload,
@@ -20,6 +22,16 @@ import type {
 } from '../../offers/types';
 import { DEGREE_TYPES, LANGUAGE_LEVELS, SKILL_LEVELS } from '../../profile/format';
 import type { DegreeOption, LanguageOption, SkillOption } from '../../profile/types';
+
+/** Copie de la liste avec l'élément `index` partiellement remplacé. */
+function updateAt<T>(list: T[], index: number, patch: Partial<T>): T[] {
+  return list.map((item, i) => (i === index ? { ...item, ...patch } : item));
+}
+
+/** Copie de la liste sans l'élément `index`. */
+function removeAt<T>(list: T[], index: number): T[] {
+  return list.filter((_, i) => i !== index);
+}
 
 /** Création ou édition d'une offre d'emploi (lecture seule si clôturée). */
 export default function OfferFormPage() {
@@ -80,7 +92,7 @@ export default function OfferFormPage() {
         setReadOnly(!offer.editable);
         setLockReason(offer.status === 'CLOSED' ? 'closed' : offer.editable ? null : 'applications');
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Impossible de charger l'offre."))
+      .catch((err) => setError(errorMessage(err, "Impossible de charger l'offre.")))
       .finally(() => setLoading(false));
   }, [offerId]);
 
@@ -122,7 +134,7 @@ export default function OfferFormPage() {
       }
       navigate('/employeur');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSaving(false);
     }
@@ -135,7 +147,7 @@ export default function OfferFormPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/employeur" className="text-sm text-indigo-600 hover:underline">
+        <Link to="/employeur" className={linkBack}>
           ← Retour à mes offres
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
@@ -211,13 +223,13 @@ export default function OfferFormPage() {
                     list="offer-skill-options"
                     placeholder="Choisir ou saisir…"
                     value={skill.name}
-                    onChange={(e) => setSkills((p) => p.map((s, i) => (i === index ? { ...s, name: e.target.value } : s)))}
+                    onChange={(e) => setSkills((p) => updateAt(p, index, { name: e.target.value }))}
                     className={inputClass}
                   />
                   <select
                     aria-label="Niveau requis"
                     value={skill.requiredLevel}
-                    onChange={(e) => setSkills((p) => p.map((s, i) => (i === index ? { ...s, requiredLevel: e.target.value as OfferSkillRequirement['requiredLevel'] } : s)))}
+                    onChange={(e) => setSkills((p) => updateAt(p, index, { requiredLevel: e.target.value as OfferSkillRequirement['requiredLevel'] }))}
                     className={inputClass}
                   >
                     {SKILL_LEVELS.map((l) => (
@@ -228,13 +240,13 @@ export default function OfferFormPage() {
                     <input
                       type="checkbox"
                       checked={skill.isMandatory}
-                      onChange={(e) => setSkills((p) => p.map((s, i) => (i === index ? { ...s, isMandatory: e.target.checked } : s)))}
+                      onChange={(e) => setSkills((p) => updateAt(p, index, { isMandatory: e.target.checked }))}
                       className={checkboxInput}
                     />
                     Obligatoire
                   </label>
                   {!readOnly && (
-                    <button type="button" className={btnDanger} onClick={() => setSkills((p) => p.filter((_, i) => i !== index))}>
+                    <button type="button" className={btnDanger} onClick={() => setSkills((p) => removeAt(p, index))}>
                       Retirer
                     </button>
                   )}
@@ -264,7 +276,7 @@ export default function OfferFormPage() {
                   <select
                     aria-label="Type de diplôme"
                     value={degree.type}
-                    onChange={(e) => setDegrees((p) => p.map((d, i) => (i === index ? { ...d, type: e.target.value as OfferDegreeRequirement['type'] } : d)))}
+                    onChange={(e) => setDegrees((p) => updateAt(p, index, { type: e.target.value as OfferDegreeRequirement['type'] }))}
                     className={inputClass}
                   >
                     {DEGREE_TYPES.map((t) => (
@@ -276,20 +288,20 @@ export default function OfferFormPage() {
                     list="offer-degree-sections"
                     placeholder="Section…"
                     value={degree.section}
-                    onChange={(e) => setDegrees((p) => p.map((d, i) => (i === index ? { ...d, section: e.target.value } : d)))}
+                    onChange={(e) => setDegrees((p) => updateAt(p, index, { section: e.target.value }))}
                     className={inputClass}
                   />
                   <label className={checkboxRow}>
                     <input
                       type="checkbox"
                       checked={degree.isMandatory}
-                      onChange={(e) => setDegrees((p) => p.map((d, i) => (i === index ? { ...d, isMandatory: e.target.checked } : d)))}
+                      onChange={(e) => setDegrees((p) => updateAt(p, index, { isMandatory: e.target.checked }))}
                       className={checkboxInput}
                     />
                     Obligatoire
                   </label>
                   {!readOnly && (
-                    <button type="button" className={btnDanger} onClick={() => setDegrees((p) => p.filter((_, i) => i !== index))}>
+                    <button type="button" className={btnDanger} onClick={() => setDegrees((p) => removeAt(p, index))}>
                       Retirer
                     </button>
                   )}
@@ -319,7 +331,7 @@ export default function OfferFormPage() {
                   <select
                     aria-label="Langue"
                     value={language.languageId}
-                    onChange={(e) => setLanguages((p) => p.map((l, i) => (i === index ? { ...l, languageId: Number(e.target.value) } : l)))}
+                    onChange={(e) => setLanguages((p) => updateAt(p, index, { languageId: Number(e.target.value) }))}
                     className={inputClass}
                   >
                     {languageOptions.map((o) => (
@@ -329,7 +341,7 @@ export default function OfferFormPage() {
                   <select
                     aria-label="Niveau requis"
                     value={language.requiredLevel}
-                    onChange={(e) => setLanguages((p) => p.map((l, i) => (i === index ? { ...l, requiredLevel: e.target.value as OfferLanguageRequirement['requiredLevel'] } : l)))}
+                    onChange={(e) => setLanguages((p) => updateAt(p, index, { requiredLevel: e.target.value as OfferLanguageRequirement['requiredLevel'] }))}
                     className={inputClass}
                   >
                     {LANGUAGE_LEVELS.map((l) => (
@@ -340,13 +352,13 @@ export default function OfferFormPage() {
                     <input
                       type="checkbox"
                       checked={language.isMandatory}
-                      onChange={(e) => setLanguages((p) => p.map((l, i) => (i === index ? { ...l, isMandatory: e.target.checked } : l)))}
+                      onChange={(e) => setLanguages((p) => updateAt(p, index, { isMandatory: e.target.checked }))}
                       className={checkboxInput}
                     />
                     Obligatoire
                   </label>
                   {!readOnly && (
-                    <button type="button" className={btnDanger} onClick={() => setLanguages((p) => p.filter((_, i) => i !== index))}>
+                    <button type="button" className={btnDanger} onClick={() => setLanguages((p) => removeAt(p, index))}>
                       Retirer
                     </button>
                   )}

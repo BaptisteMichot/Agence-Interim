@@ -15,20 +15,20 @@ public final class WorkTime {
     }
 
     /** Temps de présence sur le lieu de travail, en minutes. */
-    public static long presenceMinutes(LocalTime start, LocalTime end) {
+    private static long presenceMinutes(LocalTime start, LocalTime end) {
         return Duration.between(start, end).toMinutes();
     }
 
-    public static long presenceMinutes(DailySchedule slot) {
+    private static long presenceMinutes(DailySchedule slot) {
         return presenceMinutes(slot.getStartTime(), slot.getEndTime());
     }
 
     /** Durée de la pause non rémunérée, en minutes (0 si la journée n'en comporte pas). */
-    public static long breakMinutes(LocalTime breakStart, LocalTime breakEnd) {
+    private static long breakMinutes(LocalTime breakStart, LocalTime breakEnd) {
         return breakStart == null || breakEnd == null ? 0 : Duration.between(breakStart, breakEnd).toMinutes();
     }
 
-    public static long breakMinutes(DailySchedule slot) {
+    private static long breakMinutes(DailySchedule slot) {
         return breakMinutes(slot.getBreakStart(), slot.getBreakEnd());
     }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCandidateProfile } from '../../api/applications';
+import { errorMessage } from '../../api/http';
 import { createMission, getEmployerMission, renewMission, updateMission } from '../../api/missions';
 import { getMyOffer } from '../../api/offers';
 import {
@@ -10,6 +11,7 @@ import {
   errorBox,
   inputClass,
   labelClass,
+  linkBack,
 } from '../../components/ui';
 import {
   addDays,
@@ -93,6 +95,123 @@ const DEFAULT_END = '16:30';
 const DEFAULT_BREAK_START = '12:00';
 const DEFAULT_BREAK_END = '12:30';
 
+/** Ligne du tableau des journées : case prestée, horaire, pause et temps rémunéré. */
+function DayRow({
+  day,
+  monthHeader,
+  weekday,
+  onPatch,
+}: {
+  day: EditableDay;
+  /** Libellé de mois affiché au-dessus de la ligne quand elle ouvre un nouveau mois. */
+  monthHeader: string | null;
+  weekday: string;
+  onPatch: (date: string, patch: Partial<EditableDay>) => void;
+}) {
+  const dateLabel = formatDate(day.date);
+  const presence = presenceMinutes(day);
+  const pause = breakMinutes(day);
+  const paid = presence - pause;
+  const warned = breakTooShort(day);
+  return (
+    <li>
+      {monthHeader && (
+        <p className="bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {monthHeader}
+        </p>
+      )}
+      <div
+        className={`${dayGrid} py-1.5 ${
+          !day.worked ? 'bg-slate-50/60' : warned ? 'bg-amber-50/70' : ''
+        }`}
+      >
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            className={checkboxInput}
+            checked={day.worked}
+            onChange={(e) => onPatch(day.date, { worked: e.target.checked })}
+          />
+          <span
+            className={`text-sm ${
+              !day.worked
+                ? 'text-slate-400'
+                : isWeekend(day.date)
+                  ? 'text-amber-700'
+                  : 'text-slate-700'
+            }`}
+          >
+            <span className="capitalize">{weekday}</span> {dateLabel}
+          </span>
+        </label>
+
+        {day.worked ? (
+          <>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="time"
+                className={timeInput}
+                value={day.startTime}
+                aria-label={`Début du ${dateLabel}`}
+                onChange={(e) => onPatch(day.date, { startTime: e.target.value })}
+              />
+              <span className="text-slate-300">–</span>
+              <input
+                type="time"
+                className={timeInput}
+                value={day.endTime}
+                aria-label={`Fin du ${dateLabel}`}
+                onChange={(e) => onPatch(day.date, { endTime: e.target.value })}
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <input
+                type="time"
+                className={timeInput}
+                value={day.breakStart}
+                aria-label={`Début de la pause du ${dateLabel}`}
+                onChange={(e) => onPatch(day.date, { breakStart: e.target.value })}
+              />
+              <span className="text-slate-300">–</span>
+              <input
+                type="time"
+                className={timeInput}
+                value={day.breakEnd}
+                aria-label={`Fin de la pause du ${dateLabel}`}
+                onChange={(e) => onPatch(day.date, { breakEnd: e.target.value })}
+              />
+            </div>
+
+            <div className="text-right">
+              <span
+                className={`text-sm ${paid <= 0 ? 'font-medium text-red-600' : 'text-slate-700'}`}
+              >
+                {warned && (
+                  <span
+                    className="mr-1 text-amber-600"
+                    title="Plus de 6 h de présence sans pause d'au moins 30 minutes."
+                  >
+                    ⚠
+                  </span>
+                )}
+                {formatMinutes(Math.max(0, paid))}
+              </span>
+              {pause > 0 && (
+                <span className="block text-[11px] text-slate-400">
+                  sur {formatMinutes(Math.max(0, presence))}
+                </span>
+              )}
+            </div>
+          </>
+        ) : (
+          <span className="col-span-3 text-sm text-slate-400">Journée non prestée</span>
+        )}
+      </div>
+    </li>
+  );
+}
+
 /**
  * Création de la mission provisoire proposée à un candidat retenu, et correction
  * d'une mission refusée par l'agence. Les conditions saisies ici sont celles qui
@@ -115,8 +234,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   const [salaryMin, setSalaryMin] = useState<number | null>(null);
   const [salaryMax, setSalaryMax] = useState<number | null>(null);
 
-  const [rangeStart, setRangeStart] = useState(addDays(todayIso(), 7));
-  const [rangeEnd, setRangeEnd] = useState(addDays(todayIso(), 11));
+  const [rangeStart, setRangeStart] = useState(() => addDays(todayIso(), 7));
+  const [rangeEnd, setRangeEnd] = useState(() => addDays(todayIso(), 11));
   const [days, setDays] = useState<EditableDay[]>([]);
   const [defaultStart, setDefaultStart] = useState(DEFAULT_START);
   const [defaultEnd, setDefaultEnd] = useState(DEFAULT_END);
@@ -165,56 +284,13 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
 
     async function load() {
       try {
-        if (isRenewal) {
-          const source = await getEmployerMission(missionId);
-          const offer = await getMyOffer(source.offerId);
-          if (cancelled) {
-            return;
-          }
-          setCandidate(`${source.candidateFirstName} ${source.candidateLastName}`);
-          setOfferTitle(source.offerTitle);
-          setSalaryMin(offer.salaryMin);
-          setSalaryMax(offer.salaryMax);
-          setPosition(source.position);
-          setWorkplace(source.workplace);
-          setDescription(source.description);
-          setHourlyWage(String(source.hourlyWage));
-          setWorkReason(source.workReason);
-          setReplacedWorker(source.replacedWorker ?? '');
-          setNotes(source.notes ?? '');
-          setPreviousPeriod({ start: source.startDate, end: source.endDate });
-
-          // Même durée, à la suite de la mission renouvelée, avec les horaires d'origine.
-          const firstSlot = source.slots[0];
-          const start = firstSlot ? shortTime(firstSlot.startTime) : DEFAULT_START;
-          const end = firstSlot ? shortTime(firstSlot.endTime) : DEFAULT_END;
-          const pauseStart = firstSlot?.breakStart ? shortTime(firstSlot.breakStart) : '';
-          const pauseEnd = firstSlot?.breakEnd ? shortTime(firstSlot.breakEnd) : '';
-          setDefaultStart(start);
-          setDefaultEnd(end);
-          setDefaultBreakStart(pauseStart);
-          setDefaultBreakEnd(pauseEnd);
-          const length = datesBetween(source.startDate, source.endDate).length;
-          const nextStart = addDays(source.endDate, 1);
-          const nextEnd = addDays(nextStart, length - 1);
-          setRangeStart(nextStart);
-          setRangeEnd(nextEnd);
-          setDays(
-            datesBetween(nextStart, nextEnd).map((date) => ({
-              date,
-              worked: !isWeekend(date),
-              startTime: start,
-              endTime: end,
-              breakStart: pauseStart,
-              breakEnd: pauseEnd,
-            })),
-          );
-        } else if (isEdit) {
+        if (isRenewal || isEdit) {
           const mission = await getEmployerMission(missionId);
           const offer = await getMyOffer(mission.offerId);
           if (cancelled) {
             return;
           }
+          // Conditions reprises de la mission existante, à renouveler ou à corriger.
           setCandidate(`${mission.candidateFirstName} ${mission.candidateLastName}`);
           setOfferTitle(mission.offerTitle);
           setSalaryMin(offer.salaryMin);
@@ -226,24 +302,54 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setWorkReason(mission.workReason);
           setReplacedWorker(mission.replacedWorker ?? '');
           setNotes(mission.notes ?? '');
-          setRefusalReason(mission.refusalReason);
-          setRangeStart(mission.startDate);
-          setRangeEnd(mission.endDate);
-          const worked = new Map(mission.slots.map((slot) => [slot.date, slot]));
-          setDays(
-            datesBetween(mission.startDate, mission.endDate).map((date) => {
-              const slot = worked.get(date);
-              return {
+          if (isRenewal) {
+            setPreviousPeriod({ start: mission.startDate, end: mission.endDate });
+
+            // Même durée, à la suite de la mission renouvelée, avec les horaires d'origine.
+            const firstSlot = mission.slots[0];
+            const start = firstSlot ? shortTime(firstSlot.startTime) : DEFAULT_START;
+            const end = firstSlot ? shortTime(firstSlot.endTime) : DEFAULT_END;
+            const pauseStart = firstSlot?.breakStart ? shortTime(firstSlot.breakStart) : '';
+            const pauseEnd = firstSlot?.breakEnd ? shortTime(firstSlot.breakEnd) : '';
+            setDefaultStart(start);
+            setDefaultEnd(end);
+            setDefaultBreakStart(pauseStart);
+            setDefaultBreakEnd(pauseEnd);
+            const length = datesBetween(mission.startDate, mission.endDate).length;
+            const nextStart = addDays(mission.endDate, 1);
+            const nextEnd = addDays(nextStart, length - 1);
+            setRangeStart(nextStart);
+            setRangeEnd(nextEnd);
+            setDays(
+              datesBetween(nextStart, nextEnd).map((date) => ({
                 date,
-                worked: Boolean(slot),
-                startTime: slot ? shortTime(slot.startTime) : DEFAULT_START,
-                endTime: slot ? shortTime(slot.endTime) : DEFAULT_END,
-                // Une journée non prestée reçoit la pause type, au cas où elle serait cochée.
-                breakStart: slot ? breakOf(slot.breakStart) : DEFAULT_BREAK_START,
-                breakEnd: slot ? breakOf(slot.breakEnd) : DEFAULT_BREAK_END,
-              };
-            }),
-          );
+                worked: !isWeekend(date),
+                startTime: start,
+                endTime: end,
+                breakStart: pauseStart,
+                breakEnd: pauseEnd,
+              })),
+            );
+          } else {
+            setRefusalReason(mission.refusalReason);
+            setRangeStart(mission.startDate);
+            setRangeEnd(mission.endDate);
+            const worked = new Map(mission.slots.map((slot) => [slot.date, slot]));
+            setDays(
+              datesBetween(mission.startDate, mission.endDate).map((date) => {
+                const slot = worked.get(date);
+                return {
+                  date,
+                  worked: Boolean(slot),
+                  startTime: slot ? shortTime(slot.startTime) : DEFAULT_START,
+                  endTime: slot ? shortTime(slot.endTime) : DEFAULT_END,
+                  // Une journée non prestée reçoit la pause type, au cas où elle serait cochée.
+                  breakStart: slot ? breakOf(slot.breakStart) : DEFAULT_BREAK_START,
+                  breakEnd: slot ? breakOf(slot.breakEnd) : DEFAULT_BREAK_END,
+                };
+              }),
+            );
+          }
         } else {
           const profile = await getCandidateProfile(applicationId);
           const offer = await getMyOffer(profile.offerId);
@@ -261,7 +367,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Impossible de charger les informations.');
+          setError(errorMessage(err, 'Impossible de charger les informations.'));
         }
       } finally {
         if (!cancelled) {
@@ -313,8 +419,18 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   // Avertissement légal non bloquant : plus de 6 h de présence sans pause d'au moins 30 min.
   const daysWithoutBreak = useMemo(() => workedDays.filter(breakTooShort), [workedDays]);
   const wageNumber = Number(hourlyWage.replace(',', '.'));
-  const tooManyDays = Boolean(
-    rangeStart && rangeEnd && rangeEnd >= rangeStart && datesBetween(rangeStart, rangeEnd).length > MAX_DAYS,
+  const tooManyDays = useMemo(
+    () =>
+      Boolean(
+        rangeStart && rangeEnd && rangeEnd >= rangeStart
+        && datesBetween(rangeStart, rangeEnd).length > MAX_DAYS,
+      ),
+    [rangeStart, rangeEnd],
+  );
+  // Libellés Intl (coûteux) recalculés quand les journées changent, pas à chaque frappe ailleurs.
+  const dayLabels = useMemo(
+    () => days.map((day) => ({ month: monthLabel(day.date), weekday: weekdayLabel(day.date) })),
+    [days],
   );
 
   const submit = async (event: React.FormEvent) => {
@@ -387,7 +503,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
       }
       navigate(`/employeur/missions/${mission.id}`, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "La mission n'a pas pu être enregistrée.");
+      setError(errorMessage(err, "La mission n'a pas pu être enregistrée."));
     } finally {
       setSaving(false);
     }
@@ -400,11 +516,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   return (
     <form onSubmit={submit} className="space-y-6">
       <div>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="text-sm text-indigo-600 hover:underline"
-        >
+        <button type="button" onClick={() => navigate(-1)} className={linkBack}>
           ← Retour
         </button>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">
@@ -688,112 +800,15 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
                 <ul className="divide-y divide-slate-100">
                   {days.map((day, index) => {
                     const newMonth =
-                      index === 0 || monthLabel(day.date) !== monthLabel(days[index - 1].date);
-                    const presence = presenceMinutes(day);
-                    const pause = breakMinutes(day);
-                    const paid = presence - pause;
-                    const warned = day.worked && breakTooShort(day);
+                      index === 0 || dayLabels[index].month !== dayLabels[index - 1].month;
                     return (
-                      <li key={day.date}>
-                        {newMonth && (
-                          <p className="bg-slate-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            {monthLabel(day.date)}
-                          </p>
-                        )}
-                        <div
-                          className={`${dayGrid} py-1.5 ${
-                            !day.worked ? 'bg-slate-50/60' : warned ? 'bg-amber-50/70' : ''
-                          }`}
-                        >
-                          <label className="flex cursor-pointer items-center gap-2">
-                            <input
-                              type="checkbox"
-                              className={checkboxInput}
-                              checked={day.worked}
-                              onChange={(e) => setDay(day.date, { worked: e.target.checked })}
-                            />
-                            <span
-                              className={`text-sm ${
-                                !day.worked
-                                  ? 'text-slate-400'
-                                  : isWeekend(day.date)
-                                    ? 'text-amber-700'
-                                    : 'text-slate-700'
-                              }`}
-                            >
-                              <span className="capitalize">{weekdayLabel(day.date)}</span>{' '}
-                              {formatDate(day.date)}
-                            </span>
-                          </label>
-
-                          {day.worked ? (
-                            <>
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="time"
-                                  className={timeInput}
-                                  value={day.startTime}
-                                  aria-label={`Début du ${formatDate(day.date)}`}
-                                  onChange={(e) => setDay(day.date, { startTime: e.target.value })}
-                                />
-                                <span className="text-slate-300">–</span>
-                                <input
-                                  type="time"
-                                  className={timeInput}
-                                  value={day.endTime}
-                                  aria-label={`Fin du ${formatDate(day.date)}`}
-                                  onChange={(e) => setDay(day.date, { endTime: e.target.value })}
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="time"
-                                  className={timeInput}
-                                  value={day.breakStart}
-                                  aria-label={`Début de la pause du ${formatDate(day.date)}`}
-                                  onChange={(e) => setDay(day.date, { breakStart: e.target.value })}
-                                />
-                                <span className="text-slate-300">–</span>
-                                <input
-                                  type="time"
-                                  className={timeInput}
-                                  value={day.breakEnd}
-                                  aria-label={`Fin de la pause du ${formatDate(day.date)}`}
-                                  onChange={(e) => setDay(day.date, { breakEnd: e.target.value })}
-                                />
-                              </div>
-
-                              <div className="text-right">
-                                <span
-                                  className={`text-sm ${
-                                    paid <= 0 ? 'font-medium text-red-600' : 'text-slate-700'
-                                  }`}
-                                >
-                                  {warned && (
-                                    <span
-                                      className="mr-1 text-amber-600"
-                                      title="Plus de 6 h de présence sans pause d'au moins 30 minutes."
-                                    >
-                                      ⚠
-                                    </span>
-                                  )}
-                                  {formatMinutes(Math.max(0, paid))}
-                                </span>
-                                {pause > 0 && (
-                                  <span className="block text-[11px] text-slate-400">
-                                    sur {formatMinutes(Math.max(0, presence))}
-                                  </span>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <span className="col-span-3 text-sm text-slate-400">
-                              Journée non prestée
-                            </span>
-                          )}
-                        </div>
-                      </li>
+                      <DayRow
+                        key={day.date}
+                        day={day}
+                        monthHeader={newMonth ? dayLabels[index].month : null}
+                        weekday={dayLabels[index].weekday}
+                        onPatch={setDay}
+                      />
                     );
                   })}
                 </ul>

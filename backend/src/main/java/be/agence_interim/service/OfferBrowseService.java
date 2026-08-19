@@ -3,6 +3,7 @@ package be.agence_interim.service;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import be.agence_interim.model.User;
 import be.agence_interim.repository.FavoriteJobOfferRepository;
 import be.agence_interim.repository.JobOfferRepository;
 import be.agence_interim.repository.UserRepository;
+import be.agence_interim.service.MatchingService.CandidateProfile;
 import be.agence_interim.service.MatchingService.MatchScore;
 
 /** Consultation des offres par l'intérimaire et gestion de ses favoris. */
@@ -45,7 +47,7 @@ public class OfferBrowseService {
     /** Toutes les offres ouvertes, les plus récentes d'abord. */
     @Transactional(readOnly = true)
     public List<JobOfferSummaryResponse> browseOpen() {
-        return jobOfferRepository.findByStatusOrderByPublishedAtDesc(JobOfferStatus.OPEN)
+        return jobOfferRepository.findByStatusFetchEmployer(JobOfferStatus.OPEN)
                 .stream().map(JobOfferSummaryResponse::fromEntity).toList();
     }
 
@@ -65,15 +67,17 @@ public class OfferBrowseService {
     public List<MatchingOfferResponse> matching(int jobSeekerId) {
         User jobSeeker = userRepository.findById(jobSeekerId)
                 .orElseThrow(() -> new NoSuchElementException("Utilisateur introuvable."));
-        return jobOfferRepository.findByStatusOrderByPublishedAtDesc(JobOfferStatus.OPEN)
+        // Le profil du candidat est chargé une seule fois pour toutes les offres.
+        CandidateProfile profile = matchingService.loadProfile(jobSeeker);
+        return jobOfferRepository.findByStatusFetchEmployer(JobOfferStatus.OPEN)
                 .stream()
-                .map(offer -> {
-                    MatchScore match = matchingService.score(jobSeeker, matchingService.loadRequirements(offer));
+                .flatMap(offer -> {
+                    MatchScore match = matchingService.score(profile, matchingService.loadRequirements(offer));
                     return match.mandatoryOk()
-                            ? new MatchingOfferResponse(JobOfferSummaryResponse.fromEntity(offer), match.score())
-                            : null;
+                            ? Stream.<MatchingOfferResponse>of(new MatchingOfferResponse(
+                                    JobOfferSummaryResponse.fromEntity(offer), match.score()))
+                            : Stream.<MatchingOfferResponse>empty();
                 })
-                .filter(response -> response != null)
                 .sorted(Comparator.comparingInt((MatchingOfferResponse response) -> response.score()).reversed())
                 .toList();
     }

@@ -6,7 +6,6 @@ interface ConfirmDialogProps {
   title: string;
   message: string;
   confirmLabel?: string;
-  cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -17,7 +16,6 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Confirmer',
-  cancelLabel = 'Annuler',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -56,7 +54,7 @@ export default function ConfirmDialog({
         <p className="mt-2 text-sm text-slate-600">{message}</p>
         <div className="mt-6 flex justify-end gap-3">
           <button type="button" className={btnSecondary} onClick={onCancel}>
-            {cancelLabel}
+            Annuler
           </button>
           <button type="button" className={btnDangerSolid} onClick={onConfirm} autoFocus>
             {confirmLabel}

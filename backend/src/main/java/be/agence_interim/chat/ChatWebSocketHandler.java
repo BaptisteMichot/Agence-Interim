@@ -1,5 +1,6 @@
 package be.agence_interim.chat;
 
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -39,17 +40,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
+    public void afterConnectionEstablished(@NonNull WebSocketSession session) {
         sessionRegistry.register(userId(session), session);
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
         sessionRegistry.unregister(userId(session), session);
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) {
+    protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage textMessage) {
         int senderId = userId(session);
         IncomingFrame frame;
         try {

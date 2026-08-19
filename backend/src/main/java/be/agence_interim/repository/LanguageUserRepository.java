@@ -2,6 +2,7 @@ package be.agence_interim.repository;
 
 import be.agence_interim.model.LanguageUser;
 import be.agence_interim.model.LanguageUserId;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,10 @@ public interface LanguageUserRepository extends JpaRepository<LanguageUser, Lang
 
     @Query("select lu from LanguageUser lu join fetch lu.language where lu.user.id = :userId order by lu.language.name")
     List<LanguageUser> findByUserIdFetchLanguage(int userId);
+
+    /** Langues de plusieurs utilisateurs en une requête (contact automatique des candidats). */
+    @Query("select lu from LanguageUser lu join fetch lu.language where lu.user.id in :userIds order by lu.language.name")
+    List<LanguageUser> findByUserIdInFetchLanguage(Collection<Integer> userIds);
 
     Optional<LanguageUser> findByUserIdAndLanguageId(int userId, int languageId);
 

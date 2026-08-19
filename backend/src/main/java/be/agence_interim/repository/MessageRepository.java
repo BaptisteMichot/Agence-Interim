@@ -15,9 +15,12 @@ public interface MessageRepository extends JpaRepository<Message, Integer> {
             + "order by m.sentTime asc")
     List<Message> findByConversationIdFetchSender(int conversationId);
 
-    /** Messages de plusieurs conversations, du plus ancien au plus récent (pour le dernier message). */
-    @Query("select m from Message m where m.conversation.id in :conversationIds order by m.sentTime asc")
-    List<Message> findByConversationIds(List<Integer> conversationIds);
+    /** Dernier message de chaque conversation (départage par identifiant le plus élevé en cas d'égalité). */
+    @Query("select m from Message m where m.conversation.id in :conversationIds "
+            + "and m.id = (select max(m2.id) from Message m2 where m2.conversation.id = m.conversation.id "
+            + "and m2.sentTime = (select max(m3.sentTime) from Message m3 "
+            + "where m3.conversation.id = m.conversation.id))")
+    List<Message> findLastByConversationIds(List<Integer> conversationIds);
 
     /** Nombre total de messages non lus reçus par un utilisateur (messages des autres). */
     @Query("select count(m) from Message m where m.user.id <> :userId and m.read = false "

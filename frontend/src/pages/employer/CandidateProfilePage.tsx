@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { downloadCandidateCv, getCandidateProfile } from '../../api/applications';
 import { openConversationForApplication } from '../../api/chat';
-import { btnPrimary, btnSecondary, errorBox } from '../../components/ui';
-import type { CandidateProfile } from '../../applications/types';
+import { errorMessage } from '../../api/http';
+import { btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import {
   degreeTypeLabel,
   formatDate,
@@ -17,24 +18,13 @@ export default function CandidateProfilePage() {
   const applicationId = Number(id);
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState<CandidateProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setProfile(await getCandidateProfile(applicationId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger le profil.');
-    } finally {
-      setLoading(false);
-    }
-  }, [applicationId]);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const fetcher = useCallback(() => getCandidateProfile(applicationId), [applicationId]);
+  const {
+    data: profile,
+    loading,
+    error,
+    setError,
+  } = useResource(fetcher, 'Impossible de charger le profil.');
 
   const openCv = async () => {
     setError(null);
@@ -43,7 +33,7 @@ export default function CandidateProfilePage() {
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank', 'noopener');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
@@ -54,7 +44,7 @@ export default function CandidateProfilePage() {
       const conversation = await openConversationForApplication(applicationId);
       navigate(`/messages/${conversation.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "La discussion n'a pas pu être ouverte.");
+      setError(errorMessage(err, "La discussion n'a pas pu être ouverte."));
     }
   };
 
@@ -72,7 +62,7 @@ export default function CandidateProfilePage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="text-sm text-indigo-600 hover:underline"
+          className={linkBack}
         >
           ← Retour aux candidatures
         </button>

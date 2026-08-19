@@ -35,11 +35,13 @@ public interface MissionRepository extends JpaRepository<Mission, Integer> {
     @Query(FETCH_ALL + "order by m.startDate desc, m.id desc")
     List<Mission> findAllFetchAll();
 
-    /** Missions d'un intérimaire, dans un des statuts donnés, chevauchant la période. */
-    @Query("select m from Mission m where m.application.jobSeeker.id = :jobSeekerId "
-            + "and m.status in :statuses and m.startDate <= :endDate and m.endDate >= :startDate")
-    List<Mission> findOverlapping(
-            int jobSeekerId, Collection<MissionStatus> statuses, LocalDate startDate, LocalDate endDate);
+    /** Une autre mission de l'intérimaire, dans un des statuts donnés, chevauche-t-elle la période ? */
+    @Query("select count(m) > 0 from Mission m where m.application.jobSeeker.id = :jobSeekerId "
+            + "and m.status in :statuses and m.startDate <= :endDate and m.endDate >= :startDate "
+            + "and m.id <> :excludedId")
+    boolean existsOverlapping(
+            int jobSeekerId, Collection<MissionStatus> statuses, LocalDate startDate, LocalDate endDate,
+            int excludedId);
 
     /** Nombre de missions attendant une décision de l'intérimaire (badge du portail). */
     long countByApplicationJobSeekerIdAndStatusIn(int jobSeekerId, Collection<MissionStatus> statuses);

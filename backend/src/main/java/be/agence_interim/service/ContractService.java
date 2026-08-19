@@ -75,7 +75,7 @@ public class ContractService {
         contract.setGenerationTime(LocalDateTime.now());
         contract.setStatusEmployer(SignatureStatus.PENDING);
         contract.setStatusWorker(SignatureStatus.PENDING);
-        contract.setContractFilePath(fileName(mission.getId()));
+        contract.setContractFilePath("contrat-mission-" + mission.getId() + ".pdf");
         Contract saved = contractRepository.save(contract);
         write(saved, mission, slots);
         return saved;
@@ -106,12 +106,13 @@ public class ContractService {
      */
     @Transactional(readOnly = true)
     public void requestSigningCode(int missionId, int userId) {
-        Mission mission = accessibleMission(missionId, userId, false);
-        Contract contract = loadContract(mission.getId());
-        boolean isEmployer = isEmployer(mission, userId);
-        requireNotSigned(isEmployer ? contract.getStatusEmployer() : contract.getStatusWorker());
+        SigningContext context = signingContext(missionId, userId);
+        Mission mission = context.mission();
+        Contract contract = context.contract();
 
-        User signer = signer(mission, isEmployer);
+        User signer = context.isEmployer()
+                ? mission.getApplication().getJobOffer().getEmployer()
+                : mission.getApplication().getJobSeeker();
         String code = signingCodeService.generate(contract.getId(), userId);
         mailService.send(signer.getEmail(),
                 "Code de signature du contrat n° " + contract.getId(),
@@ -129,14 +130,13 @@ public class ContractService {
      */
     @Transactional
     public ContractResponse sign(int missionId, int userId, String code) {
-        Mission mission = accessibleMission(missionId, userId, false);
-        Contract contract = loadContract(mission.getId());
-        boolean isEmployer = isEmployer(mission, userId);
-        requireNotSigned(isEmployer ? contract.getStatusEmployer() : contract.getStatusWorker());
+        SigningContext context = signingContext(missionId, userId);
+        Mission mission = context.mission();
+        Contract contract = context.contract();
         signingCodeService.verify(contract.getId(), userId, code);
 
         LocalDateTime now = LocalDateTime.now();
-        if (isEmployer) {
+        if (context.isEmployer()) {
             contract.setStatusEmployer(SignatureStatus.SIGNED);
             contract.setEmployerSignedAt(now);
         } else {
@@ -148,14 +148,21 @@ public class ContractService {
         return ContractResponse.fromEntity(saved);
     }
 
-    private boolean isEmployer(Mission mission, int userId) {
-        return mission.getApplication().getJobOffer().getEmployer().getId() == userId;
+    /** Données communes aux deux étapes de la signature (demande du code, puis signature). */
+    private record SigningContext(Mission mission, Contract contract, boolean isEmployer) {
     }
 
-    private User signer(Mission mission, boolean isEmployer) {
-        return isEmployer
-                ? mission.getApplication().getJobOffer().getEmployer()
-                : mission.getApplication().getJobSeeker();
+    /** Charge la mission et son contrat pour l'une des parties, et vérifie qu'elle n'a pas déjà signé. */
+    private SigningContext signingContext(int missionId, int userId) {
+        Mission mission = accessibleMission(missionId, userId, false);
+        Contract contract = loadContract(mission.getId());
+        boolean isEmployer = isEmployer(mission, userId);
+        requireNotSigned(isEmployer ? contract.getStatusEmployer() : contract.getStatusWorker());
+        return new SigningContext(mission, contract, isEmployer);
+    }
+
+    private boolean isEmployer(Mission mission, int userId) {
+        return mission.getApplication().getJobOffer().getEmployer().getId() == userId;
     }
 
     private void requireNotSigned(SignatureStatus status) {
@@ -179,10 +186,6 @@ public class ContractService {
             throw new NoSuchElementException("Mission introuvable.");
         }
         return mission;
-    }
-
-    private String fileName(int missionId) {
-        return "contrat-mission-" + missionId + ".pdf";
     }
 
     /** Écrit (ou réécrit après signature) le document du contrat sur le disque. */

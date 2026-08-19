@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getProfile } from '../../api/profile';
-import type { Profile } from '../../profile/types';
+import { linkBack } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import PersonalInfoForm from './PersonalInfoForm';
 import CvSection from './CvSection';
 import ExperienceSection from './ExperienceSection';
@@ -12,24 +12,13 @@ import LanguageSection from './LanguageSection';
 
 /** Page « Mon profil » de l'espace intérimaire (incrément 3a). */
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setProfile(await getProfile());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger le profil.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const {
+    data: profile,
+    setData: setProfile,
+    loading,
+    error,
+    reload,
+  } = useResource(getProfile, 'Impossible de charger le profil.');
 
   if (loading) {
     return <p className="text-slate-500">Chargement du profil…</p>;
@@ -46,7 +35,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/interimaire" className="text-sm text-indigo-600 hover:underline">
+        <Link to="/interimaire" className={linkBack}>
           ← Retour au tableau de bord
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mon profil</h1>

@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { registerEmployer } from '../api/client';
+import { errorMessage } from '../api/http';
+import { btnAuthSubmit, errorBox, inputClass, labelClass } from '../components/ui';
 
 export default function EmployerRegisterPage() {
   const [firstName, setFirstName] = useState('');
@@ -32,15 +34,13 @@ export default function EmployerRegisterPage() {
       });
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const inputClass =
-    'mb-4 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
-  const labelClass = 'mb-1 block text-sm font-medium text-slate-700';
+  const inputClassLocal = `mb-4 ${inputClass}`;
 
   if (submitted) {
     return (
@@ -77,7 +77,7 @@ export default function EmployerRegisterPage() {
         </p>
 
         {error && (
-          <p className="mb-4 whitespace-pre-line rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className={`mb-4 ${errorBox}`}>
             {error}
           </p>
         )}
@@ -90,7 +90,7 @@ export default function EmployerRegisterPage() {
           required
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="companyAddress">
@@ -103,7 +103,7 @@ export default function EmployerRegisterPage() {
           placeholder="Rue, numéro, code postal et localité"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="companyNumber">
@@ -116,7 +116,7 @@ export default function EmployerRegisterPage() {
           placeholder="0000.000.000"
           value={companyNumber}
           onChange={(e) => setCompanyNumber(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="jointCommittee">
@@ -129,7 +129,7 @@ export default function EmployerRegisterPage() {
           placeholder="Par exemple 111 ou 200"
           value={jointCommittee}
           onChange={(e) => setJointCommittee(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
         <p className="mb-4 text-xs text-slate-500">
           Ces mentions sont obligatoires sur les contrats de mission.
@@ -143,7 +143,7 @@ export default function EmployerRegisterPage() {
           required
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="lastName">
@@ -154,7 +154,7 @@ export default function EmployerRegisterPage() {
           required
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="email">
@@ -166,7 +166,7 @@ export default function EmployerRegisterPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="password">
@@ -187,7 +187,7 @@ export default function EmployerRegisterPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          className={btnAuthSubmit}
         >
           {submitting ? 'Envoi…' : 'Envoyer la demande'}
         </button>

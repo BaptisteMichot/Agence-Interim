@@ -114,10 +114,7 @@ public class MissionService {
         mission.setApplication(application);
         mission.setStatus(MissionStatus.PENDING);
         applyFields(mission, request, application.getJobOffer());
-        Mission saved = missionRepository.save(mission);
-        checkNoOverlap(saved);
-        replaceSlots(saved, request.slots());
-        return toResponse(saved);
+        return saveWithSlots(mission, request.slots());
     }
 
     /** Corrige une mission refusée par l'agence et la soumet à nouveau. */
@@ -132,10 +129,7 @@ public class MissionService {
         mission.setStatus(
                 mission.getPreviousMission() != null ? MissionStatus.RENEWAL : MissionStatus.PENDING);
         mission.setRefusalReason(null);
-        Mission saved = missionRepository.save(mission);
-        checkNoOverlap(saved);
-        replaceSlots(saved, request.slots());
-        return toResponse(saved);
+        return saveWithSlots(mission, request.slots());
     }
 
     /**
@@ -164,10 +158,7 @@ public class MissionService {
         renewal.setPreviousMission(source);
         renewal.setStatus(MissionStatus.RENEWAL);
         applyFields(renewal, request, source.getApplication().getJobOffer());
-        Mission saved = missionRepository.save(renewal);
-        checkNoOverlap(saved);
-        replaceSlots(saved, request.slots());
-        return toResponse(saved);
+        return saveWithSlots(renewal, request.slots());
     }
 
     @Transactional(readOnly = true)
@@ -228,7 +219,7 @@ public class MissionService {
     @Transactional(readOnly = true)
     public List<MissionResponse> listForJobSeeker(int jobSeekerId) {
         return toResponses(missionRepository.findByJobSeekerIdFetchAll(jobSeekerId).stream()
-                .filter(mission -> visibleToJobSeeker(mission))
+                .filter(this::visibleToJobSeeker)
                 .toList());
     }
 
@@ -286,8 +277,23 @@ public class MissionService {
 
     // ------------------------------------------------------------------ interne
 
+    /**
+     * Enchaînement commun à la création, à la correction et au renouvellement :
+     * sauvegarde, contrôle de chevauchement puis remplacement des journées.
+     */
+    private MissionResponse saveWithSlots(Mission mission, List<DailySlotRequest> slots) {
+        Mission saved = missionRepository.save(mission);
+        checkNoOverlap(saved);
+        replaceSlots(saved, slots);
+        return toResponse(saved);
+    }
+
+    /** Mission activée, avec les journées et le contrat déjà chargés par {@link #activate}. */
+    private record ActivatedMission(Mission mission, List<DailySchedule> slots, Contract contract) {
+    }
+
     /** Active la mission : contrat généré, offre clôturée et contrat envoyé (envoi simulé). */
-    private Mission activate(Mission mission) {
+    private ActivatedMission activate(Mission mission) {
         mission.setStatus(MissionStatus.ACTIVE);
         Mission saved = missionRepository.save(mission);
         List<DailySchedule> slots =
@@ -301,7 +307,12 @@ public class MissionService {
             jobOfferRepository.save(offer);
         }
         sendContract(saved, contract);
-        return saved;
+        return new ActivatedMission(saved, slots, contract);
+    }
+
+    /** Assemble la réponse d'une mission activée sans recharger journées ni contrat. */
+    private MissionResponse toResponse(ActivatedMission activated) {
+        return MissionResponse.of(activated.mission(), activated.slots(), activated.contract());
     }
 
     /**
@@ -393,7 +404,7 @@ public class MissionService {
         mission.setHourlyWage(request.hourlyWage());
         mission.setWorkReason(request.workReason());
         mission.setReplacedWorker(replacedWorker(request));
-        mission.setNotes(request.notes() == null || request.notes().isBlank() ? null : request.notes().trim());
+        mission.setNotes(Strings.blankToNull(request.notes()));
     }
 
     /**
@@ -401,13 +412,15 @@ public class MissionService {
      * recours à l'intérim se justifie par un remplacement, et n'a pas de sens sinon.
      */
     private String replacedWorker(MissionRequest request) {
-        String value = request.replacedWorker() == null || request.replacedWorker().isBlank()
-                ? null : request.replacedWorker().trim();
-        if (request.workReason() == WorkReason.REPLACEMENT && value == null) {
+        if (request.workReason() != WorkReason.REPLACEMENT) {
+            return null;
+        }
+        String value = Strings.blankToNull(request.replacedWorker());
+        if (value == null) {
             throw new IllegalArgumentException(
                     "Le nom du travailleur remplacé est obligatoire lorsque le motif est un remplacement.");
         }
-        return request.workReason() == WorkReason.REPLACEMENT ? value : null;
+        return value;
     }
 
     /** Le salaire convenu doit rester dans la fourchette annoncée dans l'offre. */
@@ -488,11 +501,9 @@ public class MissionService {
 
     /** Refuse de placer deux missions retenues sur la même période pour un même intérimaire. */
     private void checkNoOverlap(Mission mission) {
-        boolean overlap = missionRepository
-                .findOverlapping(mission.getApplication().getJobSeeker().getId(), BOOKED,
-                        mission.getStartDate(), mission.getEndDate())
-                .stream()
-                .anyMatch(other -> other.getId() != mission.getId());
+        boolean overlap = missionRepository.existsOverlapping(
+                mission.getApplication().getJobSeeker().getId(), BOOKED,
+                mission.getStartDate(), mission.getEndDate(), mission.getId());
         if (overlap) {
             throw new IllegalArgumentException(
                     "L'intérimaire est déjà retenu pour une autre mission sur cette période.");

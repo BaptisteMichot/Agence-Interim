@@ -1,13 +1,9 @@
 package be.agence_interim.controller;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.core.io.Resource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -64,13 +60,6 @@ public class EmployerApplicationController {
     @GetMapping("/applications/{id}/cv")
     public ResponseEntity<Resource> candidateCv(@AuthenticationPrincipal Jwt jwt, @PathVariable int id) {
         Resource resource = employerApplicationService.candidateCv(CurrentUser.id(jwt), id);
-        String fileName = resource.getFilename() != null ? resource.getFilename() : "cv.pdf";
-        ContentDisposition disposition = ContentDisposition.inline()
-                .filename(fileName, StandardCharsets.UTF_8)
-                .build();
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .body(resource);
+        return PdfResponses.inline(resource, "cv.pdf");
     }
 }

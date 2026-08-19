@@ -1,56 +1,34 @@
 import { useState, type FormEvent } from 'react';
 import { addFormation, deleteFormation, updateFormation } from '../../api/profile';
+import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import {
-  btnDanger,
-  btnPrimary,
-  btnSecondary,
-  checkboxInput,
-  checkboxRow,
-  errorBox,
-  inputClass,
-  labelClass,
-} from '../../components/ui';
-import { formatDate, formationStatusLabel } from '../../profile/format';
-import type { FormationItem, FormationPayload } from '../../profile/types';
+import { btnDanger, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
+import { dateRangeError, formatDate, formationStatusLabel } from '../../profile/format';
+import type { FormationItem, FormationPayload, FormMode } from '../../profile/types';
+import { useConfirmDelete } from '../../profile/useConfirmDelete';
+import { DateRangeFields, FormActions, SectionForm, SectionHeader } from './SectionParts';
 
 interface FormationSectionProps {
   formations: FormationItem[];
   onChanged: () => void;
 }
 
-type FormMode = { type: 'closed' } | { type: 'new' } | { type: 'edit'; item: FormationItem };
-
 export default function FormationSection({ formations, onChanged }: FormationSectionProps) {
-  const [mode, setMode] = useState<FormMode>({ type: 'closed' });
+  const [mode, setMode] = useState<FormMode<FormationItem>>({ type: 'closed' });
   const [error, setError] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<number | null>(null);
-
-  const confirmDelete = async () => {
-    if (confirmId === null) {
-      return;
-    }
-    const id = confirmId;
-    setConfirmId(null);
-    setError(null);
-    try {
-      await deleteFormation(id);
-      onChanged();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
-    }
-  };
+  const { confirmId, setConfirmId, confirmDelete } = useConfirmDelete(
+    deleteFormation,
+    onChanged,
+    setError,
+  );
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Formations</h2>
-        {mode.type === 'closed' && (
-          <button type="button" className={btnSecondary} onClick={() => setMode({ type: 'new' })}>
-            + Ajouter
-          </button>
-        )}
-      </div>
+      <SectionHeader
+        title="Formations"
+        showAdd={mode.type === 'closed'}
+        onAdd={() => setMode({ type: 'new' })}
+      />
 
       {error && <p className={`mb-4 ${errorBox}`}>{error}</p>}
 
@@ -134,12 +112,9 @@ function FormationForm({ item, onCancel, onSaved }: FormationFormProps) {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!ongoing && !endDate) {
-      setError('La date de fin est obligatoire, ou cochez « En cours ».');
-      return;
-    }
-    if (!ongoing && endDate < startDate) {
-      setError('La date de fin ne peut pas être antérieure à la date de début.');
+    const dateError = dateRangeError(startDate, endDate, ongoing);
+    if (dateError) {
+      setError(dateError);
       return;
     }
     const payload: FormationPayload = {
@@ -157,16 +132,14 @@ function FormationForm({ item, onCancel, onSaved }: FormationFormProps) {
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 grid gap-4 rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 sm:grid-cols-2">
-      {error && <p className={`sm:col-span-2 ${errorBox}`}>{error}</p>}
-
+    <SectionForm onSubmit={handleSubmit} error={error}>
       <div>
         <label className={labelClass} htmlFor="form-title">Intitulé</label>
         <input id="form-title" required value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
@@ -175,42 +148,21 @@ function FormationForm({ item, onCancel, onSaved }: FormationFormProps) {
         <label className={labelClass} htmlFor="form-institution">Établissement</label>
         <input id="form-institution" required value={institution} onChange={(e) => setInstitution(e.target.value)} className={inputClass} />
       </div>
-      <div>
-        <label className={labelClass} htmlFor="form-start">Date de début</label>
-        <input id="form-start" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
-      </div>
-      <div>
-        <label className={labelClass} htmlFor="form-end">Date de fin</label>
-        {!ongoing && (
-          <input
-            id="form-end"
-            type="date"
-            value={endDate}
-            min={startDate || undefined}
-            required
-            onChange={(e) => setEndDate(e.target.value)}
-            className={inputClass}
-          />
-        )}
-        <label className={`mt-2 ${checkboxRow}`}>
-          <input
-            type="checkbox"
-            checked={ongoing}
-            onChange={(e) => setOngoing(e.target.checked)}
-            className={checkboxInput}
-          />
-          En cours
-        </label>
-      </div>
-
-      <div className="sm:col-span-2 flex gap-3">
-        <button type="submit" disabled={saving} className={btnPrimary}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
-        <button type="button" className={btnSecondary} onClick={onCancel}>
-          Annuler
-        </button>
-      </div>
-    </form>
+      <DateRangeFields
+        idPrefix="form"
+        startDate={startDate}
+        endDate={endDate}
+        ongoing={ongoing}
+        onStartDate={setStartDate}
+        onEndDate={setEndDate}
+        onOngoing={setOngoing}
+      />
+      <FormActions
+        saving={saving}
+        submitLabel="Enregistrer"
+        savingLabel="Enregistrement…"
+        onCancel={onCancel}
+      />
+    </SectionForm>
   );
 }

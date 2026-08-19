@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import {
   addLanguage,
   deleteLanguage,
@@ -6,35 +6,27 @@ import {
   getUserLanguages,
   updateLanguageLevel,
 } from '../../api/profile';
+import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { btnDanger, btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
+import { btnDanger, errorBox, inputClass, labelClass } from '../../components/ui';
 import { LANGUAGE_LEVELS } from '../../profile/format';
-import type { LanguageLevel, LanguageOption, UserLanguage } from '../../profile/types';
+import type { LanguageLevel, LanguageOption } from '../../profile/types';
+import { useConfirmDelete } from '../../profile/useConfirmDelete';
+import { useProfileCollection } from '../../profile/useProfileCollection';
+import { FormActions, SectionForm, SectionHeader } from './SectionParts';
 
 export default function LanguageSection() {
-  const [languages, setLanguages] = useState<UserLanguage[]>([]);
-  const [options, setOptions] = useState<LanguageOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    items: languages,
+    setItems: setLanguages,
+    options,
+    loading,
+    error,
+    setError,
+    reload,
+  } = useProfileCollection(getUserLanguages, getLanguageOptions, 'Impossible de charger les langues.');
   const [adding, setAdding] = useState(false);
-  const [confirmId, setConfirmId] = useState<number | null>(null);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      const [userLanguages, languageOptions] = await Promise.all([getUserLanguages(), getLanguageOptions()]);
-      setLanguages(userLanguages);
-      setOptions(languageOptions);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les langues.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const { confirmId, setConfirmId, confirmDelete } = useConfirmDelete(deleteLanguage, reload, setError);
 
   /** Langues encore disponibles (pas déjà dans le profil). */
   const availableOptions = useMemo(() => {
@@ -48,36 +40,18 @@ export default function LanguageSection() {
     try {
       await updateLanguageLevel(languageId, level);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
       reload();
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (confirmId === null) {
-      return;
-    }
-    const id = confirmId;
-    setConfirmId(null);
-    setError(null);
-    try {
-      await deleteLanguage(id);
-      reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
     }
   };
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Langues</h2>
-        {!adding && availableOptions.length > 0 && (
-          <button type="button" className={btnSecondary} onClick={() => setAdding(true)}>
-            + Ajouter
-          </button>
-        )}
-      </div>
+      <SectionHeader
+        title="Langues"
+        showAdd={!adding && availableOptions.length > 0}
+        onAdd={() => setAdding(true)}
+      />
 
       {error && <p className={`mb-4 ${errorBox}`}>{error}</p>}
       {loading && <p className="text-sm text-slate-500">Chargement…</p>}
@@ -157,16 +131,14 @@ function LanguageForm({ options, onCancel, onSaved }: LanguageFormProps) {
       await addLanguage({ languageId, level });
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 grid gap-4 rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 sm:grid-cols-2">
-      {error && <p className={`sm:col-span-2 ${errorBox}`}>{error}</p>}
-
+    <SectionForm onSubmit={handleSubmit} error={error}>
       <div>
         <label className={labelClass} htmlFor="lang-id">Langue</label>
         <select
@@ -198,14 +170,7 @@ function LanguageForm({ options, onCancel, onSaved }: LanguageFormProps) {
         </select>
       </div>
 
-      <div className="sm:col-span-2 flex gap-3">
-        <button type="submit" disabled={saving} className={btnPrimary}>
-          {saving ? 'Ajout…' : 'Ajouter'}
-        </button>
-        <button type="button" className={btnSecondary} onClick={onCancel}>
-          Annuler
-        </button>
-      </div>
-    </form>
+      <FormActions saving={saving} submitLabel="Ajouter" savingLabel="Ajout…" onCancel={onCancel} />
+    </SectionForm>
   );
 }

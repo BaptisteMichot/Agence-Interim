@@ -13,7 +13,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,7 +25,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Formation {
 
     public static final int TITLE_MAX_LENGTH = 50;
@@ -50,7 +48,6 @@ public class Formation {
     @Column(nullable = false)
     private LocalDate startDate;
 
-    @Column(nullable = true)
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)

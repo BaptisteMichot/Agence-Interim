@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
-import { homePathForUser } from './auth/roleRoutes';
+import { EMPLOYER_STATUS_PATH, homePathForRole } from './auth/roleRoutes';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
@@ -31,7 +31,7 @@ import ConversationThreadPage from './pages/chat/ConversationThreadPage';
 function HomeRedirect() {
   const { isAuthenticated, user } = useAuth();
   if (isAuthenticated && user) {
-    return <Navigate to={homePathForUser(user)} replace />;
+    return <Navigate to={homePathForRole(user.role)} replace />;
   }
   return <Navigate to="/login" replace />;
 }
@@ -45,7 +45,7 @@ export default function App() {
 
       {/* Page de statut employeur : authentifiée, hors coquille (pas de nav de rôle). */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/statut-employeur" element={<EmployerStatusPage />} />
+        <Route path={EMPLOYER_STATUS_PATH} element={<EmployerStatusPage />} />
       </Route>
 
       {/* Routes nécessitant une authentification */}

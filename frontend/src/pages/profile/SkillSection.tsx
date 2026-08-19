@@ -1,34 +1,26 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { addSkill, deleteSkill, getSkillOptions, getUserSkills, updateSkillLevel } from '../../api/profile';
+import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { btnDanger, btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
+import { btnDanger, errorBox, inputClass, labelClass } from '../../components/ui';
 import { SKILL_LEVELS } from '../../profile/format';
-import type { SkillLevel, SkillOption, UserSkill } from '../../profile/types';
+import type { SkillLevel, SkillOption } from '../../profile/types';
+import { useConfirmDelete } from '../../profile/useConfirmDelete';
+import { useProfileCollection } from '../../profile/useProfileCollection';
+import { FormActions, SectionForm, SectionHeader } from './SectionParts';
 
 export default function SkillSection() {
-  const [skills, setSkills] = useState<UserSkill[]>([]);
-  const [options, setOptions] = useState<SkillOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    items: skills,
+    setItems: setSkills,
+    options,
+    loading,
+    error,
+    setError,
+    reload,
+  } = useProfileCollection(getUserSkills, getSkillOptions, 'Impossible de charger les compétences.');
   const [adding, setAdding] = useState(false);
-  const [confirmId, setConfirmId] = useState<number | null>(null);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      const [userSkills, skillOptions] = await Promise.all([getUserSkills(), getSkillOptions()]);
-      setSkills(userSkills);
-      setOptions(skillOptions);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les compétences.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const { confirmId, setConfirmId, confirmDelete } = useConfirmDelete(deleteSkill, reload, setError);
 
   const changeLevel = async (skillId: number, level: SkillLevel) => {
     setSkills((prev) => prev.map((s) => (s.skillId === skillId ? { ...s, level } : s)));
@@ -36,36 +28,14 @@ export default function SkillSection() {
     try {
       await updateSkillLevel(skillId, level);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
       reload();
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (confirmId === null) {
-      return;
-    }
-    const id = confirmId;
-    setConfirmId(null);
-    setError(null);
-    try {
-      await deleteSkill(id);
-      reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
     }
   };
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Compétences</h2>
-        {!adding && (
-          <button type="button" className={btnSecondary} onClick={() => setAdding(true)}>
-            + Ajouter
-          </button>
-        )}
-      </div>
+      <SectionHeader title="Compétences" showAdd={!adding} onAdd={() => setAdding(true)} />
 
       {error && <p className={`mb-4 ${errorBox}`}>{error}</p>}
       {loading && <p className="text-sm text-slate-500">Chargement…</p>}
@@ -154,16 +124,14 @@ function SkillForm({ options, onCancel, onSaved }: SkillFormProps) {
       await addSkill({ name: name.trim(), level });
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 grid gap-4 rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 sm:grid-cols-2">
-      {error && <p className={`sm:col-span-2 ${errorBox}`}>{error}</p>}
-
+    <SectionForm onSubmit={handleSubmit} error={error}>
       <div>
         <label className={labelClass} htmlFor="skill-name">Compétence</label>
         <input
@@ -199,14 +167,7 @@ function SkillForm({ options, onCancel, onSaved }: SkillFormProps) {
         </select>
       </div>
 
-      <div className="sm:col-span-2 flex gap-3">
-        <button type="submit" disabled={saving} className={btnPrimary}>
-          {saving ? 'Ajout…' : 'Ajouter'}
-        </button>
-        <button type="button" className={btnSecondary} onClick={onCancel}>
-          Annuler
-        </button>
-      </div>
-    </form>
+      <FormActions saving={saving} submitLabel="Ajouter" savingLabel="Ajout…" onCancel={onCancel} />
+    </SectionForm>
   );
 }

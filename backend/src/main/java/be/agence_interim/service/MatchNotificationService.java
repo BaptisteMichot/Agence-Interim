@@ -14,6 +14,7 @@ import be.agence_interim.model.Role;
 import be.agence_interim.model.User;
 import be.agence_interim.repository.JobOfferRepository;
 import be.agence_interim.repository.UserRepository;
+import be.agence_interim.service.MatchingService.CandidateProfile;
 import be.agence_interim.service.MatchingService.MatchScore;
 import be.agence_interim.service.MatchingService.OfferRequirements;
 
@@ -59,13 +60,14 @@ public class MatchNotificationService {
         OfferRequirements requirements = matchingService.loadRequirements(offer);
 
         int contacted = 0;
-        for (User jobSeeker : userRepository.findByRole(Role.JOBSEEKER)) {
-            MatchScore match = matchingService.score(jobSeeker, requirements);
+        // Les profils sont chargés en quatre requêtes groupées plutôt qu'en quatre par candidat.
+        for (CandidateProfile profile : matchingService.loadProfiles(userRepository.findByRole(Role.JOBSEEKER))) {
+            MatchScore match = matchingService.score(profile, requirements);
             if (match.shouldContact()) {
                 mailService.send(
-                        jobSeeker.getEmail(),
+                        profile.jobSeeker().getEmail(),
                         "Une offre correspond à votre profil : " + offer.getTitle(),
-                        buildBody(jobSeeker, offer, match));
+                        buildBody(profile.jobSeeker(), offer, match));
                 contacted++;
             }
         }

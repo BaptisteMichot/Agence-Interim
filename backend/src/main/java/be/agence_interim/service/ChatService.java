@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -99,9 +101,8 @@ public class ChatService {
                         lastMessages.get(conversation.getId()),
                         unread.getOrDefault(conversation.getId(), 0L)))
                 .sorted(Comparator.comparing(
-                        (ConversationResponse response) -> response.lastMessageTime() == null
-                                ? LocalDateTime.MIN
-                                : response.lastMessageTime())
+                        (ConversationResponse response) -> response.lastMessageTime(),
+                        Comparator.nullsFirst(Comparator.naturalOrder()))
                         .reversed())
                 .toList();
     }
@@ -140,9 +141,7 @@ public class ChatService {
             throw new IllegalArgumentException("Le message ne peut pas etre vide.");
         }
         Conversation conversation = participantConversation(userId, conversationId);
-        User sender = conversation.getSender().getId() == userId
-                ? conversation.getSender()
-                : conversation.getReceiver();
+        User sender = self(conversation, userId);
 
         Message message = new Message();
         message.setConversation(conversation);
@@ -152,7 +151,7 @@ public class ChatService {
         message.setRead(false);
         Message saved = messageRepository.save(message);
 
-        return new SentMessage(ChatMessageResponse.fromEntity(saved), otherPartyId(conversation, userId), userId);
+        return new SentMessage(ChatMessageResponse.fromEntity(saved), other(conversation, userId).getId(), userId);
     }
 
     /** Charge une conversation en vérifiant que l'utilisateur y participe. */
@@ -162,29 +161,29 @@ public class ChatService {
                 .orElseThrow(() -> new NoSuchElementException("Conversation introuvable."));
     }
 
-    private int otherPartyId(Conversation conversation, int userId) {
+    /** Le participant de la conversation qui est l'utilisateur connecté. */
+    private User self(Conversation conversation, int userId) {
         return conversation.getSender().getId() == userId
-                ? conversation.getReceiver().getId()
-                : conversation.getSender().getId();
+                ? conversation.getSender()
+                : conversation.getReceiver();
     }
 
-    /**
-     * Dernier message de chaque conversation (la liste est triée par date
-     * croissante).
-     */
+    /** L'autre participant de la conversation. */
+    private User other(Conversation conversation, int userId) {
+        return conversation.getSender().getId() == userId
+                ? conversation.getReceiver()
+                : conversation.getSender();
+    }
+
+    /** Dernier message de chaque conversation (un seul message est chargé par conversation). */
     private Map<Integer, Message> lastMessageByConversation(List<Integer> conversationIds) {
-        Map<Integer, Message> lastMessages = new HashMap<>();
-        for (Message message : messageRepository.findByConversationIds(conversationIds)) {
-            lastMessages.put(message.getConversation().getId(), message);
-        }
-        return lastMessages;
+        return messageRepository.findLastByConversationIds(conversationIds).stream()
+                .collect(Collectors.toMap(message -> message.getConversation().getId(), Function.identity()));
     }
 
     private ConversationResponse toResponse(
             Conversation conversation, int userId, Message lastMessage, long unreadCount) {
-        User other = conversation.getSender().getId() == userId
-                ? conversation.getReceiver()
-                : conversation.getSender();
+        User other = other(conversation, userId);
         Application application = conversation.getApplication();
         return new ConversationResponse(
                 conversation.getId(),

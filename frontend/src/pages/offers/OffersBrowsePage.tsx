@@ -8,9 +8,11 @@ import {
   getMatchingOffers,
   removeFavoriteOffer,
 } from '../../api/offers';
-import { errorBox } from '../../components/ui';
+import { errorMessage } from '../../api/http';
+import { errorBox, linkBack } from '../../components/ui';
+import { salarySuffix } from '../../offers/format';
 import type { JobOfferSummary, MatchingOffer } from '../../offers/types';
-import { formatDate } from '../../profile/format';
+import { formatTimestampDate } from '../../profile/format';
 
 type Tab = 'match' | 'all' | 'favorites';
 
@@ -38,7 +40,7 @@ export default function OffersBrowsePage() {
       setFavorites(favs);
       setFavoriteIds(new Set(ids));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les offres.');
+      setError(errorMessage(err, 'Impossible de charger les offres.'));
     } finally {
       setLoading(false);
     }
@@ -58,7 +60,7 @@ export default function OffersBrowsePage() {
       }
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
@@ -76,7 +78,7 @@ export default function OffersBrowsePage() {
   return (
     <section>
       <div>
-        <Link to="/interimaire" className="text-sm text-indigo-600 hover:underline">
+        <Link to="/interimaire" className={linkBack}>
           ← Retour au tableau de bord
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Offres d'emploi</h1>
@@ -158,12 +160,10 @@ export default function OffersBrowsePage() {
                 </p>
                 <p className="text-sm text-slate-500">
                   {offer.companyName} · {offer.sector} · {offer.city}
-                  {offer.salaryMin !== null || offer.salaryMax !== null
-                    ? ` · ${offer.salaryMin ?? '?'} – ${offer.salaryMax ?? '?'} €/h`
-                    : ''}
+                  {salarySuffix(offer.salaryMin, offer.salaryMax)}
                 </p>
                 {offer.publishedAt && (
-                  <p className="text-xs text-slate-400">Publiée le {formatDate(offer.publishedAt.slice(0, 10))}</p>
+                  <p className="text-xs text-slate-400">Publiée le {formatTimestampDate(offer.publishedAt)}</p>
                 )}
               </div>
               <button

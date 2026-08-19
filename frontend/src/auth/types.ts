@@ -4,18 +4,6 @@ export type Role = 'ADMIN' | 'EMPLOYER' | 'EMPLOYER_PENDING' | 'JOBSEEKER';
 
 export type EmployerAccessStatus = 'PENDING' | 'ACCEPTED' | 'REFUSED';
 
-/** Réponse renvoyée par /api/auth/register et /api/auth/login. */
-export interface AuthResponse {
-  userId: number;
-  lastName: string;
-  firstName: string;
-  email: string;
-  role: Role;
-  employerRequestStatus: EmployerAccessStatus | null;
-  token: string;
-  message: string;
-}
-
 /** Utilisateur authentifié conservé côté frontend (sans le token). */
 export interface AuthUser {
   userId: number;
@@ -24,6 +12,12 @@ export interface AuthUser {
   email: string;
   role: Role;
   employerRequestStatus: EmployerAccessStatus | null;
+}
+
+/** Réponse renvoyée par /api/auth/register et /api/auth/login. */
+export interface AuthResponse extends AuthUser {
+  token: string;
+  message: string;
 }
 
 /** Corps attendu par /api/auth/register. */
@@ -35,11 +29,7 @@ export interface RegisterPayload {
 }
 
 /** Corps attendu par /api/auth/register-employer. */
-export interface EmployerRegisterPayload {
-  lastName: string;
-  firstName: string;
-  email: string;
-  password: string;
+export interface EmployerRegisterPayload extends RegisterPayload {
   companyName: string;
   /** Mentions légales de l'entreprise utilisatrice, reprises sur les contrats. */
   address: string;

@@ -13,7 +13,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,7 +26,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class EmployerAccessRequest {
 
     public static final int STATUS_MAX_LENGTH = 8;
@@ -49,6 +47,6 @@ public class EmployerAccessRequest {
     private EmployerAccessStatus status;
 
     /** Message justificatif facultatif, saisi lors d'une nouvelle demande après refus. */
-    @Column(nullable = true, length = MESSAGE_MAX_LENGTH)
+    @Column(length = MESSAGE_MAX_LENGTH)
     private String message;
 }

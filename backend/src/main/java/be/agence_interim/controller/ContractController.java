@@ -1,11 +1,6 @@
 package be.agence_interim.controller;
 
-import java.nio.charset.StandardCharsets;
-
 import org.springframework.core.io.Resource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -46,14 +41,7 @@ public class ContractController {
     @GetMapping("/{missionId}/file")
     public ResponseEntity<Resource> download(@AuthenticationPrincipal Jwt jwt, @PathVariable int missionId) {
         Resource resource = contractService.load(missionId, CurrentUser.id(jwt), CurrentUser.isAdmin(jwt));
-        String fileName = resource.getFilename() != null ? resource.getFilename() : "contrat.pdf";
-        ContentDisposition disposition = ContentDisposition.inline()
-                .filename(fileName, StandardCharsets.UTF_8)
-                .build();
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .body(resource);
+        return PdfResponses.inline(resource, "contrat.pdf");
     }
 
     /** Envoie par email le code à usage unique qui confirmera la signature. */

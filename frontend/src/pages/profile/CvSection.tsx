@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { errorMessage } from '../../api/http';
 import { deleteCv, downloadCv, uploadCv } from '../../api/profile';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { btnDanger, btnPrimary, errorBox } from '../../components/ui';
@@ -47,7 +48,7 @@ export default function CvSection({ cvFilePath, onChanged }: CvSectionProps) {
       resetInput();
       onChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setBusy(false);
     }
@@ -61,7 +62,7 @@ export default function CvSection({ cvFilePath, onChanged }: CvSectionProps) {
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
@@ -74,7 +75,7 @@ export default function CvSection({ cvFilePath, onChanged }: CvSectionProps) {
       resetInput();
       onChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setBusy(false);
     }

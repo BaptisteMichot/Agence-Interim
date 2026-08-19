@@ -1,4 +1,4 @@
-import type { AuthUser, Role } from './types';
+import type { Role } from './types';
 
 /** Page de statut affichée à un employeur dont la demande est en attente ou refusée. */
 export const EMPLOYER_STATUS_PATH = '/statut-employeur';
@@ -19,14 +19,10 @@ export const ROLE_LABEL: Record<Role, string> = {
   ADMIN: 'Administrateur',
 };
 
-export function homePathForRole(role: Role): string {
-  return HOME_PATH_BY_ROLE[role];
-}
-
 /**
  * Destination après connexion selon le rôle. Un employeur en attente (EMPLOYER_PENDING)
  * est dirigé vers sa page de statut.
  */
-export function homePathForUser(user: AuthUser): string {
-  return HOME_PATH_BY_ROLE[user.role];
+export function homePathForRole(role: Role): string {
+  return HOME_PATH_BY_ROLE[role];
 }

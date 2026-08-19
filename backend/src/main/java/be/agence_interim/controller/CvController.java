@@ -1,10 +1,6 @@
 package be.agence_interim.controller;
 
-import java.nio.charset.StandardCharsets;
-
 import org.springframework.core.io.Resource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -42,14 +38,7 @@ public class CvController {
     @GetMapping
     public ResponseEntity<Resource> download(@AuthenticationPrincipal Jwt jwt) {
         Resource resource = cvService.load(CurrentUser.id(jwt));
-        String fileName = resource.getFilename() != null ? resource.getFilename() : "cv.pdf";
-        ContentDisposition disposition = ContentDisposition.inline()
-                .filename(fileName, StandardCharsets.UTF_8)
-                .build();
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .body(resource);
+        return PdfResponses.inline(resource, "cv.pdf");
     }
 
     @DeleteMapping

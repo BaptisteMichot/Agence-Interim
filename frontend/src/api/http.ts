@@ -1,6 +1,6 @@
 import { expireSession, readToken } from '../auth/session';
 
-const API_BASE = '/api';
+export const API_BASE = '/api';
 
 /**
  * Extrait un message d'erreur lisible du corps d'une réponse en échec.
@@ -21,6 +21,11 @@ export async function readError(response: Response): Promise<string> {
   }
   const text = await response.text();
   return text || `Erreur ${response.status}`;
+}
+
+/** Message d'une erreur attrapée dans un `catch`, ou le repli fourni. */
+export function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
 }
 
 function authHeaders(): Record<string, string> {

@@ -4,57 +4,35 @@ import {
   deleteExperience,
   updateExperience,
 } from '../../api/profile';
+import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import {
-  btnDanger,
-  btnPrimary,
-  btnSecondary,
-  checkboxInput,
-  checkboxRow,
-  errorBox,
-  inputClass,
-  labelClass,
-} from '../../components/ui';
-import { formatDate } from '../../profile/format';
-import type { ExperienceItem, ExperiencePayload } from '../../profile/types';
+import { btnDanger, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
+import { dateRangeError, formatDate } from '../../profile/format';
+import type { ExperienceItem, ExperiencePayload, FormMode } from '../../profile/types';
+import { useConfirmDelete } from '../../profile/useConfirmDelete';
+import { DateRangeFields, FormActions, SectionForm, SectionHeader } from './SectionParts';
 
 interface ExperienceSectionProps {
   experiences: ExperienceItem[];
   onChanged: () => void;
 }
 
-type FormMode = { type: 'closed' } | { type: 'new' } | { type: 'edit'; item: ExperienceItem };
-
 export default function ExperienceSection({ experiences, onChanged }: ExperienceSectionProps) {
-  const [mode, setMode] = useState<FormMode>({ type: 'closed' });
+  const [mode, setMode] = useState<FormMode<ExperienceItem>>({ type: 'closed' });
   const [error, setError] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<number | null>(null);
-
-  const confirmDelete = async () => {
-    if (confirmId === null) {
-      return;
-    }
-    const id = confirmId;
-    setConfirmId(null);
-    setError(null);
-    try {
-      await deleteExperience(id);
-      onChanged();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
-    }
-  };
+  const { confirmId, setConfirmId, confirmDelete } = useConfirmDelete(
+    deleteExperience,
+    onChanged,
+    setError,
+  );
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Expériences professionnelles</h2>
-        {mode.type === 'closed' && (
-          <button type="button" className={btnSecondary} onClick={() => setMode({ type: 'new' })}>
-            + Ajouter
-          </button>
-        )}
-      </div>
+      <SectionHeader
+        title="Expériences professionnelles"
+        showAdd={mode.type === 'closed'}
+        onAdd={() => setMode({ type: 'new' })}
+      />
 
       {error && <p className={`mb-4 ${errorBox}`}>{error}</p>}
 
@@ -129,12 +107,9 @@ function ExperienceForm({ item, onCancel, onSaved }: ExperienceFormProps) {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!ongoing && !endDate) {
-      setError('La date de fin est obligatoire, ou cochez « En cours ».');
-      return;
-    }
-    if (!ongoing && endDate < startDate) {
-      setError('La date de fin ne peut pas être antérieure à la date de début.');
+    const dateError = dateRangeError(startDate, endDate, ongoing);
+    if (dateError) {
+      setError(dateError);
       return;
     }
     const payload: ExperiencePayload = {
@@ -152,16 +127,14 @@ function ExperienceForm({ item, onCancel, onSaved }: ExperienceFormProps) {
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 grid gap-4 rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 sm:grid-cols-2">
-      {error && <p className={`sm:col-span-2 ${errorBox}`}>{error}</p>}
-
+    <SectionForm onSubmit={handleSubmit} error={error}>
       <div>
         <label className={labelClass} htmlFor="exp-company">Entreprise</label>
         <input id="exp-company" required value={companyName} onChange={(e) => setCompanyName(e.target.value)} className={inputClass} />
@@ -170,42 +143,21 @@ function ExperienceForm({ item, onCancel, onSaved }: ExperienceFormProps) {
         <label className={labelClass} htmlFor="exp-position">Poste</label>
         <input id="exp-position" required value={position} onChange={(e) => setPosition(e.target.value)} className={inputClass} />
       </div>
-      <div>
-        <label className={labelClass} htmlFor="exp-start">Date de début</label>
-        <input id="exp-start" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
-      </div>
-      <div>
-        <label className={labelClass} htmlFor="exp-end">Date de fin</label>
-        {!ongoing && (
-          <input
-            id="exp-end"
-            type="date"
-            value={endDate}
-            min={startDate || undefined}
-            required
-            onChange={(e) => setEndDate(e.target.value)}
-            className={inputClass}
-          />
-        )}
-        <label className={`mt-2 ${checkboxRow}`}>
-          <input
-            type="checkbox"
-            checked={ongoing}
-            onChange={(e) => setOngoing(e.target.checked)}
-            className={checkboxInput}
-          />
-          En cours
-        </label>
-      </div>
-
-      <div className="sm:col-span-2 flex gap-3">
-        <button type="submit" disabled={saving} className={btnPrimary}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
-        <button type="button" className={btnSecondary} onClick={onCancel}>
-          Annuler
-        </button>
-      </div>
-    </form>
+      <DateRangeFields
+        idPrefix="exp"
+        startDate={startDate}
+        endDate={endDate}
+        ongoing={ongoing}
+        onStartDate={setStartDate}
+        onEndDate={setEndDate}
+        onOngoing={setOngoing}
+      />
+      <FormActions
+        saving={saving}
+        submitLabel="Enregistrer"
+        savingLabel="Enregistrement…"
+        onCancel={onCancel}
+      />
+    </SectionForm>
   );
 }

@@ -10,7 +10,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,10 +19,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class User {
 
-    public static final int ROLE_MAX_LENGHT = 16;
+    public static final int ROLE_MAX_LENGTH = 16;
     public static final int LAST_NAME_MAX_LENGTH = 25;
     public static final int FIRST_NAME_MAX_LENGTH = 25;
     public static final int EMAIL_MAX_LENGTH = 35;
@@ -39,7 +37,7 @@ public class User {
     private int id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = ROLE_MAX_LENGHT)
+    @Column(nullable = false, length = ROLE_MAX_LENGTH)
     private Role role = Role.JOBSEEKER; // rôle par défaut
 
     @Column(nullable = false, length = LAST_NAME_MAX_LENGTH)
@@ -54,38 +52,31 @@ public class User {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String password;
 
-    @Column(nullable = true)
     private Boolean hasVehicle;
 
-    @Column(nullable = true)
     private LocalDate birthdate;
 
-    @Column(nullable = true, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String cvFilePath;
 
-    @Column(nullable = true, length = COMPANY_NAME_MAX_LENGTH)
+    @Column(length = COMPANY_NAME_MAX_LENGTH)
     private String companyName;
 
     /** Domicile de l'intérimaire ou siège de l'entreprise utilisatrice, repris sur le contrat. */
-    @Column(nullable = true, length = ADDRESS_MAX_LENGTH)
+    @Column(length = ADDRESS_MAX_LENGTH)
     private String address;
 
     /** Numéro de registre national de l'intérimaire (mention légale du contrat). */
-    @Column(nullable = true, length = NATIONAL_NUMBER_MAX_LENGTH)
+    @Column(length = NATIONAL_NUMBER_MAX_LENGTH)
     private String nationalNumber;
 
     /** Numéro d'entreprise (BCE) de l'entreprise utilisatrice. */
-    @Column(nullable = true, length = COMPANY_NUMBER_MAX_LENGTH)
+    @Column(length = COMPANY_NUMBER_MAX_LENGTH)
     private String companyNumber;
 
     /** Commission paritaire dont relève l'entreprise utilisatrice. */
-    @Column(nullable = true, length = JOINT_COMMITTEE_MAX_LENGTH)
+    @Column(length = JOINT_COMMITTEE_MAX_LENGTH)
     private String jointCommittee;
 
     // Ajouter les listes de skills, diplomes et langues.
-
-    public User(String email, String password) {
-        this.email = email;
-        this.password = password;
-    }
 }

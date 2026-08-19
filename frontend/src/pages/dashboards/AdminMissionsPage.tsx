@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { errorMessage } from '../../api/http';
 import { downloadContract, getAdminMissions, refuseMission, validateMission } from '../../api/missions';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import PromptDialog from '../../components/PromptDialog';
-import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
+import { btnDanger, btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import MissionFacts from '../../missions/MissionFacts';
 import MissionListItem from '../../missions/MissionListItem';
 import MissionSchedule from '../../missions/MissionSchedule';
@@ -66,28 +68,19 @@ function PendingMissionCard({
   );
 }
 
+/** Référence stable pour la liste vide, comme l'état initial `[]` d'avant. */
+const NO_MISSIONS: Mission[] = [];
+
 /** Validation des missions provisoires par l'agence (FR14). */
 export default function AdminMissionsPage() {
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [validating, setValidating] = useState<Mission | null>(null);
   const [refusing, setRefusing] = useState<Mission | null>(null);
 
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setMissions(await getAdminMissions());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les missions.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const { data, loading, error, setError, reload } = useResource(
+    getAdminMissions,
+    'Impossible de charger les missions.',
+  );
+  const missions = data ?? NO_MISSIONS;
 
   const pending = useMemo(() => missions.filter((m) => m.status === 'PENDING'), [missions]);
   const others = useMemo(() => missions.filter((m) => m.status !== 'PENDING'), [missions]);
@@ -103,7 +96,7 @@ export default function AdminMissionsPage() {
       await validateMission(id);
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
@@ -114,7 +107,7 @@ export default function AdminMissionsPage() {
       const blob = await downloadContract(missionId);
       window.open(URL.createObjectURL(blob), '_blank', 'noopener');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Le contrat n’a pas pu être ouvert.');
+      setError(errorMessage(err, 'Le contrat n’a pas pu être ouvert.'));
     }
   };
 
@@ -129,14 +122,14 @@ export default function AdminMissionsPage() {
       await refuseMission(id, reason);
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
   return (
     <section className="space-y-6">
       <div>
-        <Link to="/admin" className="text-sm text-indigo-600 hover:underline">
+        <Link to="/admin" className={linkBack}>
           ← Retour à l'espace administrateur
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Missions d'intérim</h1>

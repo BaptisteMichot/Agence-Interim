@@ -1,5 +1,6 @@
 package be.agence_interim.config;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -9,6 +10,7 @@ import be.agence_interim.chat.ChatHandshakeInterceptor;
 import be.agence_interim.chat.ChatWebSocketHandler;
 
 /** Expose le point d'entrée temps réel du chat sur {@code /ws/chat}. */
+@NullMarked
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {

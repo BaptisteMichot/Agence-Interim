@@ -10,7 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,7 +23,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class LanguageJobOffer {
 
     public static final int REQUIRED_LEVEL_MAX_LENGTH = 2;
@@ -46,6 +44,6 @@ public class LanguageJobOffer {
     private Boolean isMandatory;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = true, length = REQUIRED_LEVEL_MAX_LENGTH)
+    @Column(length = REQUIRED_LEVEL_MAX_LENGTH)
     private LanguageLevel requiredLevel;
 }

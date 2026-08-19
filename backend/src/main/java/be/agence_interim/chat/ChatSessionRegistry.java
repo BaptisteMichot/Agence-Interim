@@ -32,7 +32,7 @@ public class ChatSessionRegistry {
     }
 
     public void register(int userId, WebSocketSession session) {
-        sessionsByUser.computeIfAbsent(userId, key -> ConcurrentHashMap.newKeySet()).add(session);
+        sessionsByUser.computeIfAbsent(userId, _ -> ConcurrentHashMap.newKeySet()).add(session);
     }
 
     public void unregister(int userId, WebSocketSession session) {
@@ -65,7 +65,8 @@ public class ChatSessionRegistry {
     }
 
     private void sendText(WebSocketSession session, String json) {
-        if (!session.isOpen()) {
+        // Le test de nullite convainc l'analyse : Jackson n'annote pas ses retours.
+        if (json == null || !session.isOpen()) {
             return;
         }
         try {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { errorMessage } from '../api/http';
 
 interface AutoSaveOptions {
   /** Délai d'inactivité avant enregistrement, en millisecondes. */
@@ -40,7 +41,7 @@ export function useAutoSave<T>(
       await saveRef.current(next);
       savedSerialized.current = nextSerialized;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "L'enregistrement a échoué.");
+      setError(errorMessage(err, "L'enregistrement a échoué."));
     }
   }, []);
 

@@ -1,31 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getMyMissions } from '../../api/missions';
-import { btnPrimary, btnSecondary, errorBox } from '../../components/ui';
+import { btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import { missionPeriod } from '../../missions/format';
 import MissionListItem from '../../missions/MissionListItem';
 import type { Mission } from '../../missions/types';
 
+/** Référence stable pour la liste vide, comme l'état initial `[]` d'avant. */
+const NO_MISSIONS: Mission[] = [];
+
 /** Missions de l'intérimaire : propositions à confirmer, missions confirmées et historique. */
 export default function MyMissionsPage() {
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setMissions(await getMyMissions());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger tes missions.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const { data, loading, error } = useResource(getMyMissions, 'Impossible de charger tes missions.');
+  const missions = data ?? NO_MISSIONS;
 
   const toConfirm = useMemo(
     () => missions.filter((m) => m.status === 'APPROVED' || m.status === 'RENEWAL'),
@@ -56,7 +44,7 @@ export default function MyMissionsPage() {
     <section className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link to="/interimaire" className="text-sm text-indigo-600 hover:underline">
+          <Link to="/interimaire" className={linkBack}>
             ← Retour à mon espace
           </Link>
           <h1 className="mt-2 text-2xl font-semibold text-slate-900">Mes missions</h1>

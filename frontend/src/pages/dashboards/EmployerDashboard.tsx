@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getApplicationCounts } from '../../api/applications';
+import { errorMessage } from '../../api/http';
 import { closeOffer, getMyOffers } from '../../api/offers';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
+import { salarySuffix } from '../../offers/format';
 import type { JobOfferSummary } from '../../offers/types';
-import { formatDate } from '../../profile/format';
+import { formatTimestampDate } from '../../profile/format';
 import CompanySection from '../employer/CompanySection';
 
 export default function EmployerDashboard() {
@@ -22,7 +24,7 @@ export default function EmployerDashboard() {
       setOffers(myOffers);
       setCounts(applicationCounts);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les offres.');
+      setError(errorMessage(err, 'Impossible de charger les offres.'));
     } finally {
       setLoading(false);
     }
@@ -43,7 +45,7 @@ export default function EmployerDashboard() {
       await closeOffer(id);
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 
@@ -95,13 +97,11 @@ export default function EmployerDashboard() {
                 </p>
                 <p className="text-sm text-slate-500">
                   {offer.sector} · {offer.city}
-                  {offer.salaryMin !== null || offer.salaryMax !== null
-                    ? ` · ${offer.salaryMin ?? '?'} – ${offer.salaryMax ?? '?'} €/h`
-                    : ''}
+                  {salarySuffix(offer.salaryMin, offer.salaryMax)}
                 </p>
                 {offer.publishedAt && (
                   <p className="text-xs text-slate-400">
-                    Publiée le {formatDate(offer.publishedAt.slice(0, 10))}
+                    Publiée le {formatTimestampDate(offer.publishedAt)}
                   </p>
                 )}
               </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   acceptEmployerRequest,
@@ -6,9 +6,11 @@ import {
   refuseEmployerRequest,
   type AdminEmployerRequest,
 } from '../../api/employer';
+import { errorMessage } from '../../api/http';
 import { getAdminMissions } from '../../api/missions';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { btnDanger, btnPrimary, errorBox } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import { formatDate } from '../../profile/format';
 
 type PendingAction = { id: number; company: string; action: 'accept' | 'refuse' };
@@ -18,23 +20,12 @@ const STATUS_LABEL: Record<string, string> = {
   REFUSED: 'Refusée',
 };
 
+/** Référence stable pour la liste vide, comme l'état initial `[]` d'avant. */
+const NO_REQUESTS: AdminEmployerRequest[] = [];
+
 export default function AdminDashboard() {
-  const [requests, setRequests] = useState<AdminEmployerRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [pendingMissions, setPendingMissions] = useState(0);
-
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setRequests(await getEmployerRequests());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger les demandes.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     getAdminMissions()
@@ -42,9 +33,12 @@ export default function AdminDashboard() {
       .catch(() => setPendingMissions(0));
   }, []);
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  // Déclaré après l'effet ci-dessus : le chargement des demandes part toujours en second.
+  const { data, loading, error, setError, reload } = useResource(
+    getEmployerRequests,
+    'Impossible de charger les demandes.',
+  );
+  const requests = data ?? NO_REQUESTS;
 
   const waiting = useMemo(() => requests.filter((r) => r.status === 'PENDING'), [requests]);
   const history = useMemo(
@@ -63,7 +57,7 @@ export default function AdminDashboard() {
       await (action === 'accept' ? acceptEmployerRequest(id) : refuseEmployerRequest(id));
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     }
   };
 

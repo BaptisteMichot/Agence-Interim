@@ -12,9 +12,8 @@ export type WorkReason = 'REPLACEMENT' | 'OVERLOAD' | 'EXCEPTION';
 
 export type SignatureStatus = 'PENDING' | 'SIGNED';
 
-/** Journée travaillée d'une mission ; la pause, fixée par l'employeur, n'est pas payée. */
-export interface DailySlot {
-  id: number;
+/** Journée envoyée au backend (sans identifiant). */
+export interface DailySlotPayload {
   date: string; // yyyy-MM-dd
   startTime: string; // HH:mm[:ss]
   endTime: string;
@@ -22,13 +21,9 @@ export interface DailySlot {
   breakEnd: string | null;
 }
 
-/** Journée envoyée au backend (sans identifiant). */
-export interface DailySlotPayload {
-  date: string;
-  startTime: string;
-  endTime: string;
-  breakStart: string | null;
-  breakEnd: string | null;
+/** Journée travaillée d'une mission ; la pause, fixée par l'employeur, n'est pas payée. */
+export interface DailySlot extends DailySlotPayload {
+  id: number;
 }
 
 export interface Contract {
@@ -55,21 +50,17 @@ export interface ScheduleEntry {
   breakEnd: string | null;
 }
 
-/** Indisponibilité déclarée par l'intérimaire (editable = modifiable, cf. délai J+8). */
-export interface Unavailability {
-  id: number;
-  date: string;
-  startTime: string;
-  endTime: string;
-  reason: string | null;
-  editable: boolean;
-}
-
 export interface UnavailabilityPayload {
   date: string;
   startTime: string;
   endTime: string;
   reason: string | null;
+}
+
+/** Indisponibilité déclarée par l'intérimaire (editable = modifiable, cf. délai J+8). */
+export interface Unavailability extends UnavailabilityPayload {
+  id: number;
+  editable: boolean;
 }
 
 /** Corps envoyé à la création / correction d'une mission. */
@@ -88,18 +79,9 @@ export interface MissionPayload {
 }
 
 /** Mission complète, servie aux trois portails. */
-export interface Mission {
+export interface Mission extends Omit<MissionPayload, 'slots'> {
   id: number;
   status: MissionStatus;
-  startDate: string;
-  endDate: string;
-  position: string;
-  workplace: string;
-  description: string;
-  hourlyWage: number;
-  workReason: WorkReason;
-  replacedWorker: string | null;
-  notes: string | null;
   refusalReason: string | null;
   renewal: boolean;
   previousStartDate: string | null;

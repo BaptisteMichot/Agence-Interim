@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { errorMessage } from '../api/http';
 import { useAuth } from '../auth/AuthContext';
-import { homePathForUser } from '../auth/roleRoutes';
+import { homePathForRole } from '../auth/roleRoutes';
+import { btnAuthSubmit, errorBox, inputClass, labelClass } from '../components/ui';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -20,17 +22,15 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       const user = await register({ firstName, lastName, email, password });
-      navigate(homePathForUser(user), { replace: true });
+      navigate(homePathForRole(user.role), { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const inputClass =
-    'mb-4 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500';
-  const labelClass = 'mb-1 block text-sm font-medium text-slate-700';
+  const inputClassLocal = `mb-4 ${inputClass}`;
 
   return (
     <div className="flex min-h-full items-center justify-center bg-slate-50 px-4 py-8">
@@ -41,7 +41,7 @@ export default function RegisterPage() {
         <h1 className="mb-6 text-2xl font-semibold text-slate-900">Créer un compte</h1>
 
         {error && (
-          <p className="mb-4 whitespace-pre-line rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className={`mb-4 ${errorBox}`}>
             {error}
           </p>
         )}
@@ -54,7 +54,7 @@ export default function RegisterPage() {
           required
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="lastName">
@@ -65,7 +65,7 @@ export default function RegisterPage() {
           required
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="email">
@@ -77,7 +77,7 @@ export default function RegisterPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={inputClass}
+          className={inputClassLocal}
         />
 
         <label className={labelClass} htmlFor="password">
@@ -98,7 +98,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          className={btnAuthSubmit}
         >
           {submitting ? 'Création…' : 'Créer mon compte'}
         </button>

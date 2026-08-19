@@ -14,7 +14,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,7 +26,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class JobOffer {
 
     public static final int TITLE_MAX_LENGTH = 50;
@@ -56,19 +54,15 @@ public class JobOffer {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = true)
     private LocalDateTime publishedAt;
 
-    @Column(nullable = true)
     private BigDecimal salaryMin;
 
-    @Column(nullable = true)
     private BigDecimal salaryMax;
 
-    @Column(nullable = true, length = EXPERIENCE_TIME_MAX_LENGTH)
+    @Column(length = EXPERIENCE_TIME_MAX_LENGTH)
     private String experienceTime;
 
-    @Column(nullable = true)
     private Boolean vehicleMandatory;
 
     @Enumerated(EnumType.STRING)

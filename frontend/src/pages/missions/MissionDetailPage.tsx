@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { errorMessage } from '../../api/http';
 import { acceptMission, declineMission, getMyMission } from '../../api/missions';
 import { getUnavailabilities } from '../../api/planning';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { btnDanger, btnPrimary, errorBox } from '../../components/ui';
+import { btnDanger, btnPrimary, errorBox, linkBack } from '../../components/ui';
+import { useResource } from '../../hooks/useResource';
 import ContractPanel from '../../missions/ContractPanel';
 import MissionFacts from '../../missions/MissionFacts';
 import MissionSchedule from '../../missions/MissionSchedule';
 import MissionStatusBadge from '../../missions/MissionStatusBadge';
-import type { Mission, Unavailability } from '../../missions/types';
+import type { Unavailability } from '../../missions/types';
 import { formatDate } from '../../profile/format';
 
 /**
@@ -20,27 +22,18 @@ export default function MissionDetailPage() {
   const missionId = Number(id);
   const navigate = useNavigate();
 
-  const [mission, setMission] = useState<Mission | null>(null);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [declining, setDeclining] = useState(false);
   const [clashes, setClashes] = useState<Unavailability[]>([]);
 
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      setMission(await getMyMission(missionId));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de charger la mission.');
-    } finally {
-      setLoading(false);
-    }
-  }, [missionId]);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const fetcher = useCallback(() => getMyMission(missionId), [missionId]);
+  const {
+    data: mission,
+    setData: setMission,
+    loading,
+    error,
+    setError,
+  } = useResource(fetcher, 'Impossible de charger la mission.');
 
   // Prévient l'intérimaire si la mission tombe sur une indisponibilité qu'il a déclarée.
   useEffect(() => {
@@ -60,7 +53,7 @@ export default function MissionDetailPage() {
     try {
       setMission(accept ? await acceptMission(missionId) : await declineMission(missionId));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+      setError(errorMessage(err, 'Une erreur est survenue.'));
     } finally {
       setBusy(false);
     }
@@ -84,7 +77,7 @@ export default function MissionDetailPage() {
         <button
           type="button"
           onClick={() => navigate('/interimaire/missions')}
-          className="text-sm text-indigo-600 hover:underline"
+          className={linkBack}
         >
           ← Retour à mes missions
         </button>

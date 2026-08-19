@@ -67,11 +67,6 @@ public class AuthController {
                 "Connexion reussie.");
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleBadRequest(IllegalArgumentException exception) {
-        return ResponseEntity.badRequest().body(exception.getMessage());
-    }
-
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<String> handleBadCredentials(BadCredentialsException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

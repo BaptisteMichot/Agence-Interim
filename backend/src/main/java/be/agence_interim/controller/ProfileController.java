@@ -38,10 +38,7 @@ public class ProfileController {
     @GetMapping
     public ProfileResponse getProfile(@AuthenticationPrincipal Jwt jwt) {
         int userId = CurrentUser.id(jwt);
-        return ProfileResponse.of(
-                profileService.getUser(userId),
-                experienceService.list(userId),
-                formationService.list(userId));
+        return toResponse(profileService.getUser(userId), userId);
     }
 
     @PutMapping
@@ -49,9 +46,13 @@ public class ProfileController {
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody UpdateProfileRequest request) {
         int userId = CurrentUser.id(jwt);
-        User updated = profileService.updateBase(userId, request);
+        return toResponse(profileService.updateBase(userId, request), userId);
+    }
+
+    /** Réponse complète du profil : champs de base + expériences + formations. */
+    private ProfileResponse toResponse(User user, int userId) {
         return ProfileResponse.of(
-                updated,
+                user,
                 experienceService.list(userId),
                 formationService.list(userId));
     }

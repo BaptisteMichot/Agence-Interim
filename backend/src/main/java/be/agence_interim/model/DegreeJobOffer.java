@@ -10,7 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,7 +23,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class DegreeJobOffer {
 
     public static final int REQUIRED_TYPE_MAX_LENGTH = 10;
@@ -47,9 +45,9 @@ public class DegreeJobOffer {
     private Boolean isMandatory;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = true, length = REQUIRED_TYPE_MAX_LENGTH)
+    @Column(length = REQUIRED_TYPE_MAX_LENGTH)
     private DegreeType requiredType;
 
-    @Column(nullable = true, length = REQUIRED_SECTION_MAX_LENGTH)
+    @Column(length = REQUIRED_SECTION_MAX_LENGTH)
     private String requiredSection;
 }

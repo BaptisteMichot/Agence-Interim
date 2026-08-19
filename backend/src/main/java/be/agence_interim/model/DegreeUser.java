@@ -8,7 +8,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,7 +20,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class DegreeUser {
 
     public static final int INSTITUTION_MAX_LENGTH = 50;
@@ -39,9 +37,8 @@ public class DegreeUser {
     @JoinColumn(name = "id_user", nullable = false)
     private User user;
 
-    @Column(nullable = true, length = INSTITUTION_MAX_LENGTH)
+    @Column(length = INSTITUTION_MAX_LENGTH)
     private String institution;
 
-    @Column(nullable = true)
     private Integer graduationYear;
 }

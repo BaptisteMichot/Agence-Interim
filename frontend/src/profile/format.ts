@@ -15,9 +15,25 @@ export function formatDateTime(iso: string): string {
   return `${formatDate(date)} ${time.slice(0, 5)}`;
 }
 
+/** Date seule (jj/mm/aaaa) d'un horodatage ISO. */
+export function formatTimestampDate(iso: string): string {
+  return formatDate(iso.slice(0, 10));
+}
+
 /** Libellé d'affichage d'un statut de formation. */
 export function formationStatusLabel(status: FormationStatus): string {
   return status === 'EN_COURS' ? 'En cours' : 'Terminé';
+}
+
+/** Cohérence de la période saisie (expérience, formation) ; message d'erreur, ou null. */
+export function dateRangeError(startDate: string, endDate: string, ongoing: boolean): string | null {
+  if (!ongoing && !endDate) {
+    return 'La date de fin est obligatoire, ou cochez « En cours ».';
+  }
+  if (!ongoing && endDate < startDate) {
+    return 'La date de fin ne peut pas être antérieure à la date de début.';
+  }
+  return null;
 }
 
 /** Niveaux de compétence (valeur backend → libellé), dans l'ordre. */

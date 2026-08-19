@@ -61,7 +61,7 @@ export interface JobOfferDetail extends JobOfferSummary {
   description: string;
   experienceTime: string | null;
   vehicleMandatory: boolean | null;
-  skills: { skillId: number; name: string; isMandatory: boolean; requiredLevel: SkillLevel }[];
-  degrees: { degreeId: number; type: DegreeType; section: string; isMandatory: boolean }[];
-  languages: { languageId: number; name: string; isMandatory: boolean; requiredLevel: LanguageLevel }[];
+  skills: (OfferSkillRequirement & { skillId: number })[];
+  degrees: (OfferDegreeRequirement & { degreeId: number })[];
+  languages: (OfferLanguageRequirement & { name: string })[];
 }
