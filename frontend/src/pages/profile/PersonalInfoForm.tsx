@@ -1,10 +1,7 @@
 import { useCallback, useState } from 'react';
 import { updateProfile } from '../../api/profile';
-import AddressFields, {
-  formatAddress,
-  parseAddress,
-  type AddressParts,
-} from '../../components/AddressFields';
+import AddressFields from '../../components/AddressFields';
+import { formatAddress, parseAddress, type AddressParts } from '../../components/address';
 import { checkboxInput, checkboxRow, errorBox, inputClass, labelClass } from '../../components/ui';
 import type { Profile, ProfileBasePayload } from '../../profile/types';
 import { useAutoSave } from '../../profile/useAutoSave';

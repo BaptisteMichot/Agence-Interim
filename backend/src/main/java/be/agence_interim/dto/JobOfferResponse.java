@@ -29,6 +29,10 @@ public record JobOfferResponse(
         String companyName,
         /** Faux dès que l'offre est clôturée ou qu'elle a reçu une candidature. */
         boolean editable,
+        /** Vue intérimaire : l'offre est dans ses favoris. */
+        boolean favorite,
+        /** Vue intérimaire : il a déjà une candidature en cours sur cette offre. */
+        boolean applied,
         List<SkillRequirement> skills,
         List<DegreeRequirement> degrees,
         List<LanguageRequirement> languages) {
@@ -66,9 +70,21 @@ public record JobOfferResponse(
         }
     }
 
+    /** Vue de l'employeur : ni favori ni candidature ne le concernent. */
     public static JobOfferResponse of(
             JobOffer offer,
             boolean editable,
+            List<SkillJobOffer> skills,
+            List<DegreeJobOffer> degrees,
+            List<LanguageJobOffer> languages) {
+        return of(offer, editable, false, false, skills, degrees, languages);
+    }
+
+    public static JobOfferResponse of(
+            JobOffer offer,
+            boolean editable,
+            boolean favorite,
+            boolean applied,
             List<SkillJobOffer> skills,
             List<DegreeJobOffer> degrees,
             List<LanguageJobOffer> languages) {
@@ -86,6 +102,8 @@ public record JobOfferResponse(
                 offer.getStatus(),
                 offer.getEmployer().getCompanyName(),
                 editable,
+                favorite,
+                applied,
                 skills.stream().map(SkillRequirement::fromEntity).toList(),
                 degrees.stream().map(DegreeRequirement::fromEntity).toList(),
                 languages.stream().map(LanguageRequirement::fromEntity).toList());

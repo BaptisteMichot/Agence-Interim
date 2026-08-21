@@ -1,13 +1,14 @@
 package be.agence_interim.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import be.agence_interim.dto.MyApplicationResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.model.Application;
 import be.agence_interim.model.ApplicationStatus;
 import be.agence_interim.model.JobOffer;
@@ -62,16 +63,17 @@ public class ApplicationService {
         return MyApplicationResponse.fromEntity(applicationRepository.save(application));
     }
 
-    /** Toutes les candidatures de l'intérimaire (y compris annulées), les plus récentes d'abord. */
+    /** Une page des candidatures de l'intérimaire (y compris annulées), les plus récentes d'abord. */
     @Transactional(readOnly = true)
-    public List<MyApplicationResponse> mine(int jobSeekerId) {
-        return applicationRepository.findByJobSeekerIdFetchOffer(jobSeekerId)
-                .stream().map(MyApplicationResponse::fromEntity).toList();
+    public PageResponse<MyApplicationResponse> mine(int jobSeekerId, Pageable pageable) {
+        return PageResponse.of(
+                applicationRepository.findByJobSeekerIdFetchOffer(jobSeekerId, pageable),
+                MyApplicationResponse::fromEntity);
     }
 
-    /** Identifiants des offres avec candidature en cours (pour marquer « déjà postulé »). */
-    public List<Integer> appliedOfferIds(int jobSeekerId) {
-        return applicationRepository.findOfferIdsByJobSeekerIdAndStatus(jobSeekerId, ApplicationStatus.PENDING);
+    /** Nombre de candidatures en cours, pour le tableau de bord de l'intérimaire. */
+    public long pendingCount(int jobSeekerId) {
+        return applicationRepository.countByJobSeekerIdAndStatus(jobSeekerId, ApplicationStatus.PENDING);
     }
 
     /** Annule une candidature en cours de l'intérimaire. */

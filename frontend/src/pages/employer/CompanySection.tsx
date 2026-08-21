@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getMyCompany, updateMyCompany, type EmployerCompany } from '../../api/employer';
 import { errorMessage } from '../../api/http';
-import AddressFields, {
+import AddressFields from '../../components/AddressFields';
+import {
   EMPTY_ADDRESS,
   formatAddress,
   parseAddress,
   type AddressParts,
-} from '../../components/AddressFields';
+} from '../../components/address';
 import { btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../../components/ui';
 
 /**

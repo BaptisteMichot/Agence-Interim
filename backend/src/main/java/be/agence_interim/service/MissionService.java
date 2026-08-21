@@ -15,12 +15,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import be.agence_interim.dto.DailySlotRequest;
 import be.agence_interim.dto.MissionRequest;
 import be.agence_interim.dto.MissionResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.dto.ScheduleEntryResponse;
 import be.agence_interim.model.Application;
 import be.agence_interim.model.ApplicationStatus;
@@ -161,9 +164,32 @@ public class MissionService {
         return saveWithSlots(renewal, request.slots());
     }
 
+    /** Missions écartées, par l'agence ou par le candidat : elles appellent une reprise. */
+    private static final Set<MissionStatus> REJECTED =
+            EnumSet.of(MissionStatus.REFUSED, MissionStatus.DECLINED);
+
+    /**
+     * Une page d'une section de la liste des missions de l'employeur. Le filtre est
+     * porté par la requête : les sections ne se découpent plus après coup, sinon la
+     * pagination ne verrait qu'une partie de chacune.
+     *
+     * @param group current (en cours), past (terminées), awaiting (en décision), rejected (refusées)
+     */
     @Transactional(readOnly = true)
-    public List<MissionResponse> listForEmployer(int employerId) {
-        return toResponses(missionRepository.findByEmployerIdFetchAll(employerId));
+    public PageResponse<MissionResponse> listForEmployer(int employerId, String group, Pageable pageable) {
+        LocalDate today = LocalDate.now();
+        Page<Mission> page = switch (group) {
+            case "past" -> missionRepository.findForEmployerPast(employerId, MissionStatus.ACTIVE, today, pageable);
+            case "awaiting" -> missionRepository.findForEmployerByStatuses(employerId, UNDER_REVIEW, pageable);
+            case "rejected" -> missionRepository.findForEmployerByStatuses(employerId, REJECTED, pageable);
+            default -> missionRepository.findForEmployerCurrent(employerId, MissionStatus.ACTIVE, today, pageable);
+        };
+        return toPage(page);
+    }
+
+    /** Nombre de missions de l'employeur encore en décision (chiffre du tableau de bord). */
+    public long awaitingCountForEmployer(int employerId) {
+        return missionRepository.countForEmployerByStatuses(employerId, UNDER_REVIEW);
     }
 
     @Transactional(readOnly = true)
@@ -173,9 +199,22 @@ public class MissionService {
 
     // -------------------------------------------------------------------- agence
 
+    /**
+     * Une page d'une section de la liste des missions de l'agence.
+     *
+     * @param group pending (à valider) ou history (déjà tranchées)
+     */
     @Transactional(readOnly = true)
-    public List<MissionResponse> listForAdmin() {
-        return toResponses(missionRepository.findAllFetchAll());
+    public PageResponse<MissionResponse> listForAdmin(String group, Pageable pageable) {
+        Set<MissionStatus> pending = EnumSet.of(MissionStatus.PENDING);
+        return toPage("history".equals(group)
+                ? missionRepository.findForAdminByStatusesNot(pending, pageable)
+                : missionRepository.findForAdminByStatuses(pending, pageable));
+    }
+
+    /** Nombre de missions en attente de validation (chiffre du tableau de bord de l'agence). */
+    public long pendingCountForAdmin() {
+        return missionRepository.countByStatusIn(EnumSet.of(MissionStatus.PENDING));
     }
 
     @Transactional(readOnly = true)
@@ -216,11 +255,30 @@ public class MissionService {
 
     // --------------------------------------------------------------- intérimaire
 
+    /**
+     * Une page d'une section de la liste des missions de l'intérimaire.
+     *
+     * <p>Chaque section exclut d'elle-même ce que l'intérimaire ne doit pas voir
+     * (missions provisoires et refus échangés entre l'employeur et l'agence) : le
+     * filtre est dans la requête, il ne dépend plus d'un tri en mémoire.
+     *
+     * @param group to-confirm (à confirmer), waiting (attente agence),
+     *              confirmed (confirmées) ou history (historique)
+     */
     @Transactional(readOnly = true)
-    public List<MissionResponse> listForJobSeeker(int jobSeekerId) {
-        return toResponses(missionRepository.findByJobSeekerIdFetchAll(jobSeekerId).stream()
-                .filter(this::visibleToJobSeeker)
-                .toList());
+    public PageResponse<MissionResponse> listForJobSeeker(int jobSeekerId, String group, Pageable pageable) {
+        LocalDate today = LocalDate.now();
+        Page<Mission> page = switch (group) {
+            case "waiting" -> missionRepository.findForJobSeekerWaitingAgency(
+                    jobSeekerId, MissionStatus.PENDING, pageable);
+            case "confirmed" -> missionRepository.findForJobSeekerConfirmed(
+                    jobSeekerId, MissionStatus.ACTIVE, today, pageable);
+            case "history" -> missionRepository.findForJobSeekerHistory(
+                    jobSeekerId, MissionStatus.DECLINED, MissionStatus.ACTIVE, today, pageable);
+            default -> missionRepository.findForJobSeekerByStatuses(
+                    jobSeekerId, EnumSet.of(MissionStatus.APPROVED, MissionStatus.RENEWAL), pageable);
+        };
+        return toPage(page);
     }
 
     @Transactional(readOnly = true)
@@ -246,6 +304,12 @@ public class MissionService {
     @Transactional(readOnly = true)
     public long decisionCount(int jobSeekerId) {
         return missionRepository.countByApplicationJobSeekerIdAndStatusIn(jobSeekerId, AWAITING_WORKER);
+    }
+
+    /** Nombre de missions menées à leur terme (chiffre du tableau de bord de l'intérimaire). */
+    @Transactional(readOnly = true)
+    public long completedCount(int jobSeekerId) {
+        return missionRepository.countCompletedForJobSeeker(jobSeekerId, MissionStatus.ACTIVE, LocalDate.now());
     }
 
     /**
@@ -571,6 +635,12 @@ public class MissionService {
                 mission,
                 dailyScheduleRepository.findByMissionIdOrderByDateAscStartTimeAsc(mission.getId()),
                 contractRepository.findByMissionId(mission.getId()).orElse(null));
+    }
+
+    /** Assemble une page de missions ; journées et contrats sont chargés pour la seule page. */
+    private PageResponse<MissionResponse> toPage(Page<Mission> page) {
+        return PageResponse.of(
+                toResponses(page.getContent()), page.getNumber(), page.getSize(), page.getTotalElements());
     }
 
     /** Assemble une liste de missions en chargeant journées et contrats en deux requêtes. */

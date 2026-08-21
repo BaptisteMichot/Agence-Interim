@@ -48,6 +48,10 @@ export interface JobOfferSummary {
   companyName: string;
   /** Faux dès que l'offre est clôturée ou qu'elle a reçu une candidature. */
   editable: boolean;
+  /** Vue intérimaire : l'offre est dans ses favoris. */
+  favorite: boolean;
+  /** Vue employeur : nombre de candidatures en cours reçues sur l'offre. */
+  applicationCount: number;
 }
 
 /** Offre correspondant au profil, avec son score de correspondance (0-100). */
@@ -58,6 +62,8 @@ export interface MatchingOffer {
 
 /** Offre complète avec exigences. */
 export interface JobOfferDetail extends JobOfferSummary {
+  /** Vue intérimaire : il a déjà une candidature en cours sur cette offre. */
+  applied: boolean;
   description: string;
   experienceTime: string | null;
   vehicleMandatory: boolean | null;

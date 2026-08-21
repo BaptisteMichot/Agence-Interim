@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getMyApplications } from '../../api/applications';
-import { getMissionDecisionCount, getMyMissions } from '../../api/missions';
+import { getPendingApplicationCount } from '../../api/applications';
+import { getCompletedMissionCount, getMissionDecisionCount } from '../../api/missions';
 import { getMatchingOffers } from '../../api/offers';
 import { getSchedule } from '../../api/planning';
 import { getProfile } from '../../api/profile';
@@ -11,7 +11,7 @@ import PageHeader from '../../components/PageHeader';
 import { Skeleton } from '../../components/Skeleton';
 import StatTile from '../../components/StatTile';
 import { btnPrimary, card, sectionTitle, warningBox } from '../../components/ui';
-import { addDays, missionPeriod, shortTime, todayIso } from '../../missions/format';
+import { addDays, shortTime, todayIso } from '../../missions/format';
 import type { ScheduleEntry } from '../../missions/types';
 import { formatDate } from '../../profile/format';
 
@@ -35,24 +35,24 @@ export default function JobSeekerDashboard() {
     const from = todayIso();
     // Chaque appel retombe sur une valeur neutre : un service indisponible ne doit pas
     // priver l'utilisateur du reste de son accueil.
+    // Les chiffres viennent de comptages dédiés ou du total d'une page : depuis la
+    // pagination, la longueur d'une liste ne vaut plus pour un total.
     Promise.all([
       getMissionDecisionCount().catch(() => ({ count: 0 })),
-      getMyApplications().catch(() => []),
-      getMatchingOffers().catch(() => []),
+      getPendingApplicationCount().catch(() => 0),
+      getMatchingOffers(0).catch(() => ({ totalElements: 0 })),
       getSchedule(from, addDays(from, 30)).catch(() => []),
-      getMyMissions().catch(() => []),
+      getCompletedMissionCount().catch(() => 0),
       getProfile()
         .then((profile) => !profile.address || !profile.nationalNumber || !profile.iban)
         .catch(() => false),
-    ]).then(([decision, applications, matches, schedule, missions, contractInfoMissing]) =>
+    ]).then(([decision, applications, matches, schedule, completed, contractInfoMissing]) =>
       setData({
         decisions: decision.count,
-        applications: applications.filter((application) => application.status === 'PENDING').length,
-        matches: matches.length,
+        applications,
+        matches: matches.totalElements,
         nextDays: schedule.slice(0, 4),
-        completed: missions.filter(
-          (mission) => mission.status === 'ACTIVE' && missionPeriod(mission) === 'past',
-        ).length,
+        completed,
         contractInfoMissing,
       }),
     );

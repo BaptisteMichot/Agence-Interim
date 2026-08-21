@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   acceptEmployerRequest,
   getEmployerRequests,
@@ -9,6 +9,7 @@ import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
+import PagedSection from '../../components/PagedSection';
 import { SkeletonRows } from '../../components/Skeleton';
 import StatusBadge from '../../components/StatusBadge';
 import {
@@ -20,8 +21,11 @@ import {
   errorBox,
   sectionTitle,
 } from '../../components/ui';
-import { useResource } from '../../hooks/useResource';
 import { formatDate } from '../../profile/format';
+
+// Définis au niveau du module : leur identité est stable, ce que `PagedSection` exige.
+const loadWaiting = (page: number) => getEmployerRequests('pending', page);
+const loadHistory = (page: number) => getEmployerRequests('history', page);
 
 type PendingAction = { id: number; company: string; action: 'accept' | 'refuse' };
 
@@ -30,25 +34,13 @@ const STATUS_LABEL: Record<string, string> = {
   REFUSED: 'Refusée',
 };
 
-/** Référence stable pour la liste vide, comme l'état initial `[]` d'avant. */
-const NO_REQUESTS: AdminEmployerRequest[] = [];
-
 export default function AdminDashboard() {
   const [pending, setPending] = useState<PendingAction | null>(null);
   /** Refus définitif : coché, l'utilisateur ne pourra plus soumettre de demande. */
   const [blockReapply, setBlockReapply] = useState(false);
-
-  const { data, loading, error, setError, reload } = useResource(
-    getEmployerRequests,
-    'Impossible de charger les demandes.',
-  );
-  const requests = data ?? NO_REQUESTS;
-
-  const waiting = useMemo(() => requests.filter((r) => r.status === 'PENDING'), [requests]);
-  const history = useMemo(
-    () => requests.filter((r) => r.status !== 'PENDING').reverse(),
-    [requests],
-  );
+  const [error, setError] = useState<string | null>(null);
+  /** Incrémenté après chaque décision : les deux sections se rechargent. */
+  const [decisions, setDecisions] = useState(0);
 
   const confirm = async () => {
     if (!pending) {
@@ -60,7 +52,7 @@ export default function AdminDashboard() {
     setError(null);
     try {
       await (action === 'accept' ? acceptEmployerRequest(id) : refuseEmployerRequest(id, block));
-      reload();
+      setDecisions((count) => count + 1);
     } catch (err) {
       setError(errorMessage(err, 'Une erreur est survenue.'));
     }
@@ -75,56 +67,77 @@ export default function AdminDashboard() {
 
       {error && <p className={`mb-6 ${errorBox}`}>{error}</p>}
 
-      <section className={card}>
-        <h2 className={`mb-4 ${sectionTitle}`}>Demandes d'accès en attente</h2>
-        {loading && <SkeletonRows rows={2} />}
-        {!loading && waiting.length === 0 && (
-          <EmptyState
-            title="Aucune demande en attente"
-            description="Les demandes d'accès employeur apparaîtront ici dès qu'un utilisateur en formulera une."
-          />
+      <PagedSection
+        fetch={loadWaiting}
+        label="demandes"
+        loadError="Impossible de charger les demandes."
+        reloadToken={decisions}
+      >
+        {({ items, loading, error: sectionError, pagination }) => (
+          <section className={card}>
+            <h2 className={`mb-4 ${sectionTitle}`}>Demandes d'accès en attente</h2>
+            {sectionError && <p className={`mb-4 ${errorBox}`}>{sectionError}</p>}
+            {loading && <SkeletonRows rows={2} />}
+            {!loading && items.length === 0 && (
+              <EmptyState
+                title="Aucune demande en attente"
+                description="Les demandes d'accès employeur apparaîtront ici dès qu'un utilisateur en formulera une."
+              />
+            )}
+            <ul className="space-y-3">
+              {items.map((request) => (
+                <RequestCard key={request.id} request={request}>
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    onClick={() =>
+                      setPending({ id: request.id, company: request.companyName, action: 'accept' })
+                    }
+                  >
+                    Accepter
+                  </button>
+                  <button
+                    type="button"
+                    className={btnDanger}
+                    onClick={() => {
+                      setBlockReapply(false);
+                      setPending({ id: request.id, company: request.companyName, action: 'refuse' });
+                    }}
+                  >
+                    Refuser
+                  </button>
+                </RequestCard>
+              ))}
+            </ul>
+            {pagination}
+          </section>
         )}
-        <ul className="space-y-3">
-          {waiting.map((request) => (
-            <RequestCard key={request.id} request={request}>
-              <button
-                type="button"
-                className={btnPrimary}
-                onClick={() =>
-                  setPending({ id: request.id, company: request.companyName, action: 'accept' })
-                }
-              >
-                Accepter
-              </button>
-              <button
-                type="button"
-                className={btnDanger}
-                onClick={() => {
-                  setBlockReapply(false);
-                  setPending({ id: request.id, company: request.companyName, action: 'refuse' });
-                }}
-              >
-                Refuser
-              </button>
-            </RequestCard>
-          ))}
-        </ul>
-      </section>
+      </PagedSection>
 
-      {history.length > 0 && (
-        <section className={`mt-6 ${card}`}>
-          <h2 className={`mb-4 ${sectionTitle}`}>Historique</h2>
-          <ul className="space-y-3">
-            {history.map((request) => (
-              <RequestCard key={request.id} request={request}>
-                <StatusBadge tone={request.status === 'ACCEPTED' ? 'success' : 'danger'}>
-                  {STATUS_LABEL[request.status]}
-                </StatusBadge>
-              </RequestCard>
-            ))}
-          </ul>
-        </section>
-      )}
+      <PagedSection
+        fetch={loadHistory}
+        label="demandes"
+        loadError="Impossible de charger les demandes."
+        reloadToken={decisions}
+      >
+        {({ items, total, pagination }) =>
+          total === 0 ? null : (
+            <section className={`mt-6 ${card}`}>
+              <h2 className={`mb-4 ${sectionTitle}`}>Historique</h2>
+              <ul className="space-y-3">
+                {items.map((request) => (
+                  <RequestCard key={request.id} request={request}>
+                    <StatusBadge tone={request.status === 'ACCEPTED' ? 'success' : 'danger'}>
+                      {STATUS_LABEL[request.status]}
+                    </StatusBadge>
+                  </RequestCard>
+                ))}
+              </ul>
+              {pagination}
+            </section>
+          )
+        }
+      </PagedSection>
 
       <ConfirmDialog
         open={pending !== null}

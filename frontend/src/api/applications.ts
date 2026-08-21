@@ -1,5 +1,11 @@
 import { apiDownload, apiGet, apiPost, apiPut } from './http';
-import type { CandidateProfile, MyApplication, OfferApplication } from '../applications/types';
+import { apiGetCount, apiGetPage, type Page } from './page';
+import type {
+  ApplicationSort,
+  CandidateProfile,
+  MyApplication,
+  OfferApplication,
+} from '../applications/types';
 
 // --- Candidatures de l'intérimaire ---
 
@@ -7,13 +13,13 @@ export function applyToOffer(offerId: number): Promise<MyApplication> {
   return apiPost<MyApplication>(`/offers/${offerId}/apply`, {});
 }
 
-export function getMyApplications(): Promise<MyApplication[]> {
-  return apiGet<MyApplication[]>('/applications');
+export function getMyApplications(page: number): Promise<Page<MyApplication>> {
+  return apiGetPage<MyApplication>('/applications', page);
 }
 
-/** Identifiants des offres avec candidature en cours (pour marquer « déjà postulé »). */
-export function getAppliedOfferIds(): Promise<number[]> {
-  return apiGet<number[]>('/applications/offer-ids');
+/** Nombre de candidatures en cours (chiffre du tableau de bord). */
+export function getPendingApplicationCount(): Promise<number> {
+  return apiGetCount('/applications/pending-count');
 }
 
 export function cancelApplication(id: number): Promise<MyApplication> {
@@ -22,13 +28,18 @@ export function cancelApplication(id: number): Promise<MyApplication> {
 
 // --- Candidatures reçues par l'employeur ---
 
-export function getOfferApplications(offerId: number): Promise<OfferApplication[]> {
-  return apiGet<OfferApplication[]>(`/employer/offers/${offerId}/applications`);
+/** Une page des candidatures reçues sur une offre. Le tri est appliqué en base. */
+export function getOfferApplications(
+  offerId: number,
+  page: number,
+  sort: ApplicationSort,
+): Promise<Page<OfferApplication>> {
+  return apiGetPage<OfferApplication>(`/employer/offers/${offerId}/applications`, page, { sort });
 }
 
-/** Nombre de candidatures en cours par offre (clé = id de l'offre). */
-export function getApplicationCounts(): Promise<Record<string, number>> {
-  return apiGet<Record<string, number>>('/employer/offers/application-counts');
+/** Nombre total de candidatures en cours reçues (chiffre du tableau de bord). */
+export function getReceivedApplicationCount(): Promise<number> {
+  return apiGetCount('/employer/applications/pending-count');
 }
 
 export function rateApplication(id: number, rating: number): Promise<OfferApplication> {

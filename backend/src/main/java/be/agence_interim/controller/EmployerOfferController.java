@@ -1,6 +1,6 @@
 package be.agence_interim.controller;
 
-import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,11 +12,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import be.agence_interim.dto.JobOfferRequest;
 import be.agence_interim.dto.JobOfferResponse;
 import be.agence_interim.dto.JobOfferSummaryResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.JobOfferService;
 import be.agence_interim.service.MatchNotificationService;
@@ -37,8 +39,15 @@ public class EmployerOfferController {
     }
 
     @GetMapping
-    public List<JobOfferSummaryResponse> list(@AuthenticationPrincipal Jwt jwt) {
-        return jobOfferService.listMine(CurrentUser.id(jwt));
+    public PageResponse<JobOfferSummaryResponse> list(
+            @AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
+        return jobOfferService.listMine(CurrentUser.id(jwt), Pages.of(page));
+    }
+
+    /** Nombre d'offres encore ouvertes (chiffre du tableau de bord). */
+    @GetMapping("/open-count")
+    public Map<String, Long> openCount(@AuthenticationPrincipal Jwt jwt) {
+        return Map.of("count", jobOfferService.openOfferCount(CurrentUser.id(jwt)));
     }
 
     @GetMapping("/{id}")

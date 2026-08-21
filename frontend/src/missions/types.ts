@@ -10,6 +10,15 @@ export type MissionStatus = 'PENDING' | 'REFUSED' | 'APPROVED' | 'RENEWAL' | 'AC
 
 export type WorkReason = 'REPLACEMENT' | 'OVERLOAD' | 'EXCEPTION';
 
+/**
+ * Sections des listes de missions. Chacune est une requête paginée à part : le
+ * découpage est fait en base, sinon une page ne montrerait qu'une partie de chaque
+ * section.
+ */
+export type JobSeekerMissionGroup = 'to-confirm' | 'waiting' | 'confirmed' | 'history';
+export type EmployerMissionGroup = 'current' | 'past' | 'awaiting' | 'rejected';
+export type AdminMissionGroup = 'pending' | 'history';
+
 export type SignatureStatus = 'PENDING' | 'SIGNED';
 
 /** Journée envoyée au backend (sans identifiant). */

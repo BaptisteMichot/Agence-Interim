@@ -2,14 +2,20 @@ package be.agence_interim.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import be.agence_interim.dto.AdminEmployerRequestResponse;
 import be.agence_interim.dto.EmployerCompanyRequest;
 import be.agence_interim.dto.MyEmployerRequestResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.dto.EmployerRegisterRequest;
 import be.agence_interim.model.EmployerAccessRequest;
 import be.agence_interim.model.EmployerAccessStatus;
@@ -127,8 +133,33 @@ public class EmployerAccessService {
     }
 
     /** Toutes les demandes (en attente + historique), ordonnées par id. */
-    public List<EmployerAccessRequest> listAll() {
-        return requestRepository.findAllFetchUser();
+    /**
+     * Une page des demandes d'accès employeur, en attente ou déjà tranchées.
+     *
+     * @param group pending (en attente) ou history
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<AdminEmployerRequestResponse> list(String group, Pageable pageable) {
+        Page<EmployerAccessRequest> page = "history".equals(group)
+                ? requestRepository.findByStatusNotFetchUser(EmployerAccessStatus.PENDING, pageable)
+                : requestRepository.findByStatusFetchUser(EmployerAccessStatus.PENDING, pageable);
+
+        // Une re-soumission est une demande qui n'est pas la première de son auteur.
+        List<Integer> userIds = page.getContent().stream().map(r -> r.getUser().getId()).distinct().toList();
+        Map<Integer, Integer> firstRequestByUser = userIds.isEmpty()
+                ? Map.of()
+                : requestRepository.findFirstRequestIdByUserIds(userIds).stream()
+                        .collect(Collectors.toMap(
+                                row -> row.getUserId(), row -> row.getFirstRequestId()));
+
+        return PageResponse.of(page, request -> AdminEmployerRequestResponse.fromEntity(
+                request,
+                request.getId() > firstRequestByUser.getOrDefault(request.getUser().getId(), request.getId())));
+    }
+
+    /** Nombre de demandes en attente de traitement (chiffre du tableau de bord de l'agence). */
+    public long pendingCount() {
+        return requestRepository.countByStatus(EmployerAccessStatus.PENDING);
     }
 
     @Transactional

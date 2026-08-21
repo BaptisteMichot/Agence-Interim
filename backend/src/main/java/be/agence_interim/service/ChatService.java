@@ -1,7 +1,6 @@
 package be.agence_interim.service;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,11 +8,17 @@ import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import be.agence_interim.dto.ChatMessageResponse;
 import be.agence_interim.dto.ConversationResponse;
+import be.agence_interim.dto.MessageHistoryResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.model.Application;
 import be.agence_interim.model.ApplicationStatus;
 import be.agence_interim.model.Conversation;
@@ -81,31 +86,27 @@ public class ChatService {
      * message et non-lus.
      */
     @Transactional(readOnly = true)
-    public List<ConversationResponse> myConversations(int userId) {
-        List<Conversation> conversations = conversationRepository.findByParticipantFetchAll(userId);
-        if (conversations.isEmpty()) {
-            return List.of();
+    public PageResponse<ConversationResponse> myConversations(int userId, Pageable pageable) {
+        // Le masquage et le classement par dernier message sont faits en base : sur une
+        // liste paginée, filtrer ou trier après coup ne porterait que sur la page reçue.
+        Page<Conversation> page = conversationRepository.findVisibleForUser(userId, pageable);
+        List<Integer> ids = page.getContent().stream().map(conversation -> conversation.getId()).toList();
+        if (ids.isEmpty()) {
+            return PageResponse.empty(page.getNumber(), page.getSize());
         }
 
-        Map<Integer, Message> lastMessages = lastMessageByConversation(
-                conversations.stream().map(conversation -> conversation.getId()).toList());
+        Map<Integer, Message> lastMessages = lastMessageByConversation(ids);
         Map<Integer, Long> unread = new HashMap<>();
-        for (MessageRepository.ConversationUnreadCount count : messageRepository.countUnreadByConversation(userId)) {
+        for (MessageRepository.ConversationUnreadCount count
+                : messageRepository.countUnreadByConversation(userId, ids)) {
             unread.put(count.getConversationId(), count.getTotal());
         }
 
-        return conversations.stream()
-                .filter(conversation -> visible(conversation, userId, lastMessages.get(conversation.getId())))
-                .map(conversation -> toResponse(
-                        conversation,
-                        userId,
-                        lastMessages.get(conversation.getId()),
-                        unread.getOrDefault(conversation.getId(), 0L)))
-                .sorted(Comparator.comparing(
-                        (ConversationResponse response) -> response.lastMessageTime(),
-                        Comparator.nullsFirst(Comparator.naturalOrder()))
-                        .reversed())
-                .toList();
+        return PageResponse.of(page, conversation -> toResponse(
+                conversation,
+                userId,
+                lastMessages.get(conversation.getId()),
+                unread.getOrDefault(conversation.getId(), 0L)));
     }
 
     /** Nombre total de messages non lus (badge de la barre de navigation). */
@@ -121,14 +122,30 @@ public class ChatService {
     }
 
     /**
-     * Historique d'une conversation ; les messages reçus y sont marqués comme lus.
+     * Un lot d'historique d'une conversation ; les messages reçus y sont marqués comme lus.
+     *
+     * <p>Sans {@code beforeId}, ce sont les derniers messages ; avec, les messages qui
+     * précèdent celui-là. Un identifiant sert de repère plutôt qu'un numéro de page :
+     * un message envoyé pendant la lecture décalerait toutes les pages.
      */
     @Transactional
-    public List<ChatMessageResponse> messages(int userId, int conversationId) {
+    public MessageHistoryResponse messages(
+            int userId, int conversationId, @Nullable Integer beforeId, int limit) {
         participantConversation(userId, conversationId);
         messageRepository.markConversationRead(conversationId, userId);
-        return messageRepository.findByConversationIdFetchSender(conversationId)
+
+        // Un message de plus que demandé : sa présence dit qu'il reste de l'historique.
+        Pageable batch = PageRequest.of(0, limit + 1);
+        List<Message> found = beforeId == null
+                ? messageRepository.findRecent(conversationId, batch)
+                : messageRepository.findBefore(conversationId, beforeId, batch);
+
+        boolean hasMore = found.size() > limit;
+        List<Message> kept = hasMore ? found.subList(0, limit) : found;
+        // La requête renvoie du plus récent au plus ancien : le fil s'affiche à l'endroit.
+        List<ChatMessageResponse> messages = kept.reversed()
                 .stream().map(ChatMessageResponse::fromEntity).toList();
+        return new MessageHistoryResponse(messages, hasMore);
     }
 
     /**
@@ -164,16 +181,6 @@ public class ChatService {
         Conversation conversation = participantConversation(userId, conversationId);
         conversation.hideFor(userId, LocalDateTime.now());
         conversationRepository.save(conversation);
-    }
-
-    /**
-     * Une conversation masquée reste cachée tant qu'aucun message n'y a été posté
-     * depuis le masquage.
-     */
-    private boolean visible(Conversation conversation, int userId, Message lastMessage) {
-        LocalDateTime hiddenAt = conversation.hiddenAtFor(userId);
-        return hiddenAt == null
-                || (lastMessage != null && lastMessage.getSentTime().isAfter(hiddenAt));
     }
 
     /** Charge une conversation en vérifiant que l'utilisateur y participe. */

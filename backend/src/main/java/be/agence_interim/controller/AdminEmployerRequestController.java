@@ -1,9 +1,6 @@
 package be.agence_interim.controller;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import be.agence_interim.dto.AdminEmployerRequestResponse;
-import be.agence_interim.model.EmployerAccessRequest;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.service.EmployerAccessService;
 
 /** Traitement des demandes d'accès employeur par l'administrateur (routes /api/admin/** = rôle ADMIN). */
@@ -28,18 +25,21 @@ public class AdminEmployerRequestController {
         this.employerAccessService = employerAccessService;
     }
 
-    /** Toutes les demandes (en attente + historique). {@code resubmission} = l'utilisateur avait déjà une demande antérieure. */
+    /**
+     * Une section de la liste : pending (en attente) ou history.
+     * {@code resubmission} = l'utilisateur avait déjà déposé une demande auparavant.
+     */
     @GetMapping
-    public List<AdminEmployerRequestResponse> list() {
-        List<AdminEmployerRequestResponse> result = new ArrayList<>();
-        Set<Integer> seenUsers = new HashSet<>();
-        for (EmployerAccessRequest request : employerAccessService.listAll()) {
-            int userId = request.getUser().getId();
-            boolean resubmission = seenUsers.contains(userId);
-            result.add(AdminEmployerRequestResponse.fromEntity(request, resubmission));
-            seenUsers.add(userId);
-        }
-        return result;
+    public PageResponse<AdminEmployerRequestResponse> list(
+            @RequestParam(defaultValue = "pending") String group,
+            @RequestParam(defaultValue = "0") int page) {
+        return employerAccessService.list(group, Pages.of(page));
+    }
+
+    /** Nombre de demandes en attente (chiffre du tableau de bord). */
+    @GetMapping("/pending-count")
+    public Map<String, Long> pendingCount() {
+        return Map.of("count", employerAccessService.pendingCount());
     }
 
     @PostMapping("/{id}/accept")

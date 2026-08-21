@@ -1,5 +1,6 @@
 import type { EmployerAccessStatus } from '../auth/types';
 import { apiDelete, apiGet, apiPost, apiPut } from './http';
+import { apiGetPage, type Page } from './page';
 
 /** Mentions légales de l'entreprise utilisatrice, reprises sur les contrats. */
 export interface EmployerCompany {
@@ -57,9 +58,15 @@ export function deleteAccount(): Promise<void> {
 
 // --- Administration ---
 
-/** Toutes les demandes (en attente + historique). */
-export function getEmployerRequests(): Promise<AdminEmployerRequest[]> {
-  return apiGet<AdminEmployerRequest[]>('/admin/employer-requests');
+/** Sections de la liste des demandes d'accès employeur. */
+export type EmployerRequestGroup = 'pending' | 'history';
+
+/** Une section des demandes d'accès employeur (filtrée en base). */
+export function getEmployerRequests(
+  group: EmployerRequestGroup,
+  page: number,
+): Promise<Page<AdminEmployerRequest>> {
+  return apiGetPage<AdminEmployerRequest>('/admin/employer-requests', page, { group });
 }
 
 export function acceptEmployerRequest(id: number): Promise<void> {

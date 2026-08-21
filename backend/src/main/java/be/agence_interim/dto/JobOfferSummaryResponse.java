@@ -6,7 +6,13 @@ import java.time.LocalDateTime;
 import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.JobOfferStatus;
 
-/** Vue résumée d'une offre pour les listes (sans les exigences). */
+/**
+ * Vue résumée d'une offre pour les listes (sans les exigences).
+ *
+ * <p>Les deux derniers champs évitent au frontend d'aller chercher, en plus de la
+ * page affichée, la liste complète des favoris ou des compteurs de candidatures :
+ * ils sont calculés pour les seules offres de la page.
+ */
 public record JobOfferSummaryResponse(
         int id,
         String title,
@@ -18,14 +24,27 @@ public record JobOfferSummaryResponse(
         JobOfferStatus status,
         String companyName,
         /** Faux dès que l'offre est clôturée ou qu'elle a reçu une candidature. */
-        boolean editable) {
+        boolean editable,
+        /** Vue intérimaire : l'offre est dans ses favoris. */
+        boolean favorite,
+        /** Vue employeur : nombre de candidatures en cours reçues sur l'offre. */
+        long applicationCount) {
 
     /** Vue destinée à l'intérimaire, qui ne modifie jamais une offre. */
     public static JobOfferSummaryResponse fromEntity(JobOffer offer) {
-        return fromEntity(offer, false);
+        return forJobSeeker(offer, false);
     }
 
-    public static JobOfferSummaryResponse fromEntity(JobOffer offer, boolean editable) {
+    public static JobOfferSummaryResponse forJobSeeker(JobOffer offer, boolean favorite) {
+        return of(offer, false, favorite, 0);
+    }
+
+    public static JobOfferSummaryResponse forEmployer(JobOffer offer, boolean editable, long applicationCount) {
+        return of(offer, editable, false, applicationCount);
+    }
+
+    private static JobOfferSummaryResponse of(
+            JobOffer offer, boolean editable, boolean favorite, long applicationCount) {
         return new JobOfferSummaryResponse(
                 offer.getId(),
                 offer.getTitle(),
@@ -36,6 +55,8 @@ public record JobOfferSummaryResponse(
                 offer.getSalaryMax(),
                 offer.getStatus(),
                 offer.getEmployer().getCompanyName(),
-                editable);
+                editable,
+                favorite,
+                applicationCount);
     }
 }

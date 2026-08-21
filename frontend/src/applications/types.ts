@@ -17,6 +17,9 @@ export interface MyApplication {
   offer: JobOfferSummary;
 }
 
+/** Tris proposés à l'employeur sur les candidatures reçues (appliqués en base). */
+export type ApplicationSort = 'date-desc' | 'date-asc' | 'rating-desc';
+
 /** Candidature reçue sur une offre, vue par l'employeur. */
 export interface OfferApplication {
   id: number;

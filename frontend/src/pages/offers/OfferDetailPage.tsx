@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { applyToOffer, getAppliedOfferIds } from '../../api/applications';
+import { applyToOffer } from '../../api/applications';
 import { errorMessage } from '../../api/http';
-import {
-  addFavoriteOffer,
-  getFavoriteOfferIds,
-  getOfferDetail,
-  removeFavoriteOffer,
-} from '../../api/offers';
+import { addFavoriteOffer, getOfferDetail, removeFavoriteOffer } from '../../api/offers';
 import { btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
 import type { JobOfferDetail } from '../../offers/types';
 import { degreeTypeLabel, formatTimestampDate, skillLevelLabel } from '../../profile/format';
@@ -27,14 +22,12 @@ export default function OfferDetailPage() {
   const reload = useCallback(async () => {
     setError(null);
     try {
-      const [detail, favoriteIds, appliedIds] = await Promise.all([
-        getOfferDetail(offerId),
-        getFavoriteOfferIds(),
-        getAppliedOfferIds(),
-      ]);
+      // Le favori et la candidature en cours sont portés par l'offre elle-même :
+      // plus besoin de télécharger la liste complète des favoris pour une seule offre.
+      const detail = await getOfferDetail(offerId);
       setOffer(detail);
-      setFavorite(favoriteIds.includes(offerId));
-      setApplied(appliedIds.includes(offerId));
+      setFavorite(detail.favorite);
+      setApplied(detail.applied);
     } catch (err) {
       setError(errorMessage(err, "Impossible de charger l'offre."));
     } finally {

@@ -1,17 +1,22 @@
 import { apiDelete, apiGet, apiPost } from './http';
-import type { ChatMessage, Conversation } from '../chat/types';
+import { apiGetPage, type Page } from './page';
+import type { ChatMessage, Conversation, MessageHistory } from '../chat/types';
 
-export function getConversations(): Promise<Conversation[]> {
-  return apiGet<Conversation[]>('/chat/conversations');
+export function getConversations(page: number): Promise<Page<Conversation>> {
+  return apiGetPage<Conversation>('/chat/conversations', page);
 }
 
 export function getConversation(id: number): Promise<Conversation> {
   return apiGet<Conversation>(`/chat/conversations/${id}`);
 }
 
-/** Historique du fil ; marque au passage les messages reçus comme lus. */
-export function getMessages(conversationId: number): Promise<ChatMessage[]> {
-  return apiGet<ChatMessage[]>(`/chat/conversations/${conversationId}/messages`);
+/**
+ * Un lot d'historique du fil ; marque au passage les messages reçus comme lus.
+ * Sans `before`, les derniers messages ; avec, ceux qui précèdent ce message.
+ */
+export function getMessages(conversationId: number, before?: number): Promise<MessageHistory> {
+  const query = before === undefined ? '' : `?before=${before}`;
+  return apiGet<MessageHistory>(`/chat/conversations/${conversationId}/messages${query}`);
 }
 
 /** Retire la conversation de sa propre liste ; l'autre partie la conserve. */

@@ -22,6 +22,16 @@ export interface Conversation {
   unreadCount: number;
 }
 
+/**
+ * Un lot d'historique d'un fil, du plus ancien au plus récent.
+ * Un fil se lit à l'envers du reste : on ouvre sur les derniers messages et on
+ * remonte le temps, d'où un drapeau plutôt qu'un numéro de page.
+ */
+export interface MessageHistory {
+  messages: ChatMessage[];
+  hasMore: boolean;
+}
+
 /** Trame reçue du serveur sur la WebSocket. */
 export interface ServerFrame {
   type: 'MESSAGE' | 'ERROR';

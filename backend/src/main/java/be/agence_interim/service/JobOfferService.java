@@ -3,9 +3,13 @@ package be.agence_interim.service;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,12 +17,14 @@ import be.agence_interim.dto.JobOfferRequest;
 import be.agence_interim.dto.JobOfferResponse;
 import be.agence_interim.dto.JobOfferSummaryResponse;
 import be.agence_interim.dto.OfferDegreeRequirement;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.dto.OfferLanguageRequirement;
 import be.agence_interim.dto.OfferSkillRequirement;
 import be.agence_interim.model.Degree;
 import be.agence_interim.model.DegreeJobOffer;
 import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.JobOfferStatus;
+import be.agence_interim.model.ApplicationStatus;
 import be.agence_interim.model.Language;
 import be.agence_interim.model.LanguageJobOffer;
 import be.agence_interim.model.Skill;
@@ -80,15 +86,30 @@ public class JobOfferService {
         return toResponse(saved, false);
     }
 
+    /**
+     * Une page des offres de l'employeur. Les candidatures reçues ne sont comptées que
+     * pour les offres affichées : inutile de balayer toutes ses offres pour dix lignes.
+     */
     @Transactional(readOnly = true)
-    public List<JobOfferSummaryResponse> listMine(int employerId) {
-        Set<Integer> withApplications = new HashSet<>(applicationRepository.findOfferIdsWithApplications(employerId));
-        return jobOfferRepository.findByEmployerIdOrderByPublishedAtDesc(employerId)
-                .stream()
-                .map(offer -> JobOfferSummaryResponse.fromEntity(
-                        offer,
-                        offer.getStatus() == JobOfferStatus.OPEN && !withApplications.contains(offer.getId())))
-                .toList();
+    public PageResponse<JobOfferSummaryResponse> listMine(int employerId, Pageable pageable) {
+        Page<JobOffer> page = jobOfferRepository.findByEmployerIdFetchEmployer(employerId, pageable);
+        List<Integer> offerIds = page.getContent().stream().map(offer -> offer.getId()).toList();
+        Set<Integer> withApplications = offerIds.isEmpty()
+                ? Set.of()
+                : new HashSet<>(applicationRepository.findOfferIdsWithApplicationsIn(offerIds));
+        Map<Integer, Long> counts = offerIds.isEmpty()
+                ? Map.of()
+                : applicationRepository.countByOfferIds(offerIds, ApplicationStatus.PENDING).stream()
+                        .collect(Collectors.toMap(count -> count.getOfferId(), count -> count.getTotal()));
+        return PageResponse.of(page, offer -> JobOfferSummaryResponse.forEmployer(
+                offer,
+                offer.getStatus() == JobOfferStatus.OPEN && !withApplications.contains(offer.getId()),
+                counts.getOrDefault(offer.getId(), 0L)));
+    }
+
+    /** Nombre d'offres encore ouvertes (chiffre du tableau de bord de l'employeur). */
+    public long openOfferCount(int employerId) {
+        return jobOfferRepository.countByEmployerIdAndStatus(employerId, JobOfferStatus.OPEN);
     }
 
     @Transactional(readOnly = true)
@@ -222,6 +243,18 @@ public class JobOfferService {
         return JobOfferResponse.of(
                 offer,
                 offer.getStatus() == JobOfferStatus.OPEN && !hasApplications,
+                skillJobOfferRepository.findByJobOfferIdFetchSkill(offer.getId()),
+                degreeJobOfferRepository.findByJobOfferIdFetchDegree(offer.getId()),
+                languageJobOfferRepository.findByJobOfferIdFetchLanguage(offer.getId()));
+    }
+
+    /** Vue de l'intérimaire : l'offre n'est jamais modifiable, mais elle peut être en favori. */
+    JobOfferResponse toJobSeekerResponse(JobOffer offer, boolean favorite, boolean applied) {
+        return JobOfferResponse.of(
+                offer,
+                false,
+                favorite,
+                applied,
                 skillJobOfferRepository.findByJobOfferIdFetchSkill(offer.getId()),
                 degreeJobOfferRepository.findByJobOfferIdFetchDegree(offer.getId()),
                 languageJobOfferRepository.findByJobOfferIdFetchLanguage(offer.getId()));

@@ -1,5 +1,13 @@
 import { apiDownload, apiGet, apiPost, apiPut } from './http';
-import type { Contract, Mission, MissionPayload } from '../missions/types';
+import { apiGetCount, apiGetPage, type Page } from './page';
+import type {
+  AdminMissionGroup,
+  Contract,
+  EmployerMissionGroup,
+  JobSeekerMissionGroup,
+  Mission,
+  MissionPayload,
+} from '../missions/types';
 
 // --- Employeur ---
 
@@ -18,8 +26,17 @@ export function renewMission(missionId: number, payload: MissionPayload): Promis
   return apiPost<Mission>(`/employer/missions/${missionId}/renew`, payload);
 }
 
-export function getEmployerMissions(): Promise<Mission[]> {
-  return apiGet<Mission[]>('/employer/missions');
+/** Une section des missions de l'employeur (filtrée en base). */
+export function getEmployerMissions(
+  group: EmployerMissionGroup,
+  page: number,
+): Promise<Page<Mission>> {
+  return apiGetPage<Mission>('/employer/missions', page, { group });
+}
+
+/** Nombre de missions encore en décision (chiffre du tableau de bord). */
+export function getEmployerAwaitingMissionCount(): Promise<number> {
+  return apiGetCount('/employer/missions/awaiting-count');
 }
 
 export function getEmployerMission(missionId: number): Promise<Mission> {
@@ -28,8 +45,14 @@ export function getEmployerMission(missionId: number): Promise<Mission> {
 
 // --- Agence (admin) ---
 
-export function getAdminMissions(): Promise<Mission[]> {
-  return apiGet<Mission[]>('/admin/missions');
+/** Une section des missions vues par l'agence (filtrée en base). */
+export function getAdminMissions(group: AdminMissionGroup, page: number): Promise<Page<Mission>> {
+  return apiGetPage<Mission>('/admin/missions', page, { group });
+}
+
+/** Nombre de missions en attente de validation (badge de la barre latérale). */
+export function getAdminPendingMissionCount(): Promise<number> {
+  return apiGetCount('/admin/missions/pending-count');
 }
 
 export function validateMission(missionId: number): Promise<Mission> {
@@ -42,8 +65,9 @@ export function refuseMission(missionId: number, reason: string): Promise<Missio
 
 // --- Intérimaire ---
 
-export function getMyMissions(): Promise<Mission[]> {
-  return apiGet<Mission[]>('/missions');
+/** Une section des missions de l'intérimaire (filtrée en base). */
+export function getMyMissions(group: JobSeekerMissionGroup, page: number): Promise<Page<Mission>> {
+  return apiGetPage<Mission>('/missions', page, { group });
 }
 
 export function getMyMission(missionId: number): Promise<Mission> {
@@ -53,6 +77,11 @@ export function getMyMission(missionId: number): Promise<Mission> {
 /** Nombre de missions attendant une réponse de l'intérimaire (badge du portail). */
 export function getMissionDecisionCount(): Promise<{ count: number }> {
   return apiGet<{ count: number }>('/missions/decision-count');
+}
+
+/** Nombre de missions menées à leur terme (chiffre du tableau de bord). */
+export function getCompletedMissionCount(): Promise<number> {
+  return apiGetCount('/missions/completed-count');
 }
 
 export function acceptMission(missionId: number): Promise<Mission> {

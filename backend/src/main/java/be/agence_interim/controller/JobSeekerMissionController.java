@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import be.agence_interim.dto.MissionResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.dto.ScheduleEntryResponse;
 import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.MissionService;
@@ -30,15 +31,25 @@ public class JobSeekerMissionController {
         this.missionService = missionService;
     }
 
+    /** Une section de la liste : to-confirm, waiting, confirmed ou history. */
     @GetMapping
-    public List<MissionResponse> list(@AuthenticationPrincipal Jwt jwt) {
-        return missionService.listForJobSeeker(CurrentUser.id(jwt));
+    public PageResponse<MissionResponse> list(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "to-confirm") String group,
+            @RequestParam(defaultValue = "0") int page) {
+        return missionService.listForJobSeeker(CurrentUser.id(jwt), group, Pages.of(page));
     }
 
     /** Nombre de missions attendant une réponse (badge du portail). */
     @GetMapping("/decision-count")
     public Map<String, Long> decisionCount(@AuthenticationPrincipal Jwt jwt) {
         return Map.of("count", missionService.decisionCount(CurrentUser.id(jwt)));
+    }
+
+    /** Nombre de missions menées à leur terme (chiffre du tableau de bord). */
+    @GetMapping("/completed-count")
+    public Map<String, Long> completedCount(@AuthenticationPrincipal Jwt jwt) {
+        return Map.of("count", missionService.completedCount(CurrentUser.id(jwt)));
     }
 
     /** Journées de travail sur une période, pour le planning (missions confirmées). */

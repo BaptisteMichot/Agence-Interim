@@ -7,8 +7,9 @@ import { useChat } from '../../chat/ChatContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
+import Pagination from '../../components/Pagination';
 import { card, errorBox } from '../../components/ui';
-import { useResource } from '../../hooks/useResource';
+import { usePagedResource } from '../../hooks/usePagedResource';
 import type { Conversation } from '../../chat/types';
 import { formatDateTime } from '../../profile/format';
 
@@ -16,11 +17,15 @@ import { formatDateTime } from '../../profile/format';
 export default function ConversationsPage() {
   const { user } = useAuth();
   const { subscribe } = useChat();
-  const { data, loading, error, setError, reload } = useResource(
-    getConversations,
-    'Impossible de charger les conversations.',
-  );
-  const conversations = data ?? [];
+  const {
+    items: conversations,
+    pageData,
+    loading,
+    error,
+    setError,
+    reload,
+    goTo,
+  } = usePagedResource(getConversations, 'Impossible de charger les conversations.');
   const [removing, setRemoving] = useState<Conversation | null>(null);
 
   // Seul l'employeur peut retirer une conversation de sa liste ; le candidat la conserve.
@@ -115,6 +120,8 @@ export default function ConversationsPage() {
             </li>
           ))}
         </ul>
+
+        <Pagination page={pageData} onChange={goTo} label="conversations" />
       </div>
 
       <ConfirmDialog

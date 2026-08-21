@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCandidateProfile } from '../../api/applications';
 import { getMyCompany } from '../../api/employer';
-import AddressFields, {
+import AddressFields from '../../components/AddressFields';
+import {
   EMPTY_ADDRESS,
   formatAddress,
   parseAddress,
   type AddressParts,
-} from '../../components/AddressFields';
+} from '../../components/address';
 import { errorMessage } from '../../api/http';
 import { createMission, getEmployerMission, renewMission, updateMission } from '../../api/missions';
 import { getMyOffer } from '../../api/offers';

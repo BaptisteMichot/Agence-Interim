@@ -4,8 +4,9 @@ import { cancelApplication, getMyApplications } from '../../api/applications';
 import { errorMessage } from '../../api/http';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import PageHeader from '../../components/PageHeader';
+import Pagination from '../../components/Pagination';
 import { btnDanger, btnSecondary, errorBox } from '../../components/ui';
-import { useResource } from '../../hooks/useResource';
+import { usePagedResource } from '../../hooks/usePagedResource';
 import type { MyApplication } from '../../applications/types';
 import { formatTimestampDate } from '../../profile/format';
 
@@ -28,11 +29,15 @@ function statusChip(application: MyApplication) {
 export default function MyApplicationsPage() {
   const [canceling, setCanceling] = useState<MyApplication | null>(null);
 
-  const { data, loading, error, setError, reload } = useResource(
-    getMyApplications,
-    'Impossible de charger les candidatures.',
-  );
-  const applications = data ?? [];
+  const {
+    items: applications,
+    pageData,
+    loading,
+    error,
+    setError,
+    reload,
+    goTo,
+  } = usePagedResource(getMyApplications, 'Impossible de charger les candidatures.');
 
   const confirmCancel = async () => {
     if (!canceling) {
@@ -98,6 +103,8 @@ export default function MyApplicationsPage() {
             </li>
           ))}
         </ul>
+
+        <Pagination page={pageData} onChange={goTo} label="candidatures" />
       </div>
 
       <ConfirmDialog

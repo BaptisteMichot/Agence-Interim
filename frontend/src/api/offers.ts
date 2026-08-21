@@ -1,10 +1,16 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './http';
+import { apiGetCount, apiGetPage, type Page } from './page';
 import type { JobOfferDetail, JobOfferPayload, JobOfferSummary, MatchingOffer } from '../offers/types';
 
 // --- Offres de l'employeur courant ---
 
-export function getMyOffers(): Promise<JobOfferSummary[]> {
-  return apiGet<JobOfferSummary[]>('/employer/offers');
+export function getMyOffers(page: number): Promise<Page<JobOfferSummary>> {
+  return apiGetPage<JobOfferSummary>('/employer/offers', page);
+}
+
+/** Nombre d'offres encore ouvertes (chiffre du tableau de bord). */
+export function getOpenOfferCount(): Promise<number> {
+  return apiGetCount('/employer/offers/open-count');
 }
 
 export function getMyOffer(id: number): Promise<JobOfferDetail> {
@@ -25,25 +31,21 @@ export function closeOffer(id: number): Promise<JobOfferDetail> {
 
 // --- Consultation par l'intérimaire + favoris ---
 
-export function browseOffers(): Promise<JobOfferSummary[]> {
-  return apiGet<JobOfferSummary[]>('/offers');
+export function browseOffers(page: number): Promise<Page<JobOfferSummary>> {
+  return apiGetPage<JobOfferSummary>('/offers', page);
 }
 
 /** Offres correspondant au profil (triées par score décroissant). */
-export function getMatchingOffers(): Promise<MatchingOffer[]> {
-  return apiGet<MatchingOffer[]>('/offers/matching');
+export function getMatchingOffers(page: number): Promise<Page<MatchingOffer>> {
+  return apiGetPage<MatchingOffer>('/offers/matching', page);
 }
 
 export function getOfferDetail(id: number): Promise<JobOfferDetail> {
   return apiGet<JobOfferDetail>(`/offers/${id}`);
 }
 
-export function getFavoriteOffers(): Promise<JobOfferSummary[]> {
-  return apiGet<JobOfferSummary[]>('/offers/favorites');
-}
-
-export function getFavoriteOfferIds(): Promise<number[]> {
-  return apiGet<number[]>('/offers/favorites/ids');
+export function getFavoriteOffers(page: number): Promise<Page<JobOfferSummary>> {
+  return apiGetPage<JobOfferSummary>('/offers/favorites', page);
 }
 
 export function addFavoriteOffer(id: number): Promise<void> {

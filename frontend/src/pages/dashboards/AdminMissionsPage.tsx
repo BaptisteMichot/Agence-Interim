@@ -1,16 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { errorMessage } from '../../api/http';
 import { downloadContract, getAdminMissions, refuseMission, validateMission } from '../../api/missions';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import PromptDialog from '../../components/PromptDialog';
 import PageHeader from '../../components/PageHeader';
+import PagedSection from '../../components/PagedSection';
 import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
-import { useResource } from '../../hooks/useResource';
 import MissionFacts from '../../missions/MissionFacts';
 import MissionListItem from '../../missions/MissionListItem';
 import MissionSchedule from '../../missions/MissionSchedule';
 import type { Mission } from '../../missions/types';
 import { formatDate } from '../../profile/format';
+
+// Définis au niveau du module : leur identité est stable, ce que `PagedSection` exige.
+const loadPending = (page: number) => getAdminMissions('pending', page);
+const loadHistory = (page: number) => getAdminMissions('history', page);
 
 /** Mission en attente, dépliée avec toutes les informations utiles à la décision. */
 function PendingMissionCard({
@@ -68,22 +72,13 @@ function PendingMissionCard({
   );
 }
 
-/** Référence stable pour la liste vide, comme l'état initial `[]` d'avant. */
-const NO_MISSIONS: Mission[] = [];
-
 /** Validation des missions provisoires par l'agence (FR14). */
 export default function AdminMissionsPage() {
   const [validating, setValidating] = useState<Mission | null>(null);
   const [refusing, setRefusing] = useState<Mission | null>(null);
-
-  const { data, loading, error, setError, reload } = useResource(
-    getAdminMissions,
-    'Impossible de charger les missions.',
-  );
-  const missions = data ?? NO_MISSIONS;
-
-  const pending = useMemo(() => missions.filter((m) => m.status === 'PENDING'), [missions]);
-  const others = useMemo(() => missions.filter((m) => m.status !== 'PENDING'), [missions]);
+  const [error, setError] = useState<string | null>(null);
+  /** Incrémenté après chaque décision : les deux sections se rechargent. */
+  const [decisions, setDecisions] = useState(0);
 
   const confirmValidate = async () => {
     if (!validating) {
@@ -94,7 +89,7 @@ export default function AdminMissionsPage() {
     setError(null);
     try {
       await validateMission(id);
-      reload();
+      setDecisions((count) => count + 1);
     } catch (err) {
       setError(errorMessage(err, 'Une erreur est survenue.'));
     }
@@ -120,7 +115,7 @@ export default function AdminMissionsPage() {
     setError(null);
     try {
       await refuseMission(id, reason);
-      reload();
+      setDecisions((count) => count + 1);
     } catch (err) {
       setError(errorMessage(err, 'Une erreur est survenue.'));
     }
@@ -135,63 +130,84 @@ export default function AdminMissionsPage() {
 
       {error && <p className={errorBox}>{error}</p>}
 
-      <div className="rounded-xl border border-line bg-surface p-6">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">
-          Missions à valider {pending.length > 0 && <span className="text-slate-400">({pending.length})</span>}
-        </h2>
-        {loading && <p className="text-sm text-slate-500">Chargement…</p>}
-        {!loading && pending.length === 0 && (
-          <p className="text-sm text-slate-500">Aucune mission en attente de validation.</p>
+      <PagedSection
+        fetch={loadPending}
+        label="missions"
+        loadError="Impossible de charger les missions."
+        reloadToken={decisions}
+      >
+        {({ items, total, loading, error: sectionError, pagination }) => (
+          <div className="rounded-xl border border-line bg-surface p-6">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">
+              Missions à valider {total > 0 && <span className="text-slate-400">({total})</span>}
+            </h2>
+            {sectionError && <p className={errorBox}>{sectionError}</p>}
+            {loading && <p className="text-sm text-slate-500">Chargement…</p>}
+            {!loading && items.length === 0 && (
+              <p className="text-sm text-slate-500">Aucune mission en attente de validation.</p>
+            )}
+            <ul className="space-y-4">
+              {items.map((mission) => (
+                <PendingMissionCard
+                  key={mission.id}
+                  mission={mission}
+                  onValidate={() => setValidating(mission)}
+                  onRefuse={() => setRefusing(mission)}
+                />
+              ))}
+            </ul>
+            {pagination}
+          </div>
         )}
-        <ul className="space-y-4">
-          {pending.map((mission) => (
-            <PendingMissionCard
-              key={mission.id}
-              mission={mission}
-              onValidate={() => setValidating(mission)}
-              onRefuse={() => setRefusing(mission)}
-            />
-          ))}
-        </ul>
-      </div>
+      </PagedSection>
 
-      {others.length > 0 && (
-        <div className="rounded-xl border border-line bg-surface p-6">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Historique</h2>
-          <ul className="space-y-3">
-            {others.map((mission) => (
-              <MissionListItem
-                key={mission.id}
-                mission={mission}
-                subtitle={
-                  <>
-                    {mission.employerCompanyName ?? '—'} → {mission.candidateFirstName}{' '}
-                    {mission.candidateLastName}
-                  </>
-                }
-              >
-                {mission.contract && (
-                  <>
-                    <span className="text-xs text-slate-500">
-                      {mission.contract.statusEmployer === 'SIGNED' &&
-                      mission.contract.statusWorker === 'SIGNED'
-                        ? 'signé par les deux parties'
-                        : 'signatures en attente'}
-                    </span>
-                    <button
-                      type="button"
-                      className={btnSecondary}
-                      onClick={() => openContract(mission.id)}
-                    >
-                      📄 Contrat
-                    </button>
-                  </>
-                )}
-              </MissionListItem>
-            ))}
-          </ul>
-        </div>
-      )}
+      <PagedSection
+        fetch={loadHistory}
+        label="missions"
+        loadError="Impossible de charger les missions."
+        reloadToken={decisions}
+      >
+        {({ items, total, pagination }) =>
+          total === 0 ? null : (
+            <div className="rounded-xl border border-line bg-surface p-6">
+              <h2 className="mb-4 text-lg font-semibold text-slate-900">Historique</h2>
+              <ul className="space-y-3">
+                {items.map((mission) => (
+                  <MissionListItem
+                    key={mission.id}
+                    mission={mission}
+                    subtitle={
+                      <>
+                        {mission.employerCompanyName ?? '—'} → {mission.candidateFirstName}{' '}
+                        {mission.candidateLastName}
+                      </>
+                    }
+                  >
+                    {mission.contract && (
+                      <>
+                        <span className="text-xs text-slate-500">
+                          {mission.contract.statusEmployer === 'SIGNED' &&
+                          mission.contract.statusWorker === 'SIGNED'
+                            ? 'signé par les deux parties'
+                            : 'signatures en attente'}
+                        </span>
+                        <button
+                          type="button"
+                          className={btnSecondary}
+                          onClick={() => openContract(mission.id)}
+                        >
+                          📄 Contrat
+                        </button>
+                      </>
+                    )}
+                  </MissionListItem>
+                ))}
+              </ul>
+              {pagination}
+            </div>
+          )
+        }
+      </PagedSection>
 
       <ConfirmDialog
         open={validating !== null}

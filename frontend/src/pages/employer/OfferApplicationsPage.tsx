@@ -1,30 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getOfferApplications, rateApplication } from '../../api/applications';
 import { openConversationForApplication } from '../../api/chat';
 import { errorMessage } from '../../api/http';
 import { getMyOffer } from '../../api/offers';
+import Pagination from '../../components/Pagination';
 import { btnPrimary, btnSecondary, errorBox, inputClass, linkBack } from '../../components/ui';
-import type { OfferApplication } from '../../applications/types';
-import type { JobOfferDetail } from '../../offers/types';
+import { usePagedResource } from '../../hooks/usePagedResource';
+import { useResource } from '../../hooks/useResource';
+import type { ApplicationSort } from '../../applications/types';
 import { formatTimestampDate } from '../../profile/format';
-
-type SortKey = 'date-desc' | 'date-asc' | 'rating-desc';
-
-/** Tri des candidatures (FR12) : par date ou par note (non notées en dernier). */
-function sortApplications(applications: OfferApplication[], sort: SortKey): OfferApplication[] {
-  const sorted = [...applications];
-  if (sort === 'rating-desc') {
-    sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
-  } else {
-    sorted.sort((a, b) =>
-      sort === 'date-asc'
-        ? a.applicationTime.localeCompare(b.applicationTime)
-        : b.applicationTime.localeCompare(a.applicationTime),
-    );
-  }
-  return sorted;
-}
 
 /** Note 1-5 cliquable (FR11). */
 function RatingStars({
@@ -59,34 +44,34 @@ export default function OfferApplicationsPage() {
   const offerId = Number(id);
   const navigate = useNavigate();
 
-  const [offer, setOffer] = useState<JobOfferDetail | null>(null);
-  const [applications, setApplications] = useState<OfferApplication[]>([]);
-  const [sort, setSort] = useState<SortKey>('date-desc');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [sort, setSort] = useState<ApplicationSort>('date-desc');
 
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      const [detail, list] = await Promise.all([getMyOffer(offerId), getOfferApplications(offerId)]);
-      setOffer(detail);
-      setApplications(list);
-    } catch (err) {
-      setError(errorMessage(err, 'Impossible de charger les candidatures.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [offerId]);
+  const loadOffer = useCallback(() => getMyOffer(offerId), [offerId]);
+  const { data: offer, loading: loadingOffer, error: offerError } = useResource(
+    loadOffer,
+    "Impossible de charger l'offre.",
+  );
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  // Le tri est appliqué en base : trier côté client ne classerait que la page affichée.
+  const loadApplications = useCallback(
+    (page: number) => getOfferApplications(offerId, page, sort),
+    [offerId, sort],
+  );
+  const {
+    items: applications,
+    pageData,
+    setItems,
+    loading,
+    error,
+    setError,
+    goTo,
+  } = usePagedResource(loadApplications, 'Impossible de charger les candidatures.');
 
   const rate = async (applicationId: number, rating: number) => {
     setError(null);
     try {
       const updated = await rateApplication(applicationId, rating);
-      setApplications((list) => list.map((a) => (a.id === updated.id ? updated : a)));
+      setItems((list) => list.map((a) => (a.id === updated.id ? updated : a)));
     } catch (err) {
       setError(errorMessage(err, 'Une erreur est survenue.'));
     }
@@ -103,12 +88,12 @@ export default function OfferApplicationsPage() {
     }
   };
 
-  if (loading) {
+  if (loadingOffer) {
     return <p className="text-slate-500">Chargement…</p>;
   }
 
   if (!offer) {
-    return <p className={errorBox}>{error ?? 'Offre introuvable.'}</p>;
+    return <p className={errorBox}>{offerError ?? 'Offre introuvable.'}</p>;
   }
 
   return (
@@ -123,13 +108,13 @@ export default function OfferApplicationsPage() {
             {offer.sector} · {offer.city}
           </p>
         </div>
-        {applications.length > 1 && (
+        {pageData.totalElements > 1 && (
           <label className="flex items-center gap-2 text-sm text-slate-700">
             Trier par
             <select
               className={`${inputClass} w-auto`}
               value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
+              onChange={(e) => setSort(e.target.value as ApplicationSort)}
             >
               <option value="date-desc">Plus récentes</option>
               <option value="date-asc">Plus anciennes</option>
@@ -139,15 +124,16 @@ export default function OfferApplicationsPage() {
         )}
       </div>
 
-      {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
+      {(error ?? offerError) && <p className={`mt-4 ${errorBox}`}>{error ?? offerError}</p>}
 
       <div className="mt-6 rounded-xl border border-line bg-surface p-6">
-        {applications.length === 0 && (
+        {loading && <p className="text-sm text-slate-500">Chargement…</p>}
+        {!loading && applications.length === 0 && (
           <p className="text-sm text-slate-500">Aucune candidature reçue pour cette offre.</p>
         )}
 
         <ul className="space-y-3">
-          {sortApplications(applications, sort).map((application) => (
+          {applications.map((application) => (
             <li
               key={application.id}
               className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 p-4"
@@ -187,6 +173,8 @@ export default function OfferApplicationsPage() {
             </li>
           ))}
         </ul>
+
+        <Pagination page={pageData} onChange={goTo} label="candidatures" />
       </div>
     </section>
   );

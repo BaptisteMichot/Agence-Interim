@@ -2,11 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { registerEmployer } from '../api/client';
 import { errorMessage } from '../api/http';
-import AddressFields, {
-  EMPTY_ADDRESS,
-  formatAddress,
-  type AddressParts,
-} from '../components/AddressFields';
+import AddressFields from '../components/AddressFields';
+import { EMPTY_ADDRESS, formatAddress, type AddressParts } from '../components/address';
 import PasswordInput from '../components/PasswordInput';
 import { btnAuthSubmit, errorBox, inputClass, labelClass } from '../components/ui';
 

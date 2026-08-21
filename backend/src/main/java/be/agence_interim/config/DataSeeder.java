@@ -6,6 +6,7 @@ import java.util.Map;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,7 @@ import be.agence_interim.service.Strings;
  * Idempotent : chaque entrée n'est ajoutée que si elle n'existe pas déjà.
  */
 @Component
+@Order(1) // Avant DemoDataSeeder : sans ordre explicite, un runner passe en dernier.
 public class DataSeeder implements CommandLineRunner {
 
     private static final List<String> LANGUAGES = List.of(

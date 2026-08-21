@@ -1,30 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getApplicationCounts } from '../../api/applications';
+import { getReceivedApplicationCount } from '../../api/applications';
 import { getMyCompany } from '../../api/employer';
-import { getEmployerMissions } from '../../api/missions';
-import { getMyOffers } from '../../api/offers';
+import { getEmployerAwaitingMissionCount, getEmployerMissions } from '../../api/missions';
+import { getOpenOfferCount } from '../../api/offers';
 import { useAuth } from '../../auth/AuthContext';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
+import PagedSection from '../../components/PagedSection';
 import { Skeleton } from '../../components/Skeleton';
 import StatTile from '../../components/StatTile';
-import { card, sectionTitle, warningBox } from '../../components/ui';
+import { card, errorBox, sectionTitle, warningBox } from '../../components/ui';
 import MissionStatusBadge from '../../missions/MissionStatusBadge';
 import type { Mission } from '../../missions/types';
 import { formatDate } from '../../profile/format';
 
-/** Missions dont l'issue dépend encore de l'agence ou du candidat. */
-const AWAITING = ['PENDING', 'APPROVED', 'RENEWAL'];
-
-/** Missions écartées, par l'agence ou par le candidat : elles appellent une reprise. */
-const REJECTED = ['REFUSED', 'DECLINED'];
+// Définis au niveau du module : leur identité est stable, ce que `PagedSection` exige.
+const loadAwaiting = (page: number) => getEmployerMissions('awaiting', page);
+const loadRejected = (page: number) => getEmployerMissions('rejected', page);
 
 interface HomeData {
   openOffers: number;
   applications: number;
-  waiting: Mission[];
-  rejected: Mission[];
+  awaiting: number;
   companyIncomplete: boolean;
 }
 
@@ -34,22 +32,18 @@ export default function EmployerDashboard() {
   const [data, setData] = useState<HomeData | null>(null);
 
   useEffect(() => {
-    // Valeurs neutres en cas d'échec : un service indisponible ne vide pas tout l'accueil.
+    // Les chiffres viennent de comptages dédiés, pas des listes : une page de dix
+    // missions ne dirait rien du total. Valeurs neutres en cas d'échec, pour qu'un
+    // service indisponible ne vide pas tout l'accueil.
     Promise.all([
-      getMyOffers().catch(() => []),
-      getApplicationCounts().catch(() => ({}) as Record<string, number>),
-      getEmployerMissions().catch(() => []),
+      getOpenOfferCount().catch(() => 0),
+      getReceivedApplicationCount().catch(() => 0),
+      getEmployerAwaitingMissionCount().catch(() => 0),
       getMyCompany()
         .then((company) => company.incomplete)
         .catch(() => false),
-    ]).then(([offers, counts, missions, companyIncomplete]) =>
-      setData({
-        openOffers: offers.filter((offer) => offer.status === 'OPEN').length,
-        applications: Object.values(counts).reduce((total, count) => total + count, 0),
-        waiting: missions.filter((mission) => AWAITING.includes(mission.status)),
-        rejected: missions.filter((mission) => REJECTED.includes(mission.status)),
-        companyIncomplete,
-      }),
+    ]).then(([openOffers, applications, awaiting, companyIncomplete]) =>
+      setData({ openOffers, applications, awaiting, companyIncomplete }),
     );
   }, []);
 
@@ -84,57 +78,72 @@ export default function EmployerDashboard() {
             />
             <StatTile
               label="Missions en attente"
-              value={data.waiting.length}
-              hint={data.waiting.length > 0 ? 'À suivre ci-dessous' : 'Rien en attente'}
+              value={data.awaiting}
+              hint={data.awaiting > 0 ? 'À suivre ci-dessous' : 'Rien en attente'}
               to="/employeur/missions"
-              highlight={data.waiting.length > 0}
+              highlight={data.awaiting > 0}
             />
           </>
         )}
       </div>
 
-      <section className={`mt-6 ${card}`}>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className={sectionTitle}>Missions en cours de décision</h2>
-          <Link
-            to="/employeur/missions"
-            className="text-sm font-medium text-brand-600 hover:underline"
-          >
-            Toutes mes missions →
-          </Link>
-        </div>
+      <PagedSection
+        fetch={loadAwaiting}
+        label="missions"
+        loadError="Impossible de charger les missions."
+      >
+        {({ items, loading, error, pagination }) => (
+          <section className={`mt-6 ${card}`}>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h2 className={sectionTitle}>Missions en cours de décision</h2>
+              <Link
+                to="/employeur/missions"
+                className="text-sm font-medium text-brand-600 hover:underline"
+              >
+                Toutes mes missions →
+              </Link>
+            </div>
 
-        {data === null && <Skeleton className="h-20 w-full" />}
-
-        {data !== null && data.waiting.length === 0 && (
-          <EmptyState
-            title="Aucune mission en attente"
-            description="Sélectionnez un candidat depuis les candidatures d'une offre pour lui proposer une mission."
-          />
+            {error && <p className={errorBox}>{error}</p>}
+            {loading && <Skeleton className="h-20 w-full" />}
+            {!loading && items.length === 0 && (
+              <EmptyState
+                title="Aucune mission en attente"
+                description="Sélectionnez un candidat depuis les candidatures d'une offre pour lui proposer une mission."
+              />
+            )}
+            {items.length > 0 && <MissionRows missions={items} />}
+            {pagination}
+          </section>
         )}
+      </PagedSection>
 
-        {data !== null && data.waiting.length > 0 && <MissionRows missions={data.waiting} />}
-      </section>
+      <PagedSection
+        fetch={loadRejected}
+        label="missions"
+        loadError="Impossible de charger les missions."
+      >
+        {({ items, loading, pagination }) => (
+          <section className={`mt-6 ${card}`}>
+            <h2 className={`mb-4 ${sectionTitle}`}>Missions refusées</h2>
 
-      <section className={`mt-6 ${card}`}>
-        <h2 className={`mb-4 ${sectionTitle}`}>Missions refusées</h2>
-
-        {data === null && <Skeleton className="h-20 w-full" />}
-
-        {data !== null && data.rejected.length === 0 && (
-          <p className="text-sm text-muted">Aucune mission refusée.</p>
+            {loading && <Skeleton className="h-20 w-full" />}
+            {!loading && items.length === 0 && (
+              <p className="text-sm text-muted">Aucune mission refusée.</p>
+            )}
+            {items.length > 0 && (
+              <>
+                <p className="mb-3 text-sm text-muted">
+                  Une mission refusée par l'agence peut être corrigée ; refusée par le candidat, elle
+                  remet l'offre en ligne avec les candidatures déjà reçues.
+                </p>
+                <MissionRows missions={items} />
+              </>
+            )}
+            {pagination}
+          </section>
         )}
-
-        {data !== null && data.rejected.length > 0 && (
-          <>
-            <p className="mb-3 text-sm text-muted">
-              Une mission refusée par l'agence peut être corrigée ; refusée par le candidat, elle
-              remet l'offre en ligne avec les candidatures déjà reçues.
-            </p>
-            <MissionRows missions={data.rejected} />
-          </>
-        )}
-      </section>
+      </PagedSection>
     </>
   );
 }

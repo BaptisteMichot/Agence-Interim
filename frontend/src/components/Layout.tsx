@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { getAdminMissions, getMissionDecisionCount } from '../api/missions';
+import { getAdminPendingMissionCount, getMissionDecisionCount } from '../api/missions';
 import { useAuth } from '../auth/AuthContext';
 import { useChat } from '../chat/ChatContext';
 import ConfirmDialog from './ConfirmDialog';
@@ -38,8 +38,8 @@ export default function Layout() {
       setMissionsToValidate(0);
       return;
     }
-    getAdminMissions()
-      .then((missions) => setMissionsToValidate(missions.filter((m) => m.status === 'PENDING').length))
+    getAdminPendingMissionCount()
+      .then(setMissionsToValidate)
       .catch(() => setMissionsToValidate(0));
   }, [isAdmin, location.pathname]);
 

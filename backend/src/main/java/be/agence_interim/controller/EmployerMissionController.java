@@ -1,6 +1,6 @@
 package be.agence_interim.controller;
 
-import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import be.agence_interim.dto.MissionRequest;
 import be.agence_interim.dto.MissionResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.MissionService;
 import jakarta.validation.Valid;
@@ -41,9 +43,19 @@ public class EmployerMissionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(mission);
     }
 
+    /** Une section de la liste : current, past, awaiting ou rejected. */
     @GetMapping("/missions")
-    public List<MissionResponse> list(@AuthenticationPrincipal Jwt jwt) {
-        return missionService.listForEmployer(CurrentUser.id(jwt));
+    public PageResponse<MissionResponse> list(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "current") String group,
+            @RequestParam(defaultValue = "0") int page) {
+        return missionService.listForEmployer(CurrentUser.id(jwt), group, Pages.of(page));
+    }
+
+    /** Nombre de missions encore en décision (chiffre du tableau de bord). */
+    @GetMapping("/missions/awaiting-count")
+    public Map<String, Long> awaitingCount(@AuthenticationPrincipal Jwt jwt) {
+        return Map.of("count", missionService.awaitingCountForEmployer(CurrentUser.id(jwt)));
     }
 
     @GetMapping("/missions/{id}")

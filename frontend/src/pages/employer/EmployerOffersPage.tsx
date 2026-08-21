@@ -1,39 +1,29 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getApplicationCounts } from '../../api/applications';
 import { errorMessage } from '../../api/http';
 import { closeOffer, getMyOffers } from '../../api/offers';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import PageHeader from '../../components/PageHeader';
+import Pagination from '../../components/Pagination';
 import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
+import { usePagedResource } from '../../hooks/usePagedResource';
 import { salarySuffix } from '../../offers/format';
 import type { JobOfferSummary } from '../../offers/types';
 import { formatTimestampDate } from '../../profile/format';
 
 /** Offres publiées par l'employeur, avec le nombre de candidatures reçues par offre. */
 export default function EmployerOffersPage() {
-  const [offers, setOffers] = useState<JobOfferSummary[]>([]);
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [closing, setClosing] = useState<JobOfferSummary | null>(null);
 
-  const reload = useCallback(async () => {
-    setError(null);
-    try {
-      const [myOffers, applicationCounts] = await Promise.all([getMyOffers(), getApplicationCounts()]);
-      setOffers(myOffers);
-      setCounts(applicationCounts);
-    } catch (err) {
-      setError(errorMessage(err, 'Impossible de charger les offres.'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
+  const {
+    items: offers,
+    pageData,
+    loading,
+    error,
+    setError,
+    reload,
+    goTo,
+  } = usePagedResource(getMyOffers, 'Impossible de charger les offres.');
 
   const confirmClose = async () => {
     if (!closing) {
@@ -103,7 +93,7 @@ export default function EmployerOffersPage() {
               </div>
               <div className="flex shrink-0 gap-2">
                 <Link to={`/employeur/offres/${offer.id}/candidatures`} className={btnSecondary}>
-                  Candidatures ({counts[offer.id] ?? 0})
+                  Candidatures ({offer.applicationCount})
                 </Link>
                 <Link to={`/employeur/offres/${offer.id}`} className={btnSecondary}>
                   {offer.editable ? 'Modifier' : 'Consulter'}
@@ -117,6 +107,8 @@ export default function EmployerOffersPage() {
             </li>
           ))}
         </ul>
+
+        <Pagination page={pageData} onChange={goTo} label="offres" />
       </div>
 
       <ConfirmDialog

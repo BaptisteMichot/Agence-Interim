@@ -1,11 +1,11 @@
 package be.agence_interim.service;
 
-import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +13,7 @@ import be.agence_interim.dto.CandidateProfileResponse;
 import be.agence_interim.dto.ExperienceResponse;
 import be.agence_interim.dto.FormationResponse;
 import be.agence_interim.dto.OfferApplicationResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.dto.UserDegreeResponse;
 import be.agence_interim.dto.UserLanguageResponse;
 import be.agence_interim.dto.UserSkillResponse;
@@ -57,22 +58,41 @@ public class EmployerApplicationService {
         this.cvService = cvService;
     }
 
-    /** Candidatures en cours d'une offre de l'employeur (les annulées sont exclues). */
+    /**
+     * Une page des candidatures en cours d'une offre de l'employeur (les annulées sont
+     * exclues). Le tri est appliqué en base : trier après coup ne classerait que les
+     * quelques candidatures de la page affichée, pas l'ensemble des candidats.
+     */
     @Transactional(readOnly = true)
-    public List<OfferApplicationResponse> listForOffer(int employerId, int offerId) {
+    public PageResponse<OfferApplicationResponse> listForOffer(
+            int employerId, int offerId, String sort, int page, int size) {
         JobOffer offer = jobOfferRepository.findById(offerId)
                 .filter(o -> o.getEmployer().getId() == employerId)
                 .orElseThrow(() -> new NoSuchElementException("Offre introuvable."));
-        return applicationRepository
-                .findByJobOfferIdAndStatusFetchJobSeeker(offer.getId(), ApplicationStatus.PENDING)
-                .stream().map(OfferApplicationResponse::fromEntity).toList();
+        Pageable pageable = PageRequest.of(page, size, sortOf(sort));
+        return PageResponse.of(
+                applicationRepository.findByJobOfferIdAndStatusFetchJobSeeker(
+                        offer.getId(), ApplicationStatus.PENDING, pageable),
+                OfferApplicationResponse::fromEntity);
     }
 
-    /** Nombre de candidatures en cours par offre de l'employeur. */
-    public Map<Integer, Long> countsByOffer(int employerId) {
-        return applicationRepository.countByOfferForEmployer(employerId, ApplicationStatus.PENDING)
-                .stream()
-                .collect(Collectors.toMap(count -> count.getOfferId(), count -> count.getTotal()));
+    /**
+     * Tris proposés à l'employeur (FR12). Les candidatures non notées passent en
+     * dernier sur le tri par note, et la date départage les ex æquo pour que la
+     * pagination ne fasse pas réapparaître deux fois la même ligne.
+     */
+    private static Sort sortOf(String sort) {
+        Sort byDateDesc = Sort.by(Sort.Order.desc("applicationTime"));
+        return switch (sort == null ? "" : sort) {
+            case "date-asc" -> Sort.by(Sort.Order.asc("applicationTime"));
+            case "rating-desc" -> Sort.by(Sort.Order.desc("rating").nullsLast()).and(byDateDesc);
+            default -> byDateDesc;
+        };
+    }
+
+    /** Nombre total de candidatures en cours, toutes offres confondues (tableau de bord). */
+    public long pendingCount(int employerId) {
+        return applicationRepository.countByJobOfferEmployerIdAndStatus(employerId, ApplicationStatus.PENDING);
     }
 
     /** Note une candidature (1 à 5) reçue sur une des offres de l'employeur. */
