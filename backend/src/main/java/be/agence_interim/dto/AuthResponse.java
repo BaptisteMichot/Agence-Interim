@@ -4,6 +4,10 @@ import be.agence_interim.model.EmployerAccessStatus;
 import be.agence_interim.model.Role;
 import be.agence_interim.model.User;
 
+/**
+ * Identité de l'utilisateur connecté. Le jeton n'y figure pas : il voyage dans un
+ * cookie HttpOnly, hors de portée du JavaScript de la page.
+ */
 public record AuthResponse(
         int userId,
         String lastName,
@@ -11,11 +15,10 @@ public record AuthResponse(
         String email,
         Role role,
         EmployerAccessStatus employerRequestStatus,
-        String token,
         String message) {
 
     public static AuthResponse of(
-            User user, EmployerAccessStatus employerRequestStatus, String token, String message) {
+            User user, EmployerAccessStatus employerRequestStatus, String message) {
         return new AuthResponse(
                 user.getId(),
                 user.getLastName(),
@@ -23,7 +26,6 @@ public record AuthResponse(
                 user.getEmail(),
                 user.getRole(),
                 employerRequestStatus,
-                token,
                 message);
     }
 }

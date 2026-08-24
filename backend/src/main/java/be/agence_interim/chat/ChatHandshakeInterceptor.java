@@ -7,21 +7,29 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
-import org.springframework.web.util.UriComponentsBuilder;
 
+import be.agence_interim.security.AuthCookie;
 import be.agence_interim.security.CurrentUser;
 
 /**
- * Authentifie la poignée de main WebSocket. Le navigateur ne permettant pas d'ajouter
- * l'en-tête Authorization sur une WebSocket, le JWT est passé en paramètre de requête
- * ({@code ?token=...}) puis vérifié ici ; l'identifiant utilisateur est placé dans les
+ * Authentifie la poignée de main WebSocket à partir du cookie de session.
+ *
+ * <p>Le navigateur ne permet pas d'ajouter l'en-tête {@code Authorization} sur une
+ * WebSocket, mais il joint ses cookies à la poignée de main comme à n'importe quelle
+ * requête : le jeton n'a donc plus à transiter par l'URL, où il finissait dans les
+ * journaux d'accès et l'historique. L'identifiant utilisateur est placé dans les
  * attributs de session.
+ *
+ * <p>La contrepartie du cookie — une poignée de main peut être déclenchée depuis un
+ * autre site — est couverte par la liste d'origines autorisées de
+ * {@link be.agence_interim.config.WebSocketConfig}.
  */
 @NullMarked
 @Component
@@ -42,11 +50,11 @@ public class ChatHandshakeInterceptor implements HandshakeInterceptor {
             ServerHttpResponse response,
             WebSocketHandler handler,
             Map<String, Object> attributes) {
-        String token = UriComponentsBuilder.fromUri(request.getURI())
-                .build()
-                .getQueryParams()
-                .getFirst("token");
-        if (token == null || token.isBlank()) {
+        if (!(request instanceof ServletServerHttpRequest servletRequest)) {
+            return reject(response);
+        }
+        String token = AuthCookie.read(servletRequest.getServletRequest()).orElse(null);
+        if (token == null) {
             return reject(response);
         }
         try {

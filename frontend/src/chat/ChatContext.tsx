@@ -30,14 +30,19 @@ interface ChatContextValue {
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
-/** URL de la WebSocket, sur la même origine que le frontend (proxifiée vers le backend en dev). */
-function socketUrl(token: string): string {
+/**
+ * URL de la WebSocket, sur la même origine que le frontend (proxifiée vers le backend
+ * en dev). Le cookie de session accompagne la poignée de main comme n'importe quelle
+ * requête : le jeton n'a plus à transiter par l'URL, où il finissait dans les journaux
+ * d'accès et l'historique du navigateur.
+ */
+function socketUrl(): string {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${protocol}://${window.location.host}/ws/chat?token=${encodeURIComponent(token)}`;
+  return `${protocol}://${window.location.host}/ws/chat`;
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const { token, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [connected, setConnected] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -49,7 +54,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   currentUserIdRef.current = user?.userId ?? null;
 
   const refreshUnread = useCallback(() => {
-    if (!token) {
+    if (!isAuthenticated) {
       return;
     }
     getUnreadCount()
@@ -57,10 +62,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         // Compteur indisponible : on garde la valeur précédente plutôt que d'afficher une erreur.
       });
-  }, [token]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!token) {
+    if (!isAuthenticated) {
       setUnreadCount(0);
       return;
     }
@@ -71,7 +76,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     let attempts = 0;
 
     const connect = () => {
-      const socket = new WebSocket(socketUrl(token));
+      const socket = new WebSocket(socketUrl());
       socketRef.current = socket;
 
       socket.onopen = () => {
@@ -119,7 +124,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       socketRef.current = null;
       setConnected(false);
     };
-  }, [token, refreshUnread]);
+  }, [isAuthenticated, refreshUnread]);
 
   const subscribe = useCallback((listener: MessageListener) => {
     listenersRef.current.add(listener);

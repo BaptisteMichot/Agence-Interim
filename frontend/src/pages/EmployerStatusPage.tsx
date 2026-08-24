@@ -56,8 +56,8 @@ export default function EmployerStatusPage() {
     reload();
   }, [reload]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login', { replace: true });
   };
 

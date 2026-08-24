@@ -8,24 +8,22 @@ import {
   type ReactNode,
 } from 'react';
 import * as authApi from '../api/client';
-import {
-  SESSION_EXPIRED_EVENT,
-  clearSession,
-  readToken,
-  readUser,
-  saveSession,
-} from './session';
+import { SESSION_EXPIRED_EVENT } from './session';
 import type { AuthResponse, AuthUser, RegisterPayload } from './types';
 
 interface AuthContextValue {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
+  /**
+   * Vrai tant que l'identité de la session n'est pas connue. Les routes protégées
+   * doivent attendre : sans cela, elles renverraient vers /login le temps de l'aller-retour.
+   */
+  loading: boolean;
   /** Vrai quand la session a été refusée par le serveur (à afficher sur la page de connexion). */
   sessionExpired: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (payload: RegisterPayload) => Promise<AuthUser>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -42,41 +40,54 @@ function toUser(response: AuthResponse): AuthUser {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(readToken);
-  const [user, setUser] = useState<AuthUser | null>(readUser);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
 
-  const persist = useCallback((response: AuthResponse): AuthUser => {
+  // Le cookie de session est HttpOnly : la page ne peut pas y lire qui elle représente,
+  // elle le demande au serveur au démarrage. Cet appel dépose au passage le cookie
+  // XSRF-TOKEN dont la première écriture aura besoin.
+  useEffect(() => {
+    authApi
+      .me()
+      .then((response) => setUser(response === null ? null : toUser(response)))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const accept = useCallback((response: AuthResponse): AuthUser => {
     const nextUser = toUser(response);
-    saveSession(response.token, nextUser);
-    setToken(response.token);
     setUser(nextUser);
     setSessionExpired(false);
     return nextUser;
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string) => persist(await authApi.login(email, password)),
-    [persist],
+    async (email: string, password: string) => accept(await authApi.login(email, password)),
+    [accept],
   );
 
   const register = useCallback(
-    async (payload: RegisterPayload) => persist(await authApi.register(payload)),
-    [persist],
+    async (payload: RegisterPayload) => accept(await authApi.register(payload)),
+    [accept],
   );
 
-  const logout = useCallback(() => {
-    clearSession();
-    setToken(null);
-    setUser(null);
-    setSessionExpired(false);
+  // La déconnexion passe par le serveur : lui seul peut effacer un cookie HttpOnly.
+  // L'état local est vidé quoi qu'il arrive, pour ne pas laisser l'utilisateur devant
+  // une interface qui le croit encore connecté.
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      setUser(null);
+      setSessionExpired(false);
+    }
   }, []);
 
-  // Le serveur a refusé le token (401/403) : la couche HTTP a purgé la session,
-  // on aligne l'état React pour que les routes protégées renvoient vers /login.
+  // Le serveur a refusé la session (401/403) : on aligne l'état React pour que les
+  // routes protégées renvoient vers /login.
   useEffect(() => {
     const onExpired = () => {
-      setToken(null);
       setUser(null);
       setSessionExpired(true);
     };
@@ -87,14 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      token,
-      isAuthenticated: token !== null,
+      isAuthenticated: user !== null,
+      loading,
       sessionExpired,
       login,
       register,
       logout,
     }),
-    [user, token, sessionExpired, login, register, logout],
+    [user, loading, sessionExpired, login, register, logout],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

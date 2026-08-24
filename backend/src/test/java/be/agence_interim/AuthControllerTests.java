@@ -47,8 +47,8 @@ class AuthControllerTests {
         assertThat(registerResponse.body()).contains("\"email\":\"web@example.be\"");
         assertThat(registerResponse.body()).contains("\"message\":\"Inscription reussie.\"");
         assertThat(registerResponse.body()).contains("\"role\":\"JOBSEEKER\"");
-        assertThat(registerResponse.body()).contains("\"token\":");
         assertThat(registerResponse.body()).doesNotContain("Password123456!");
+        assertSessionCookie(registerResponse);
 
         HttpResponse<String> loginResponse = client.send(
                 post("/api/auth/login", """
@@ -62,8 +62,21 @@ class AuthControllerTests {
         assertThat(loginResponse.statusCode()).isEqualTo(200);
         assertThat(loginResponse.body()).contains("\"email\":\"web@example.be\"");
         assertThat(loginResponse.body()).contains("\"message\":\"Connexion reussie.\"");
-        assertThat(loginResponse.body()).contains("\"token\":");
         assertThat(loginResponse.body()).doesNotContain("Password123456!");
+        assertSessionCookie(loginResponse);
+    }
+
+    /**
+     * Le jeton ne doit jamais atteindre le JavaScript de la page : il part dans un
+     * cookie HttpOnly, et surtout pas dans le corps de la réponse.
+     */
+    private void assertSessionCookie(HttpResponse<String> response) {
+        assertThat(response.body()).doesNotContain("\"token\"");
+        String cookie = response.headers().firstValue("set-cookie").orElse("");
+        assertThat(cookie).startsWith("auth-token=");
+        assertThat(cookie).contains("HttpOnly");
+        assertThat(cookie).contains("SameSite=Strict");
+        assertThat(cookie).contains("Path=/");
     }
 
     @Test

@@ -6,15 +6,23 @@ import be.agence_interim.dto.LoginRequest;
 import be.agence_interim.dto.MessageResponse;
 import be.agence_interim.dto.RegisterRequest;
 import be.agence_interim.model.User;
+import be.agence_interim.repository.UserRepository;
+import be.agence_interim.security.AuthCookie;
+import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.AuthService;
 import be.agence_interim.service.EmployerAccessService;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,10 +36,18 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmployerAccessService employerAccessService;
+    private final UserRepository userRepository;
+    private final AuthCookie authCookie;
 
-    public AuthController(AuthService authService, EmployerAccessService employerAccessService) {
+    public AuthController(
+            AuthService authService,
+            EmployerAccessService employerAccessService,
+            UserRepository userRepository,
+            AuthCookie authCookie) {
         this.authService = authService;
         this.employerAccessService = employerAccessService;
+        this.userRepository = userRepository;
+        this.authCookie = authCookie;
     }
 
     @PostMapping("/register")
@@ -39,11 +55,8 @@ public class AuthController {
         User savedUser = authService.register(toUser(request));
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(AuthResponse.of(
-                        savedUser,
-                        null,
-                        authService.createToken(savedUser),
-                        "Inscription reussie."));
+                .header(HttpHeaders.SET_COOKIE, connect(savedUser).toString())
+                .body(AuthResponse.of(savedUser, null, "Inscription reussie."));
     }
 
     /** Inscription employeur : crée le compte + une demande d'accès en attente (pas de connexion). */
@@ -58,13 +71,39 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = authService.login(request.email(), request.password());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, connect(user).toString())
+                .body(AuthResponse.of(
+                        user, employerAccessService.latestStatus(user.getId()), "Connexion reussie."));
+    }
+
+    /**
+     * Identité de la session en cours.
+     *
+     * <p>Le cookie étant HttpOnly, la page ne peut pas y lire qui elle représente : elle
+     * le demande ici au démarrage. Cet appel dépose au passage le cookie XSRF-TOKEN dont
+     * la première écriture aura besoin.
+     */
+    @GetMapping("/me")
+    public AuthResponse me(@AuthenticationPrincipal Jwt jwt) {
+        User user = userRepository.requireById(CurrentUser.id(jwt));
         return AuthResponse.of(
-                user,
-                employerAccessService.latestStatus(user.getId()),
-                authService.createToken(user),
-                "Connexion reussie.");
+                user, employerAccessService.latestStatus(user.getId()), "Session active.");
+    }
+
+    /** Efface le cookie de session : la page ne peut pas le faire elle-même. */
+    @PostMapping("/logout")
+    public ResponseEntity<MessageResponse> logout() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, authCookie.clear().toString())
+                .body(new MessageResponse("Deconnexion reussie."));
+    }
+
+    /** Cookie de session à poser sur la réponse pour l'utilisateur qui vient de s'identifier. */
+    private ResponseCookie connect(User user) {
+        return authCookie.issue(authService.createToken(user));
     }
 
     @ExceptionHandler(BadCredentialsException.class)

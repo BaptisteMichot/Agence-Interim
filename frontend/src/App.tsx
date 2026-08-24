@@ -32,7 +32,10 @@ import ConversationThreadPage from './pages/chat/ConversationThreadPage';
 
 /** Redirige la racine vers la bonne destination selon l'utilisateur, ou vers la connexion. */
 function HomeRedirect() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+  if (loading) {
+    return null;
+  }
   if (isAuthenticated && user) {
     return <Navigate to={homePathForRole(user.role)} replace />;
   }

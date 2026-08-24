@@ -65,9 +65,11 @@ export default function Layout() {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setConfirmLogout(false);
-    logout();
+    // Seul le serveur peut effacer un cookie HttpOnly : on attend sa réponse avant
+    // de quitter la page, sinon l'utilisateur se croirait déconnecté à tort.
+    await logout();
     navigate('/login', { replace: true });
   };
 

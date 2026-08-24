@@ -13,7 +13,13 @@ interface ProtectedRouteProps {
  * vers le tableau de bord du rôle si le rôle n'est pas autorisé.
  */
 export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+
+  // L'identité vient du serveur : tant qu'elle n'est pas revenue, rediriger
+  // renverrait tout visiteur déjà connecté vers l'écran de connexion.
+  if (loading) {
+    return null;
+  }
 
   if (!isAuthenticated || user === null) {
     return <Navigate to="/login" replace />;

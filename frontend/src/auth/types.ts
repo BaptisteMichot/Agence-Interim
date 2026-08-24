@@ -14,9 +14,11 @@ export interface AuthUser {
   employerRequestStatus: EmployerAccessStatus | null;
 }
 
-/** Réponse renvoyée par /api/auth/register et /api/auth/login. */
+/**
+  * Réponse renvoyée par /api/auth/register, /api/auth/login et /api/auth/me.
+  * Le jeton n'y figure pas : il voyage dans un cookie HttpOnly, hors de portée de la page.
+  */
 export interface AuthResponse extends AuthUser {
-  token: string;
   message: string;
 }
 

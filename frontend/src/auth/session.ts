@@ -1,58 +1,28 @@
-import type { AuthUser } from './types';
-
 /**
- * Session conservée par le navigateur.
+ * Session du navigateur.
  *
- * Le stockage est {@code sessionStorage} et non {@code localStorage} : il est propre à
- * chaque onglet. Avec localStorage, une connexion dans un onglet écrasait le token de
- * tous les autres, qui continuaient d'afficher leur rôle tout en envoyant le token du
- * dernier connecté (403 sur les routes du rôle initial).
+ * Rien n'est conservé par la page : la session **est** le cookie HttpOnly posé par le
+ * serveur, que le JavaScript ne peut ni lire ni écrire. C'est tout l'intérêt du
+ * procédé — une injection XSS ne peut pas voler un jeton auquel elle n'a pas accès.
+ * L'identité de l'utilisateur est donc redemandée au serveur (`GET /api/auth/me`) à
+ * chaque chargement de l'application.
+ *
+ * Conséquence assumée : la session n'est plus propre à un onglet, comme elle l'était
+ * du temps de `sessionStorage`. Un cookie appartient à l'origine, pas à l'onglet : se
+ * connecter dans un onglet remplace la session de tous les autres, qui basculeront
+ * vers l'écran de connexion à leur prochain appel.
  */
 
-const TOKEN_KEY = 'auth.token';
-const USER_KEY = 'auth.user';
+// Sessions écrites par les versions précédentes, quand le jeton vivait dans la page.
+for (const store of [localStorage, sessionStorage]) {
+  store.removeItem('auth.token');
+  store.removeItem('auth.user');
+}
 
-/** Émis quand le serveur refuse le token courant (401/403) : la session vient d'être purgée. */
+/** Émis quand le serveur refuse la session en cours (401/403) : la page doit se rabattre sur /login. */
 export const SESSION_EXPIRED_EVENT = 'auth:session-expired';
 
-// Sessions écrites par les versions précédentes (localStorage, partagé entre onglets).
-localStorage.removeItem(TOKEN_KEY);
-localStorage.removeItem(USER_KEY);
-
-export function readToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY);
-}
-
-export function readUser(): AuthUser | null {
-  const raw = sessionStorage.getItem(USER_KEY);
-  if (!raw) {
-    return null;
-  }
-  try {
-    return JSON.parse(raw) as AuthUser;
-  } catch {
-    return null;
-  }
-}
-
-export function saveSession(token: string, user: AuthUser): void {
-  sessionStorage.setItem(TOKEN_KEY, token);
-  sessionStorage.setItem(USER_KEY, JSON.stringify(user));
-}
-
-export function clearSession(): void {
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(USER_KEY);
-}
-
-/**
- * Purge la session et prévient l'application, qui repasse à l'écran de connexion.
- * Sans effet s'il n'y avait pas de session (évite un événement inutile).
- */
+/** Prévient l'application que sa session ne vaut plus rien. */
 export function expireSession(): void {
-  if (readToken() === null) {
-    return;
-  }
-  clearSession();
   window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 }

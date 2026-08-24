@@ -1,6 +1,9 @@
-import { expireSession, readToken } from '../auth/session';
+import { expireSession } from '../auth/session';
 
 export const API_BASE = '/api';
+
+/** En-tête par lequel la page renvoie le jeton CSRF que le serveur lui a déposé. */
+const CSRF_HEADER = 'X-XSRF-TOKEN';
 
 /**
  * Extrait un message d'erreur lisible du corps d'une réponse en échec.
@@ -28,15 +31,34 @@ export function errorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
 
-function authHeaders(): Record<string, string> {
-  const token = readToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+/**
+ * Jeton CSRF déposé par le serveur dans le cookie `XSRF-TOKEN`, volontairement lisible
+ * par la page.
+ *
+ * Le cookie de session part tout seul, y compris sur une requête déclenchée par un
+ * autre site : c'est le principe même du CSRF. Mais la politique de même origine
+ * empêche ce site tiers de **lire** un cookie de notre domaine, donc de recopier ce
+ * jeton en en-tête. Le serveur compare les deux et rejette ce qui ne concorde pas.
+ */
+function csrfToken(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/** Les méthodes de lecture ne modifient rien : le serveur ne leur réclame pas de jeton. */
+function csrfHeaders(method: string): Record<string, string> {
+  if (method === 'GET' || method === 'HEAD') {
+    return {};
+  }
+  const token = csrfToken();
+  return token ? { [CSRF_HEADER]: token } : {};
 }
 
 /**
- * Construit l'erreur d'une réponse en échec. Un 401 (token absent, invalide ou expiré)
- * ou un 403 (token d'un autre rôle) signifie que la session ne vaut plus rien : on la
- * purge pour renvoyer l'utilisateur vers la connexion au lieu d'afficher une erreur brute.
+ * Construit l'erreur d'une réponse en échec. Un 401 (cookie absent, invalide ou expiré)
+ * ou un 403 (session d'un autre rôle) signifie que la session ne vaut plus rien : on
+ * prévient l'application pour qu'elle renvoie vers la connexion, au lieu d'afficher une
+ * erreur brute.
  */
 async function toError(response: Response): Promise<Error> {
   if (response.status === 401 || response.status === 403) {
@@ -49,8 +71,10 @@ async function toError(response: Response): Promise<Error> {
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method,
+    // Le cookie de session accompagne la requête ; il n'y a plus d'en-tête à poser.
+    credentials: 'same-origin',
     headers: {
-      ...authHeaders(),
+      ...csrfHeaders(method),
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -85,7 +109,8 @@ export function apiDelete(path: string): Promise<void> {
 export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: authHeaders(),
+    credentials: 'same-origin',
+    headers: csrfHeaders('POST'),
     body: formData,
   });
   if (!response.ok) {
@@ -96,7 +121,7 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
 
 /** Téléchargement d'un binaire authentifié (retourne un Blob). */
 export async function apiDownload(path: string): Promise<Blob> {
-  const response = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
+  const response = await fetch(`${API_BASE}${path}`, { credentials: 'same-origin' });
   if (!response.ok) {
     throw await toError(response);
   }
