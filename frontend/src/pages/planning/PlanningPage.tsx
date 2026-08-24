@@ -241,8 +241,7 @@ export default function PlanningPage() {
                   <p className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
                     🔒 Vos disponibilités ne sont modifiables qu'à partir du{' '}
                     {formatDate(editableFrom)} (délai de 8 jours). En cas d'imprévu — maladie,
-                    accident, urgence — prévenez l'agence par téléphone : elle seule peut libérer
-                    une journée dans ce délai.
+                    accident, urgence — prévenez l'agence par téléphone.
                   </p>
                 ) : selectedMissions.length > 0 ? (
                   <p className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">

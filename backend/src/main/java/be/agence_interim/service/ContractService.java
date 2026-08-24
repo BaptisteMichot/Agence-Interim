@@ -12,11 +12,14 @@ import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import be.agence_interim.config.AgencyProperties;
 import be.agence_interim.dto.ContractResponse;
+import be.agence_interim.dto.ContractSummaryResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.model.Contract;
 import be.agence_interim.model.DailySchedule;
 import be.agence_interim.model.Mission;
@@ -79,6 +82,22 @@ public class ContractService {
         Contract saved = contractRepository.save(contract);
         write(saved, mission, slots);
         return saved;
+    }
+
+    /**
+     * Une page des contrats du lecteur, les plus récents d'abord : ce sont les documents
+     * que l'agence lui a adressés, qu'il ait ou non déjà signé.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<ContractSummaryResponse> listForUser(int userId, Pageable pageable) {
+        return PageResponse.of(
+                contractRepository.findForUser(userId, pageable),
+                contract -> ContractSummaryResponse.of(contract, userId));
+    }
+
+    /** Nombre de contrats en attente de la signature du lecteur. */
+    public long awaitingSignatureCount(int userId) {
+        return contractRepository.countAwaitingSignature(userId, SignatureStatus.PENDING);
     }
 
     /** Contrat d'une mission, s'il a déjà été généré. */

@@ -27,6 +27,7 @@ import MyMissionsPage from './pages/missions/MyMissionsPage';
 import MissionDetailPage from './pages/missions/MissionDetailPage';
 import PlanningPage from './pages/planning/PlanningPage';
 import ConversationsPage from './pages/chat/ConversationsPage';
+import MyDocumentsPage from './pages/documents/MyDocumentsPage';
 import ConversationThreadPage from './pages/chat/ConversationThreadPage';
 
 /** Redirige la racine vers la bonne destination selon l'utilisateur, ou vers la connexion. */
@@ -83,10 +84,11 @@ export default function App() {
               element={<MissionFormPage mode="renew" />}
             />
           </Route>
-          {/* Messagerie : accessible aux deux participants d'une conversation. */}
+          {/* Messagerie et documents : les deux parties d'une mission y accèdent. */}
           <Route element={<ProtectedRoute allowedRoles={['JOBSEEKER', 'EMPLOYER']} />}>
             <Route path="/messages" element={<ConversationsPage />} />
             <Route path="/messages/:id" element={<ConversationThreadPage />} />
+            <Route path="/documents" element={<MyDocumentsPage />} />
           </Route>
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminDashboard />} />

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { getAdminPendingMissionCount, getMissionDecisionCount } from '../api/missions';
+import {
+  getAdminPendingMissionCount,
+  getContractsToSignCount,
+  getMissionDecisionCount,
+} from '../api/missions';
 import { useAuth } from '../auth/AuthContext';
 import { useChat } from '../chat/ChatContext';
 import ConfirmDialog from './ConfirmDialog';
@@ -17,9 +21,12 @@ export default function Layout() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [missionsToConfirm, setMissionsToConfirm] = useState(0);
   const [missionsToValidate, setMissionsToValidate] = useState(0);
+  const [contractsToSign, setContractsToSign] = useState(0);
 
   const isJobSeeker = user?.role === 'JOBSEEKER';
   const isAdmin = user?.role === 'ADMIN';
+  // Les deux parties d'une mission signent : la pastille vaut pour l'une comme pour l'autre.
+  const isParty = isJobSeeker || user?.role === 'EMPLOYER';
 
   // Compteurs de la barre latérale, rafraîchis à chaque navigation : les décisions
   // qu'ils annoncent se prennent depuis une page de l'application.
@@ -42,6 +49,16 @@ export default function Layout() {
       .then(setMissionsToValidate)
       .catch(() => setMissionsToValidate(0));
   }, [isAdmin, location.pathname]);
+
+  useEffect(() => {
+    if (!isParty) {
+      setContractsToSign(0);
+      return;
+    }
+    getContractsToSignCount()
+      .then(setContractsToSign)
+      .catch(() => setContractsToSign(0));
+  }, [isParty, location.pathname]);
 
   // Le tiroir mobile se referme dès qu'une page est ouverte.
   useEffect(() => {
@@ -66,6 +83,7 @@ export default function Layout() {
           missionsToConfirm,
           unreadMessages: unreadCount,
           missionsToValidate,
+          contractsToSign,
         }}
         onLogout={() => setConfirmLogout(true)}
         open={menuOpen}

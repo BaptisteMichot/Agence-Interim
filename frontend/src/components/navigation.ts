@@ -2,7 +2,11 @@ import type { Role } from '../auth/types';
 import type { IconName } from './Icon';
 
 /** Compteurs affichés en pastille dans la barre latérale. */
-export type NavCounter = 'missionsToConfirm' | 'unreadMessages' | 'missionsToValidate';
+export type NavCounter =
+  | 'missionsToConfirm'
+  | 'unreadMessages'
+  | 'missionsToValidate'
+  | 'contractsToSign';
 
 export interface NavItem {
   to: string;
@@ -30,6 +34,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
       counter: 'missionsToConfirm',
     },
     { to: '/interimaire/planning', label: 'Mon planning', icon: 'calendar' },
+    { to: '/documents', label: 'Mes documents', icon: 'document', counter: 'contractsToSign' },
     { to: '/messages', label: 'Messages', icon: 'chat', counter: 'unreadMessages' },
     { to: '/interimaire/profil', label: 'Mon profil', icon: 'user' },
   ],
@@ -37,6 +42,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { to: '/employeur', label: 'Accueil', icon: 'home', end: true },
     { to: '/employeur/offres', label: "Mes offres d'emploi", icon: 'briefcase' },
     { to: '/employeur/missions', label: 'Mes missions', icon: 'check' },
+    { to: '/documents', label: 'Mes documents', icon: 'document', counter: 'contractsToSign' },
     { to: '/messages', label: 'Messages', icon: 'chat', counter: 'unreadMessages' },
     { to: '/employeur/entreprise', label: 'Mon entreprise', icon: 'building' },
   ],

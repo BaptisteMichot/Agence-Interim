@@ -3,6 +3,7 @@ import { apiGetCount, apiGetPage, type Page } from './page';
 import type {
   AdminMissionGroup,
   Contract,
+  ContractSummary,
   EmployerMissionGroup,
   JobSeekerMissionGroup,
   Mission,
@@ -105,4 +106,14 @@ export function signContract(missionId: number, code: string): Promise<Contract>
 
 export function downloadContract(missionId: number): Promise<Blob> {
   return apiDownload(`/contracts/${missionId}/file`);
+}
+
+/** Tous les contrats adressés au lecteur, les plus récents d'abord (« Mes documents »). */
+export function getMyContracts(page: number): Promise<Page<ContractSummary>> {
+  return apiGetPage<ContractSummary>('/contracts', page);
+}
+
+/** Nombre de contrats en attente de la signature du lecteur (pastille et chiffre clé). */
+export function getContractsToSignCount(): Promise<number> {
+  return apiGetCount('/contracts/awaiting-signature-count');
 }

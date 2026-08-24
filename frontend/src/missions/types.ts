@@ -46,6 +46,27 @@ export interface Contract {
   workerSignedAt: string | null;
 }
 
+/**
+ * Contrat tel qu'il apparaît dans « Mes documents » : la mission qu'il couvre,
+ * l'état des deux signatures et la date de chacune.
+ */
+export interface ContractSummary {
+  id: number;
+  missionId: number;
+  position: string;
+  companyName: string;
+  workerName: string;
+  startDate: string;
+  endDate: string;
+  generationTime: string;
+  statusEmployer: SignatureStatus;
+  employerSignedAt: string | null;
+  statusWorker: SignatureStatus;
+  workerSignedAt: string | null;
+  /** C'est au lecteur de signer : le backend l'a déduit de son rôle. */
+  awaitingMySignature: boolean;
+}
+
 /** Journée de mission affichée dans le planning. */
 export interface ScheduleEntry {
   missionId: number;

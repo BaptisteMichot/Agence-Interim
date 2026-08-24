@@ -9,9 +9,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 import be.agence_interim.dto.ContractResponse;
+import be.agence_interim.dto.ContractSummaryResponse;
+import be.agence_interim.dto.PageResponse;
 import be.agence_interim.dto.SignContractRequest;
 import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.ContractService;
@@ -30,6 +35,22 @@ public class ContractController {
 
     public ContractController(ContractService contractService) {
         this.contractService = contractService;
+    }
+
+    /** Tous les documents adressés au lecteur (« Mes documents »), les plus récents d'abord. */
+    @GetMapping
+    public PageResponse<ContractSummaryResponse> list(
+            @AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
+        return contractService.listForUser(CurrentUser.id(jwt), Pages.of(page));
+    }
+
+    /**
+     * Nombre de documents en attente de la signature du lecteur. Déclaré avant
+     * {@code /{missionId}} pour que ce segment littéral ne soit pas pris pour un identifiant.
+     */
+    @GetMapping("/awaiting-signature-count")
+    public Map<String, Long> awaitingSignatureCount(@AuthenticationPrincipal Jwt jwt) {
+        return Map.of("count", contractService.awaitingSignatureCount(CurrentUser.id(jwt)));
     }
 
     @GetMapping("/{missionId}")
