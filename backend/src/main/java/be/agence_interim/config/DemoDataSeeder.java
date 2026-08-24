@@ -658,9 +658,13 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     // -------------------------------------------- demandes d'accès employeur
 
-    /** 12 demandes en attente + 8 traitées : les deux sections de l'espace agence sont paginées. */
+    /**
+     * 12 demandes en attente + 12 traitées : les deux sections de l'espace agence
+     * dépassent la page de dix, condition pour que la pagination y soit visible.
+     * Avec 8 demandes traitées, l'historique tenait tout juste sur une page.
+     */
     private void createPendingEmployerRequests() {
-        for (int index = 1; index <= 20; index += 1) {
+        for (int index = 1; index <= 24; index += 1) {
             User applicant = newUser(
                     "demo" + index + "@employer.com", "Société", "Demandeur" + index, Role.EMPLOYER_PENDING);
             applicant.setCompanyName("Candidate Entreprise " + index + " SPRL");

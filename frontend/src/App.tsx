@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import EmployerRegisterPage from './pages/EmployerRegisterPage';
 import EmployerStatusPage from './pages/EmployerStatusPage';
+import PrivacyPage from './pages/PrivacyPage';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
 import AdminMissionsPage from './pages/dashboards/AdminMissionsPage';
 import EmployerDashboard from './pages/dashboards/EmployerDashboard';
@@ -48,6 +49,8 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/inscription-employeur" element={<EmployerRegisterPage />} />
+      {/* Consultable sans compte : elle doit pouvoir être lue avant de s'inscrire. */}
+      <Route path="/vie-privee" element={<PrivacyPage />} />
 
       {/* Page de statut employeur : authentifiée, hors coquille (pas de nav de rôle). */}
       <Route element={<ProtectedRoute />}>

@@ -80,6 +80,9 @@ public class SecurityConfig {
                         // session, contrairement à l'inscription et à la connexion.
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Identité de l'agence : la politique de confidentialité la cite,
+                        // et elle se consulte avant toute inscription.
+                        .requestMatchers(HttpMethod.GET, "/api/agency").permitAll()
                         // La WebSocket est authentifiée par le JWT passé à la poignée de main.
                         .requestMatchers("/ws/**").permitAll()
                         // Seul l'employeur démarre un chat (FR10) ; les deux participants échangent ensuite.

@@ -89,6 +89,12 @@ export default function Sidebar({ user, counters, onLogout, open, onClose }: Sid
           >
             Déconnexion
           </button>
+          <NavLink
+            to="/vie-privee"
+            className="mt-3 block text-center text-xs text-shell-muted transition hover:text-white"
+          >
+            Vie privée et cookies
+          </NavLink>
         </div>
       </aside>
     </>

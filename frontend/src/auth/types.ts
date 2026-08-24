@@ -1,5 +1,14 @@
 // Types partagés avec le backend (voir be.agence_interim.model.Role et dto.AuthResponse).
 
+/** Identité de l'agence, telle qu'elle figure sur les contrats (voir dto.AgencyResponse). */
+export interface Agency {
+  name: string;
+  address: string;
+  companyNumber: string;
+  licenceNumber: string;
+  jointCommittee: string;
+}
+
 export type Role = 'ADMIN' | 'EMPLOYER' | 'EMPLOYER_PENDING' | 'JOBSEEKER';
 
 export type EmployerAccessStatus = 'PENDING' | 'ACCEPTED' | 'REFUSED';

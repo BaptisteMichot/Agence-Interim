@@ -198,6 +198,11 @@ export default function EmployerRegisterPage() {
             Retour à la connexion
           </Link>
         </p>
+        <p className="mt-6 text-center text-xs text-slate-500">
+          <Link to="/vie-privee" className="hover:underline">
+            Vie privée et cookies
+          </Link>
+        </p>
       </form>
     </div>
   );

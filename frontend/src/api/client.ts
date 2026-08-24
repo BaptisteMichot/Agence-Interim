@@ -1,5 +1,10 @@
-import type { AuthResponse, EmployerRegisterPayload, RegisterPayload } from '../auth/types';
-import { API_BASE, apiPost, readError } from './http';
+import type {
+  Agency,
+  AuthResponse,
+  EmployerRegisterPayload,
+  RegisterPayload,
+} from '../auth/types';
+import { API_BASE, apiGet, apiPost, readError } from './http';
 
 /**
  * POST public (endpoints d'auth, sans token). Ne passe pas par request() de http.ts :
@@ -50,6 +55,11 @@ export async function me(): Promise<AuthResponse | null> {
     throw new Error(await readError(response));
   }
   return response.json() as Promise<AuthResponse>;
+}
+
+/** Identité de l'agence, citée par la politique de confidentialité. Route publique. */
+export function getAgency(): Promise<Agency> {
+  return apiGet<Agency>('/agency');
 }
 
 /** Efface le cookie de session côté serveur : la page ne peut pas le faire elle-même. */
