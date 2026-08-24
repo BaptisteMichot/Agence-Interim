@@ -9,6 +9,7 @@ import { btnPrimary, btnSecondary, errorBox, inputClass, linkBack } from '../../
 import { usePagedResource } from '../../hooks/usePagedResource';
 import { useResource } from '../../hooks/useResource';
 import type { ApplicationSort } from '../../applications/types';
+import { sectorLabel } from '../../offers/format';
 import { formatTimestampDate } from '../../profile/format';
 
 /** Note 1-5 cliquable (FR11). */
@@ -105,7 +106,7 @@ export default function OfferApplicationsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Candidatures — {offer.title}</h1>
           <p className="mt-1 text-slate-600">
-            {offer.sector} · {offer.city}
+            {sectorLabel(offer.sector)} · {offer.city}
           </p>
         </div>
         {pageData.totalElements > 1 && (

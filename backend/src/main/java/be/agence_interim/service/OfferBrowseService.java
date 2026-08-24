@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import be.agence_interim.dto.JobOfferResponse;
 import be.agence_interim.dto.JobOfferSummaryResponse;
 import be.agence_interim.dto.MatchingOfferResponse;
+import be.agence_interim.dto.OfferFilter;
 import be.agence_interim.dto.PageResponse;
 import be.agence_interim.model.ApplicationStatus;
 import be.agence_interim.model.FavoriteJobOffer;
@@ -52,10 +53,19 @@ public class OfferBrowseService {
         this.matchingService = matchingService;
     }
 
-    /** Une page des offres ouvertes, les plus récentes d'abord. */
+    /** Une page des offres ouvertes retenues par les critères, les plus récentes d'abord. */
     @Transactional(readOnly = true)
-    public PageResponse<JobOfferSummaryResponse> browseOpen(int jobSeekerId, Pageable pageable) {
-        Page<JobOffer> page = jobOfferRepository.findByStatusFetchEmployer(JobOfferStatus.OPEN, pageable);
+    public PageResponse<JobOfferSummaryResponse> browseOpen(
+            int jobSeekerId, OfferFilter filter, Pageable pageable) {
+        Page<JobOffer> page = jobOfferRepository.search(
+                JobOfferStatus.OPEN,
+                filter.keywordPattern(),
+                filter.sector(),
+                filter.province(),
+                filter.minHourlyWage(),
+                filter.maxExperienceYears(),
+                filter.noVehicleRequired(),
+                pageable);
         Set<Integer> favorites = favoritesAmong(jobSeekerId, page.getContent());
         return PageResponse.of(
                 page, offer -> JobOfferSummaryResponse.forJobSeeker(offer, favorites.contains(offer.getId())));
@@ -92,14 +102,17 @@ public class OfferBrowseService {
 
     /**
      * Une page des offres ouvertes correspondant au profil de l'intérimaire (exigences
-     * obligatoires satisfaites), triées par score de correspondance décroissant.
+     * obligatoires satisfaites) et retenues par les critères, triées par score de
+     * correspondance décroissant.
      *
      * <p>Limite assumée : un score de correspondance ne s'exprime pas en SQL. Toutes les
-     * offres ouvertes doivent donc être évaluées avant qu'un classement existe ; seul le
-     * découpage en pages est fait en mémoire.
+     * offres retenues doivent donc être évaluées avant qu'un classement existe ; seul le
+     * découpage en pages est fait en mémoire. Les critères, eux, sont appliqués en base :
+     * inutile de scorer des offres que l'intérimaire vient d'écarter.
      */
     @Transactional(readOnly = true)
-    public PageResponse<MatchingOfferResponse> matching(int jobSeekerId, int page, int size) {
+    public PageResponse<MatchingOfferResponse> matching(
+            int jobSeekerId, OfferFilter filter, int page, int size) {
         User jobSeeker = userRepository.findById(jobSeekerId)
                 .orElseThrow(() -> new NoSuchElementException("Utilisateur introuvable."));
         // Le profil du candidat est chargé une seule fois pour toutes les offres.
@@ -107,7 +120,14 @@ public class OfferBrowseService {
 
         // Le tri est stable et la source est déjà ordonnée par date de publication : à
         // score égal, les offres gardent le même rang d'une page à l'autre.
-        List<ScoredOffer> ranked = jobOfferRepository.findAllByStatusFetchEmployer(JobOfferStatus.OPEN)
+        List<ScoredOffer> ranked = jobOfferRepository.searchAll(
+                        JobOfferStatus.OPEN,
+                        filter.keywordPattern(),
+                        filter.sector(),
+                        filter.province(),
+                        filter.minHourlyWage(),
+                        filter.maxExperienceYears(),
+                        filter.noVehicleRequired())
                 .stream()
                 .map(offer -> {
                     MatchScore match = matchingService.score(profile, matchingService.loadRequirements(offer));

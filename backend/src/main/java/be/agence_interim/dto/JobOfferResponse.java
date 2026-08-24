@@ -10,6 +10,8 @@ import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.JobOfferStatus;
 import be.agence_interim.model.LanguageJobOffer;
 import be.agence_interim.model.LanguageLevel;
+import be.agence_interim.model.Province;
+import be.agence_interim.model.Sector;
 import be.agence_interim.model.SkillJobOffer;
 import be.agence_interim.model.SkillLevel;
 
@@ -17,8 +19,9 @@ import be.agence_interim.model.SkillLevel;
 public record JobOfferResponse(
         int id,
         String title,
-        String sector,
+        Sector sector,
         String city,
+        Province province,
         String description,
         LocalDateTime publishedAt,
         BigDecimal salaryMin,
@@ -93,6 +96,7 @@ public record JobOfferResponse(
                 offer.getTitle(),
                 offer.getSector(),
                 offer.getCity(),
+                offer.getProvince(),
                 offer.getDescription(),
                 offer.getPublishedAt(),
                 offer.getSalaryMin(),

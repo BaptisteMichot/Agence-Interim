@@ -6,7 +6,8 @@ export type IconName =
   | 'calendar'
   | 'chat'
   | 'building'
-  | 'check';
+  | 'check'
+  | 'search';
 
 /** Tracés d'une seule ligne : de simples repères visuels, sans dépendance externe. */
 const PATHS: Record<IconName, string> = {
@@ -19,6 +20,7 @@ const PATHS: Record<IconName, string> = {
   chat: 'M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-5 4V6a1 1 0 0 1 1-1Z',
   building: 'M5 21V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v17M15 9h3a1 1 0 0 1 1 1v11M3 21h18M8 7h3M8 11h3M8 15h3',
   check: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-4 9 3 3 5-6',
+  search: 'M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm4.6 11.1L21 21',
 };
 
 export default function Icon({

@@ -38,7 +38,9 @@ import be.agence_interim.model.LanguageUser;
 import be.agence_interim.model.Message;
 import be.agence_interim.model.Mission;
 import be.agence_interim.model.MissionStatus;
+import be.agence_interim.model.Province;
 import be.agence_interim.model.Role;
+import be.agence_interim.model.Sector;
 import be.agence_interim.model.SkillJobOffer;
 import be.agence_interim.model.SkillLevel;
 import be.agence_interim.model.SkillUser;
@@ -100,11 +102,25 @@ public class DemoDataSeeder implements CommandLineRunner {
     private static final String EMPLOYER_EMAIL = "test@employer.com";
     private static final String JOBSEEKER_EMAIL = "test@jobseeker.com";
 
-    private static final String[] SECTORS = {
-        "Logistique", "Construction", "Horeca", "Nettoyage", "Commerce", "Industrie"
+    /** Sept secteurs pour huit lieux : les deux listes ne se répètent pas au même rythme. */
+    private static final Sector[] SECTORS = {
+        Sector.LOGISTIQUE, Sector.CONSTRUCTION, Sector.HORECA, Sector.NETTOYAGE,
+        Sector.COMMERCE, Sector.INDUSTRIE, Sector.SANTE
     };
-    private static final String[] CITIES = {
-        "Liège", "Bruxelles", "Namur", "Charleroi", "Verviers", "Mons"
+
+    /** Ville et province vont de pair : une offre ne peut pas être à Namur en Hainaut. */
+    private record Place(String city, Province province) {
+    }
+
+    private static final Place[] PLACES = {
+        new Place("Liège", Province.LIEGE),
+        new Place("Bruxelles", Province.BRUXELLES),
+        new Place("Namur", Province.NAMUR),
+        new Place("Charleroi", Province.HAINAUT),
+        new Place("Verviers", Province.LIEGE),
+        new Place("Mons", Province.HAINAUT),
+        new Place("Wavre", Province.BRABANT_WALLON),
+        new Place("Arlon", Province.LUXEMBOURG)
     };
     private static final String[] POSITIONS = {
         "Cariste", "Manutentionnaire", "Préparateur de commandes", "Magasinier",
@@ -407,15 +423,18 @@ public class DemoDataSeeder implements CommandLineRunner {
         JobOffer offer = new JobOffer();
         offer.setEmployer(employer);
         offer.setTitle(title);
+        Place place = PLACES[index % PLACES.length];
         offer.setSector(SECTORS[index % SECTORS.length]);
-        offer.setCity(CITIES[index % CITIES.length]);
+        offer.setCity(place.city());
+        offer.setProvince(place.province());
         offer.setDescription("Poste à pourvoir rapidement. Environnement dynamique, équipe soudée, "
                 + "horaire de jour du lundi au vendredi.");
         // Publications échelonnées : la liste est triée de la plus récente à la plus ancienne.
         offer.setPublishedAt(LocalDateTime.now().minusDays(index).minusHours(index));
         offer.setSalaryMin(new BigDecimal("14.00").add(new BigDecimal(index % 5)));
         offer.setSalaryMax(new BigDecimal("19.00").add(new BigDecimal(index % 5)));
-        offer.setExperienceTime(index % 2 == 0 ? "2" : null);
+        // Trois niveaux d'exigence : sans expérience, deux ans, cinq ans.
+        offer.setExperienceTime(index % 3 == 0 ? "5" : index % 2 == 0 ? "2" : null);
         offer.setVehicleMandatory(index % 5 == 0);
         offer.setStatus(status);
         return offer;
@@ -525,7 +544,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         String position = POSITIONS[offerIndex % POSITIONS.length];
         // Une mission acceptée clôture son offre : le statut suit la règle du service.
         JobOffer offer = jobOfferRepository.save(offer(
-                employer, position + " — mission " + offerIndex, offerIndex,
+                employer, position, offerIndex,
                 status == MissionStatus.ACTIVE ? JobOfferStatus.CLOSED : JobOfferStatus.OPEN));
         Application application = applicationRepository.save(application(
                 jobSeeker, offer, LocalDateTime.now().minusDays(offerIndex % 40), ApplicationStatus.PENDING));

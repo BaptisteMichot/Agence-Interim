@@ -4,6 +4,7 @@ import { applyToOffer } from '../../api/applications';
 import { errorMessage } from '../../api/http';
 import { addFavoriteOffer, getOfferDetail, removeFavoriteOffer } from '../../api/offers';
 import { btnPrimary, btnSecondary, errorBox, linkBack } from '../../components/ui';
+import { provinceLabel, sectorLabel } from '../../offers/format';
 import type { JobOfferDetail } from '../../offers/types';
 import { degreeTypeLabel, formatTimestampDate, skillLevelLabel } from '../../profile/format';
 
@@ -91,7 +92,7 @@ export default function OfferDetailPage() {
               )}
             </h1>
             <p className="mt-1 text-slate-600">
-              {offer.companyName} · {offer.sector} · {offer.city}
+              {offer.companyName} · {sectorLabel(offer.sector)} · {offer.city} ({provinceLabel(offer.province)})
             </p>
             {offer.publishedAt && (
               <p className="text-xs text-slate-400">Publiée le {formatTimestampDate(offer.publishedAt)}</p>

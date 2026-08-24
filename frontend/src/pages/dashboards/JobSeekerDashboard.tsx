@@ -13,6 +13,7 @@ import StatTile from '../../components/StatTile';
 import { btnPrimary, card, sectionTitle, warningBox } from '../../components/ui';
 import { addDays, shortTime, todayIso } from '../../missions/format';
 import type { ScheduleEntry } from '../../missions/types';
+import { NO_FILTERS } from '../../offers/format';
 import { formatDate } from '../../profile/format';
 
 interface HomeData {
@@ -40,7 +41,7 @@ export default function JobSeekerDashboard() {
     Promise.all([
       getMissionDecisionCount().catch(() => ({ count: 0 })),
       getPendingApplicationCount().catch(() => 0),
-      getMatchingOffers(0).catch(() => ({ totalElements: 0 })),
+      getMatchingOffers(0, NO_FILTERS).catch(() => ({ totalElements: 0 })),
       getSchedule(from, addDays(from, 30)).catch(() => []),
       getCompletedMissionCount().catch(() => 0),
       getProfile()

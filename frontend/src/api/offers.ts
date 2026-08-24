@@ -1,6 +1,12 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './http';
 import { apiGetCount, apiGetPage, type Page } from './page';
-import type { JobOfferDetail, JobOfferPayload, JobOfferSummary, MatchingOffer } from '../offers/types';
+import type {
+  JobOfferDetail,
+  JobOfferPayload,
+  JobOfferSummary,
+  MatchingOffer,
+  OfferFilters,
+} from '../offers/types';
 
 // --- Offres de l'employeur courant ---
 
@@ -31,13 +37,28 @@ export function closeOffer(id: number): Promise<JobOfferDetail> {
 
 // --- Consultation par l'intérimaire + favoris ---
 
-export function browseOffers(page: number): Promise<Page<JobOfferSummary>> {
-  return apiGetPage<JobOfferSummary>('/offers', page);
+/**
+ * Critères sous la forme attendue par la requête. Un critère vide n'est pas envoyé :
+ * c'est l'absence du paramètre qui dit au serveur de ne pas filtrer là-dessus.
+ */
+function filterParams(filters: OfferFilters): Record<string, string | undefined> {
+  return {
+    keyword: filters.keyword.trim() || undefined,
+    sector: filters.sector || undefined,
+    province: filters.province || undefined,
+    minHourlyWage: filters.minHourlyWage || undefined,
+    maxExperienceYears: filters.maxExperienceYears || undefined,
+    noVehicleRequired: filters.noVehicleRequired ? 'true' : undefined,
+  };
 }
 
-/** Offres correspondant au profil (triées par score décroissant). */
-export function getMatchingOffers(page: number): Promise<Page<MatchingOffer>> {
-  return apiGetPage<MatchingOffer>('/offers/matching', page);
+export function browseOffers(page: number, filters: OfferFilters): Promise<Page<JobOfferSummary>> {
+  return apiGetPage<JobOfferSummary>('/offers', page, filterParams(filters));
+}
+
+/** Offres correspondant au profil (triées par score décroissant), mêmes critères. */
+export function getMatchingOffers(page: number, filters: OfferFilters): Promise<Page<MatchingOffer>> {
+  return apiGetPage<MatchingOffer>('/offers/matching', page, filterParams(filters));
 }
 
 export function getOfferDetail(id: number): Promise<JobOfferDetail> {

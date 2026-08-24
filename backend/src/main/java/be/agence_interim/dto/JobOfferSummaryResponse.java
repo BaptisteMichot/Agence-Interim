@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.JobOfferStatus;
+import be.agence_interim.model.Province;
+import be.agence_interim.model.Sector;
 
 /**
  * Vue résumée d'une offre pour les listes (sans les exigences).
@@ -16,8 +18,9 @@ import be.agence_interim.model.JobOfferStatus;
 public record JobOfferSummaryResponse(
         int id,
         String title,
-        String sector,
+        Sector sector,
         String city,
+        Province province,
         LocalDateTime publishedAt,
         BigDecimal salaryMin,
         BigDecimal salaryMax,
@@ -50,6 +53,7 @@ public record JobOfferSummaryResponse(
                 offer.getTitle(),
                 offer.getSector(),
                 offer.getCity(),
+                offer.getProvince(),
                 offer.getPublishedAt(),
                 offer.getSalaryMin(),
                 offer.getSalaryMax(),

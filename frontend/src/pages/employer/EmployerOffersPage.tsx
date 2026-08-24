@@ -7,7 +7,7 @@ import PageHeader from '../../components/PageHeader';
 import Pagination from '../../components/Pagination';
 import { btnDanger, btnPrimary, btnSecondary, errorBox } from '../../components/ui';
 import { usePagedResource } from '../../hooks/usePagedResource';
-import { salarySuffix } from '../../offers/format';
+import { salarySuffix, sectorLabel } from '../../offers/format';
 import type { JobOfferSummary } from '../../offers/types';
 import { formatTimestampDate } from '../../profile/format';
 
@@ -82,7 +82,7 @@ export default function EmployerOffersPage() {
                   </span>
                 </p>
                 <p className="text-sm text-slate-500">
-                  {offer.sector} · {offer.city}
+                  {sectorLabel(offer.sector)} · {offer.city}
                   {salarySuffix(offer.salaryMin, offer.salaryMax)}
                 </p>
                 {offer.publishedAt && (

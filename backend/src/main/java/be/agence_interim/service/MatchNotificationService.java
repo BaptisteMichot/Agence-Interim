@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.Role;
+import be.agence_interim.model.Sector;
 import be.agence_interim.model.User;
 import be.agence_interim.repository.JobOfferRepository;
 import be.agence_interim.repository.UserRepository;
@@ -80,9 +81,28 @@ public class MatchNotificationService {
                 + "Une nouvelle offre d'emploi correspond à votre profil à " + match.score() + " % :\n\n"
                 + "  " + offer.getTitle() + "\n"
                 + "  " + offer.getEmployer().getCompanyName() + " — " + offer.getCity()
-                + " (" + offer.getSector() + ")\n\n"
+                + " (" + sectorLabel(offer.getSector()) + ")\n\n"
                 + "Si elle vous intéresse, consultez-la et postulez ici :\n"
                 + frontendUrl + "/interimaire/offres/" + offer.getId() + "\n\n"
                 + "L'agence d'intérim";
+    }
+
+    /** Libellé du secteur pour un texte lu par un humain (l'email est écrit côté serveur). */
+    private String sectorLabel(Sector sector) {
+        return switch (sector) {
+            case CONSTRUCTION -> "Construction";
+            case LOGISTIQUE -> "Logistique";
+            case TRANSPORT -> "Transport";
+            case INDUSTRIE -> "Industrie";
+            case HORECA -> "Horeca";
+            case COMMERCE -> "Commerce";
+            case NETTOYAGE -> "Nettoyage";
+            case SANTE -> "Santé";
+            case ADMINISTRATION -> "Administration";
+            case INFORMATIQUE -> "Informatique";
+            case ENSEIGNEMENT -> "Enseignement";
+            case AGRICULTURE -> "Agriculture";
+            case AUTRE -> "Autre";
+        };
     }
 }

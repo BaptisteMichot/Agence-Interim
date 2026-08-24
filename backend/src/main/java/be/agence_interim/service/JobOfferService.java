@@ -162,10 +162,13 @@ public class JobOfferService {
         offer.setTitle(request.title());
         offer.setSector(request.sector());
         offer.setCity(request.city());
+        offer.setProvince(request.province());
         offer.setDescription(request.description());
         offer.setSalaryMin(request.salaryMin());
         offer.setSalaryMax(request.salaryMax());
-        offer.setExperienceTime(request.experienceTime());
+        // Une chaîne vide serait stockée telle quelle et la recherche par expérience,
+        // qui compare ce texte à un nombre, échouerait sur cette ligne.
+        offer.setExperienceTime(Strings.blankToNull(request.experienceTime()));
         offer.setVehicleMandatory(request.vehicleMandatory());
     }
 

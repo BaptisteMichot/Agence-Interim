@@ -12,11 +12,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+
 import be.agence_interim.dto.JobOfferResponse;
 import be.agence_interim.dto.JobOfferSummaryResponse;
 import be.agence_interim.dto.MatchingOfferResponse;
 import be.agence_interim.dto.MyApplicationResponse;
+import be.agence_interim.dto.OfferFilter;
 import be.agence_interim.dto.PageResponse;
+import be.agence_interim.model.Province;
+import be.agence_interim.model.Sector;
 import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.ApplicationService;
 import be.agence_interim.service.OfferBrowseService;
@@ -35,17 +40,40 @@ public class JobSeekerOfferController {
         this.applicationService = applicationService;
     }
 
+    /** Offres ouvertes, filtrées par les critères de recherche laissés libres. */
     @GetMapping
     public PageResponse<JobOfferSummaryResponse> browse(
-            @AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
-        return offerBrowseService.browseOpen(CurrentUser.id(jwt), Pages.of(page));
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Sector sector,
+            @RequestParam(required = false) Province province,
+            @RequestParam(required = false) BigDecimal minHourlyWage,
+            @RequestParam(required = false) Integer maxExperienceYears,
+            @RequestParam(defaultValue = "false") boolean noVehicleRequired) {
+        OfferFilter filter = new OfferFilter(
+                keyword, sector, province, minHourlyWage, maxExperienceYears, noVehicleRequired);
+        return offerBrowseService.browseOpen(CurrentUser.id(jwt), filter, Pages.of(page));
     }
 
-    /** Offres correspondant au profil (obligatoires satisfaits), triées par score décroissant. */
+    /**
+     * Offres correspondant au profil (obligatoires satisfaits), triées par score
+     * décroissant. Les mêmes critères de recherche s'y appliquent.
+     */
     @GetMapping("/matching")
     public PageResponse<MatchingOfferResponse> matching(
-            @AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
-        return offerBrowseService.matching(CurrentUser.id(jwt), Math.max(page, 0), Pages.PAGE_SIZE);
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Sector sector,
+            @RequestParam(required = false) Province province,
+            @RequestParam(required = false) BigDecimal minHourlyWage,
+            @RequestParam(required = false) Integer maxExperienceYears,
+            @RequestParam(defaultValue = "false") boolean noVehicleRequired) {
+        OfferFilter filter = new OfferFilter(
+                keyword, sector, province, minHourlyWage, maxExperienceYears, noVehicleRequired);
+        return offerBrowseService.matching(
+                CurrentUser.id(jwt), filter, Math.max(page, 0), Pages.PAGE_SIZE);
     }
 
     @GetMapping("/favorites")

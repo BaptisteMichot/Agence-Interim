@@ -31,6 +31,7 @@ public class JobOffer {
     public static final int TITLE_MAX_LENGTH = 50;
     public static final int SECTOR_MAX_LENGTH = 20;
     public static final int CITY_MAX_LENGTH = 20;
+    public static final int PROVINCE_MAX_LENGTH = 20;
     public static final int EXPERIENCE_TIME_MAX_LENGTH = 5;
     public static final int STATUS_MAX_LENGTH = 8;
 
@@ -45,11 +46,17 @@ public class JobOffer {
     @Column(nullable = false, length = TITLE_MAX_LENGTH)
     private String title;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = SECTOR_MAX_LENGTH)
-    private String sector;
+    private Sector sector;
 
     @Column(nullable = false, length = CITY_MAX_LENGTH)
     private String city;
+
+    /** Maille de recherche géographique : la ville seule ne permet pas d'élargir. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = PROVINCE_MAX_LENGTH)
+    private Province province;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;

@@ -8,6 +8,7 @@ import Pagination from '../../components/Pagination';
 import { btnDanger, btnSecondary, errorBox } from '../../components/ui';
 import { usePagedResource } from '../../hooks/usePagedResource';
 import type { MyApplication } from '../../applications/types';
+import { sectorLabel } from '../../offers/format';
 import { formatTimestampDate } from '../../profile/format';
 
 /** Chip de suivi : statut de la candidature, en tenant compte d'une offre clôturée. */
@@ -84,7 +85,8 @@ export default function MyApplicationsPage() {
                   <span className="ml-2">{statusChip(application)}</span>
                 </p>
                 <p className="text-sm text-slate-500">
-                  {application.offer.companyName} · {application.offer.sector} · {application.offer.city}
+                  {application.offer.companyName} · {sectorLabel(application.offer.sector)} ·{' '}
+                  {application.offer.city}
                 </p>
                 <p className="text-xs text-slate-400">
                   Postulée le {formatTimestampDate(application.applicationTime)}

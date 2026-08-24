@@ -12,10 +12,12 @@ import {
 import PageHeader from '../../components/PageHeader';
 import Pagination from '../../components/Pagination';
 import { errorBox } from '../../components/ui';
+import { useDebounced } from '../../hooks/useDebounced';
 import { usePagedResource } from '../../hooks/usePagedResource';
-import { salarySuffix } from '../../offers/format';
-import type { JobOfferSummary } from '../../offers/types';
+import { hasActiveFilters, NO_FILTERS, salarySuffix, sectorLabel } from '../../offers/format';
+import type { JobOfferSummary, OfferFilters } from '../../offers/types';
 import { formatTimestampDate } from '../../profile/format';
+import OfferFilterBar from './OfferFilterBar';
 
 type Tab = 'match' | 'all' | 'favorites';
 
@@ -34,6 +36,9 @@ const EMPTY_MESSAGE: Record<Tab, string> = {
   favorites: 'Aucune offre en favori.',
 };
 
+/** Les favoris sont une liste courte déjà choisie : les critères ne s'y appliquent pas. */
+const FILTERABLE: Tab[] = ['match', 'all'];
+
 /** Ramène les trois formes de réponse à une même ligne affichable. */
 function toRows(page: Page<JobOfferSummary>): Page<Row> {
   return { ...page, content: page.content.map((offer) => ({ offer })) };
@@ -42,19 +47,26 @@ function toRows(page: Page<JobOfferSummary>): Page<Row> {
 /** Consultation des offres ouvertes + favoris (espace intérimaire). */
 export default function OffersBrowsePage() {
   const [tab, setTab] = useState<Tab>('match');
+  const [criteria, setCriteria] = useState<OfferFilters>(NO_FILTERS);
 
-  // L'identité du fetcher change avec l'onglet : le hook repart alors de la page 1.
+  // Les critères ne partent qu'une fois la saisie retombée : sans ce délai, chaque
+  // frappe dans le champ mot-clé donnerait un fetcher différent, donc une requête.
+  const filters = useDebounced(criteria, 300);
+  const filtered = FILTERABLE.includes(tab) && hasActiveFilters(filters);
+
+  // L'identité du fetcher change avec l'onglet et les critères : le hook repart
+  // alors de la page 1, plutôt que de demander une page 7 qui n'existe peut-être plus.
   const fetcher = useCallback(
     (page: number): Promise<Page<Row>> => {
       if (tab === 'match') {
-        return getMatchingOffers(page).then((result) => ({
+        return getMatchingOffers(page, filters).then((result) => ({
           ...result,
           content: result.content.map((match) => ({ offer: match.offer, score: match.score })),
         }));
       }
-      return (tab === 'favorites' ? getFavoriteOffers(page) : browseOffers(page)).then(toRows);
+      return (tab === 'favorites' ? getFavoriteOffers(page) : browseOffers(page, filters)).then(toRows);
     },
-    [tab],
+    [tab, filters],
   );
 
   const { items, pageData, loading, error, setError, reload, goTo } = usePagedResource(
@@ -102,11 +114,21 @@ export default function OffersBrowsePage() {
         ))}
       </div>
 
+      {FILTERABLE.includes(tab) && (
+        <div className="mt-4">
+          <OfferFilterBar filters={criteria} onChange={setCriteria} />
+        </div>
+      )}
+
       {error && <p className={`mt-4 ${errorBox}`}>{error}</p>}
 
       <div className="mt-4 rounded-xl border border-line bg-surface p-6">
         {loading && <p className="text-sm text-slate-500">Chargement…</p>}
-        {!loading && items.length === 0 && <p className="text-sm text-slate-500">{EMPTY_MESSAGE[tab]}</p>}
+        {!loading && items.length === 0 && (
+          <p className="text-sm text-slate-500">
+            {filtered ? 'Aucune offre ne correspond à vos critères.' : EMPTY_MESSAGE[tab]}
+          </p>
+        )}
 
         <ul className="space-y-3">
           {items.map(({ offer, score }) => (
@@ -139,7 +161,7 @@ export default function OffersBrowsePage() {
                   )}
                 </p>
                 <p className="text-sm text-slate-500">
-                  {offer.companyName} · {offer.sector} · {offer.city}
+                  {offer.companyName} · {sectorLabel(offer.sector)} · {offer.city}
                   {salarySuffix(offer.salaryMin, offer.salaryMax)}
                 </p>
                 {offer.publishedAt && (

@@ -14,6 +14,7 @@ import {
   labelClass,
   linkBack,
 } from '../../components/ui';
+import { PROVINCES, SECTORS } from '../../offers/format';
 import type {
   JobOfferPayload,
   OfferDegreeRequirement,
@@ -40,8 +41,9 @@ export default function OfferFormPage() {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
-  const [sector, setSector] = useState('');
+  const [sector, setSector] = useState<JobOfferPayload['sector']>('');
   const [city, setCity] = useState('');
+  const [province, setProvince] = useState<JobOfferPayload['province']>('');
   const [description, setDescription] = useState('');
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
@@ -81,6 +83,7 @@ export default function OfferFormPage() {
         setTitle(offer.title);
         setSector(offer.sector);
         setCity(offer.city);
+        setProvince(offer.province);
         setDescription(offer.description);
         setSalaryMin(offer.salaryMin?.toString() ?? '');
         setSalaryMax(offer.salaryMax?.toString() ?? '');
@@ -116,6 +119,7 @@ export default function OfferFormPage() {
       title,
       sector,
       city,
+      province,
       description,
       salaryMin: salaryMin === '' ? null : Number(salaryMin),
       salaryMax: salaryMax === '' ? null : Number(salaryMax),
@@ -176,11 +180,22 @@ export default function OfferFormPage() {
               </div>
               <div>
                 <label className={labelClass} htmlFor="offer-sector">Secteur</label>
-                <input id="offer-sector" required maxLength={20} value={sector} onChange={(e) => setSector(e.target.value)} className={inputClass} />
+                <select id="offer-sector" required value={sector} onChange={(e) => setSector(e.target.value as JobOfferPayload['sector'])} className={inputClass}>
+                  <option value="" disabled>Choisissez un secteur</option>
+                  {SECTORS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="offer-city">Ville</label>
                 <input id="offer-city" required maxLength={20} value={city} onChange={(e) => setCity(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass} htmlFor="offer-province">Province</label>
+                <select id="offer-province" required value={province} onChange={(e) => setProvince(e.target.value as JobOfferPayload['province'])} className={inputClass}>
+                  <option value="" disabled>Choisissez une province</option>
+                  {PROVINCES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+                </select>
+                <p className="mt-1 text-xs text-muted">Elle permet aux candidats d'élargir leur recherche au-delà de la ville.</p>
               </div>
               <div>
                 <label className={labelClass} htmlFor="offer-exp">Expérience minimum (années)</label>
