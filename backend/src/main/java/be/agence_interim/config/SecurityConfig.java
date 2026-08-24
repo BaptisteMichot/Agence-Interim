@@ -25,6 +25,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
+import be.agence_interim.repository.UserRepository;
 import be.agence_interim.security.JwtCookieAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -41,12 +42,16 @@ public class SecurityConfig {
      */
     private static final String API_CONTENT_SECURITY_POLICY = "frame-ancestors 'none'";
 
+    /** Durée du HSTS : un an, la valeur attendue pour figurer sur les listes de préchargement. */
+    private static final long HSTS_MAX_AGE_SECONDS = 31_536_000L;
+
     /**
      * Rend l'API sans session côté serveur. Les endpoints d'authentification sont
      * publics ; les autres routes attendent un JWT valide, lu dans le cookie.
      */
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http, JwtDecoder jwtDecoder, UserRepository userRepository) throws Exception {
         return http
                 .csrf(csrf -> csrf
                         // Jeton double-envoi : le serveur dépose XSRF-TOKEN dans un cookie
@@ -61,6 +66,11 @@ public class SecurityConfig {
                         // préalable. Le risque résiduel est la « CSRF de connexion » (forcer un
                         // visiteur à se connecter sur un compte tiers) ; la déconnexion, elle,
                         // agit sur une session existante et reste protégée.
+                        // La réinitialisation de mot de passe n'est délibérément pas de la
+                        // partie : elle n'est atteinte que depuis l'application, qui possède
+                        // déjà le jeton — le cookie XSRF-TOKEN est déposé dès le premier appel,
+                        // fût-il un 401. Une route publique de plus n'a donc pas à être une
+                        // exemption de plus.
                         .ignoringRequestMatchers(
                                 "/api/auth/login", "/api/auth/register", "/api/auth/register-employer"))
                 .headers(headers -> headers
@@ -68,7 +78,17 @@ public class SecurityConfig {
                         .referrerPolicy(referrer -> referrer
                                 .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
                         .permissionsPolicyHeader(permissions -> permissions
-                                .policy("camera=(), microphone=(), geolocation=(), payment=()")))
+                                .policy("camera=(), microphone=(), geolocation=(), payment=()"))
+                        // Une fois le site visité en HTTPS, le navigateur refuse d'y revenir en
+                        // clair pendant un an, même si l'utilisateur tape « http:// ». Ferme la
+                        // fenêtre de la toute première requête, celle qu'une redirection ne
+                        // protège pas. Spring n'émet cet en-tête que sur une requête déjà
+                        // chiffrée : derrière un proxy qui termine le TLS, il faut lui apprendre
+                        // à le savoir (server.forward-headers-strategy).
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .preload(true)
+                                .maxAgeInSeconds(HSTS_MAX_AGE_SECONDS)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Redispatch interne de Spring Boot après un sendError. Exiger une
@@ -107,7 +127,8 @@ public class SecurityConfig {
                 // « anonymousUser » sur toute requête qui n'en a pas encore, ce qui
                 // empêcherait la nôtre de s'installer.
                 .addFilterBefore(
-                        new JwtCookieAuthenticationFilter(jwtDecoder, jwtAuthenticationConverter()),
+                        new JwtCookieAuthenticationFilter(
+                                jwtDecoder, jwtAuthenticationConverter(), userRepository),
                         UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

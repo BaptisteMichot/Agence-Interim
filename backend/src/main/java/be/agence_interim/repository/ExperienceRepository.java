@@ -14,4 +14,7 @@ public interface ExperienceRepository extends JpaRepository<Experience, Integer>
     List<Experience> findByUserIdInOrderByStartDateDesc(Collection<Integer> userIds);
 
     Optional<Experience> findByIdAndUserId(int id, int userId);
+
+    /** Efface les expériences d'un compte clôturé. */
+    void deleteByUserId(int userId);
 }

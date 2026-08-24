@@ -3,12 +3,15 @@ package be.agence_interim.controller;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+import be.agence_interim.security.TooManyAttemptsException;
 
 /**
  * Gestion des erreurs commune aux controllers REST (hors authentification, qui a
@@ -39,6 +42,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<String> handleNotFound(NoSuchElementException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
+    }
+
+    /**
+     * Quota de tentatives épuisé.
+     *
+     * <p>{@code 429} plutôt que {@code 403} : le refus est temporaire, et l'en-tête
+     * {@code Retry-After} le dit — un client honnête sait quand revenir, l'interface peut
+     * l'annoncer, et le journal du serveur distingue le blocage du rejet définitif.
+     */
+    @ExceptionHandler(TooManyAttemptsException.class)
+    public ResponseEntity<String> handleTooManyAttempts(TooManyAttemptsException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.getRetryAfter().toSeconds()))
+                .body(exception.getMessage());
     }
 
     /** Fichier trop volumineux (limite multipart dépassée). */

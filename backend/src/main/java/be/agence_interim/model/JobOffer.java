@@ -28,6 +28,9 @@ import lombok.Setter;
 @NoArgsConstructor
 public class JobOffer {
 
+    /** Borne de la description : un texte libre sans plafond est une entrée non validée. */
+    public static final int DESCRIPTION_MAX_LENGTH = 5000;
+
     public static final int TITLE_MAX_LENGTH = 50;
     public static final int SECTOR_MAX_LENGTH = 20;
     public static final int CITY_MAX_LENGTH = 20;

@@ -20,6 +20,7 @@ import be.agence_interim.config.AgencyProperties;
 import be.agence_interim.dto.ContractResponse;
 import be.agence_interim.dto.ContractSummaryResponse;
 import be.agence_interim.dto.PageResponse;
+import be.agence_interim.model.AuditAction;
 import be.agence_interim.model.Contract;
 import be.agence_interim.model.DailySchedule;
 import be.agence_interim.model.Mission;
@@ -44,6 +45,7 @@ public class ContractService {
     private final AgencyProperties agency;
     private final SigningCodeService signingCodeService;
     private final MailService mailService;
+    private final AuditService auditService;
 
     public ContractService(
             @Value("${app.contract.storage-dir:uploads/contracts}") String storageDir,
@@ -52,7 +54,8 @@ public class ContractService {
             DailyScheduleRepository dailyScheduleRepository,
             AgencyProperties agency,
             SigningCodeService signingCodeService,
-            MailService mailService) {
+            MailService mailService,
+            AuditService auditService) {
         this.storageDir = Paths.get(storageDir).toAbsolutePath().normalize();
         this.contractRepository = contractRepository;
         this.missionRepository = missionRepository;
@@ -60,6 +63,7 @@ public class ContractService {
         this.agency = agency;
         this.signingCodeService = signingCodeService;
         this.mailService = mailService;
+        this.auditService = auditService;
     }
 
     @PostConstruct
@@ -164,6 +168,14 @@ public class ContractService {
         }
         Contract saved = contractRepository.save(contract);
         write(saved, mission, dailyScheduleRepository.findByMissionIdOrderByDateAscStartTimeAsc(mission.getId()));
+        // La signature est l'acte le plus engageant de la plateforme. Sans trace, l'état
+        // du contrat dit qu'il est signé, jamais par qui, ni quand, ni depuis où.
+        auditService.record(
+                AuditAction.CONTRACT_SIGNED,
+                userId,
+                "CONTRACT",
+                saved.getId(),
+                context.isEmployer() ? "Signature employeur" : "Signature intérimaire");
         return ContractResponse.fromEntity(saved);
     }
 

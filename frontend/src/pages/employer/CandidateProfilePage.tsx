@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { openBlob } from '../../api/files';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { downloadCandidateCv, getCandidateProfile } from '../../api/applications';
 import { openConversationForApplication } from '../../api/chat';
@@ -30,8 +31,7 @@ export default function CandidateProfilePage() {
     setError(null);
     try {
       const blob = await downloadCandidateCv(applicationId);
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener');
+      openBlob(blob);
     } catch (err) {
       setError(errorMessage(err, 'Une erreur est survenue.'));
     }

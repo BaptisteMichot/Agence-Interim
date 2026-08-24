@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface UserRepository extends JpaRepository<User, Integer> {
 
@@ -18,5 +19,17 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     boolean existsByEmail(String email);
 
+    /**
+     * Version de session courante de l'utilisateur, ou vide s'il n'existe plus.
+     *
+     * <p>Une seule colonne est lue, et non l'entité entière : cette requête part sur
+     * chaque appel authentifié, c'est le prix de la révocation des jetons.
+     */
+    @Query("select u.tokenVersion from User u where u.id = :id")
+    Optional<Integer> findTokenVersionById(int id);
+
     List<User> findByRole(Role role);
+
+    /** Comptes dormants qui détiennent encore un CV (politique de conservation). */
+    List<User> findByLastLoginAtBeforeAndCvFilePathIsNotNull(java.time.LocalDateTime limit);
 }

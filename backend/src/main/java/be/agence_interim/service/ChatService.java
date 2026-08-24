@@ -158,6 +158,14 @@ public class ChatService {
         if (text.isEmpty()) {
             throw new IllegalArgumentException("Le message ne peut pas etre vide.");
         }
+        // La longueur est vérifiée ici et non seulement sur le DTO : la WebSocket
+        // désérialise sa trame à la main et n'a jamais vu passer de validateur. Une règle
+        // posée sur un seul des deux chemins d'entrée n'est pas une règle — la colonne
+        // étant un TEXT, la voie temps réel acceptait des messages de taille arbitraire.
+        if (text.length() > Message.CONTENT_MAX_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Le message ne peut pas depasser " + Message.CONTENT_MAX_LENGTH + " caracteres.");
+        }
         Conversation conversation = participantConversation(userId, conversationId);
         User sender = self(conversation, userId);
 

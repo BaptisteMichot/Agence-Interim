@@ -14,4 +14,7 @@ public interface UnavailabilityRepository extends JpaRepository<Unavailability, 
 
     /** Indisponibilités déjà déclarées un jour donné (contrôle de chevauchement). */
     List<Unavailability> findByUserIdAndDate(int userId, LocalDate date);
+
+    /** Efface les indisponibilités d'un compte clôturé. */
+    void deleteByUserId(int userId);
 }

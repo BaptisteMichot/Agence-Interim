@@ -3,6 +3,8 @@ package be.agence_interim.controller;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import be.agence_interim.dto.AdminEmployerRequestResponse;
 import be.agence_interim.dto.PageResponse;
+import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.EmployerAccessService;
 
 /** Traitement des demandes d'accès employeur par l'administrateur (routes /api/admin/** = rôle ADMIN). */
@@ -43,14 +46,17 @@ public class AdminEmployerRequestController {
     }
 
     @PostMapping("/{id}/accept")
-    public ResponseEntity<Void> accept(@PathVariable int id) {
-        employerAccessService.accept(id);
+    public ResponseEntity<Void> accept(@AuthenticationPrincipal Jwt jwt, @PathVariable int id) {
+        employerAccessService.accept(CurrentUser.id(jwt), id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/refuse")
-    public ResponseEntity<Void> refuse(@PathVariable int id, @RequestParam(defaultValue = "false") boolean block) {
-        employerAccessService.refuse(id, block);
+    public ResponseEntity<Void> refuse(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable int id,
+            @RequestParam(defaultValue = "false") boolean block) {
+        employerAccessService.refuse(CurrentUser.id(jwt), id, block);
         return ResponseEntity.noContent().build();
     }
 }

@@ -58,4 +58,13 @@ public interface MessageRepository extends JpaRepository<Message, Integer> {
 
         Long getTotal();
     }
+
+    /** Messages écrits par un utilisateur, du plus ancien au plus récent (export RGPD). */
+    List<Message> findByUserIdOrderBySentTimeAsc(int userId);
+
+    /** Efface les messages écrits par un compte clôturé. */
+    void deleteByUserId(int userId);
+
+    /** Purge les messages antérieurs à une date (politique de conservation). */
+    long deleteBySentTimeBefore(java.time.LocalDateTime limit);
 }

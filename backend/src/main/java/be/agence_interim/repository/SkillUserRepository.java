@@ -20,4 +20,7 @@ public interface SkillUserRepository extends JpaRepository<SkillUser, SkillUserI
     Optional<SkillUser> findByUserIdAndSkillId(int userId, int skillId);
 
     boolean existsByUserIdAndSkillId(int userId, int skillId);
+
+    /** Efface les compétences déclarées par un compte clôturé. */
+    void deleteByUserId(int userId);
 }

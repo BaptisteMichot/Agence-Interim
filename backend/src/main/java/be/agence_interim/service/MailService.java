@@ -32,21 +32,49 @@ public class MailService {
 
     /** Envoie (ou journalise) un email texte. Ne lève jamais : un échec d'envoi est loggé. */
     public void send(String to, String subject, String body) {
+        String safeSubject = singleLine(subject);
         JavaMailSender sender = enabled ? mailSenderProvider.getIfAvailable() : null;
         if (sender == null) {
-            log.info("[EMAIL SIMULÉ] to={} | subject={} | body:\n{}", to, subject, body);
+            simulate(to, safeSubject, body);
             return;
         }
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(from);
             message.setTo(to);
-            message.setSubject(subject);
+            message.setSubject(safeSubject);
             message.setText(body);
             sender.send(message);
-            log.info("Email envoyé à {} ({})", to, subject);
+            log.info("Email envoyé à {} ({})", to, safeSubject);
         } catch (Exception e) {
             log.error("Échec d'envoi de l'email à {} : {}", to, e.getMessage());
         }
+    }
+
+    /**
+     * Email non envoyé, journalisé à la place.
+     *
+     * <p>Le corps ne part qu'en {@code DEBUG}, jamais en {@code INFO} : il contient les
+     * codes de signature et de réinitialisation, c'est-à-dire des secrets à usage unique.
+     * En développement, où le niveau {@code DEBUG} est de mise, la simulation reste
+     * pleinement lisible ; en production, un basculement accidentel de
+     * {@code MAIL_ENABLED} ne déverse plus ces codes dans les journaux d'application,
+     * qui sont souvent centralisés et lus par plus de monde que la base de données.
+     */
+    private void simulate(String to, String subject, String body) {
+        log.info("[EMAIL SIMULÉ] to={} | subject={} | corps en DEBUG", to, subject);
+        log.debug("[EMAIL SIMULÉ] to={} | subject={} | body:\n{}", to, subject, body);
+    }
+
+    /**
+     * Réduit une valeur à une seule ligne.
+     *
+     * <p>Le sujet reprend du texte saisi par un utilisateur — le titre d'une offre, celui
+     * d'une mission. JavaMail encode ce qu'on lui donne et ferme l'injection d'en-tête en
+     * pratique ; en dépendre reste inutile quand couper les retours à la ligne coûte une
+     * ligne de code.
+     */
+    private static String singleLine(String value) {
+        return value == null ? "" : value.replaceAll("[\\r\\n]+", " ").trim();
     }
 }

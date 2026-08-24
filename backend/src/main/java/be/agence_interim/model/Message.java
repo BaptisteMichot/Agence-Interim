@@ -25,6 +25,16 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Message {
 
+    /**
+     * Longueur maximale d'un message.
+     *
+     * <p>Déclarée sur l'entité, comme les autres bornes du modèle, pour que le DTO et le
+     * service citent la même valeur. La colonne reste un {@code TEXT} : la contrainte est
+     * appliquée par {@code ChatService}, qui est le point de passage obligé des deux
+     * canaux d'envoi.
+     */
+    public static final int CONTENT_MAX_LENGTH = 2000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;

@@ -83,6 +83,12 @@ export default function LoginPage() {
         </button>
 
         <p className="mt-4 text-center text-sm text-slate-600">
+          <Link to="/mot-de-passe-oublie" className="font-medium text-brand-600 hover:underline">
+            Mot de passe oublié ?
+          </Link>
+        </p>
+
+        <p className="mt-4 text-center text-sm text-slate-600">
           Pas encore de compte ?{' '}
           <Link to="/register" className="font-medium text-brand-600 hover:underline">
             Créer un compte

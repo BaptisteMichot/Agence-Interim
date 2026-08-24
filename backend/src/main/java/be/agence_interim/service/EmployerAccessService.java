@@ -17,6 +17,7 @@ import be.agence_interim.dto.EmployerCompanyRequest;
 import be.agence_interim.dto.MyEmployerRequestResponse;
 import be.agence_interim.dto.PageResponse;
 import be.agence_interim.dto.EmployerRegisterRequest;
+import be.agence_interim.model.AuditAction;
 import be.agence_interim.model.EmployerAccessRequest;
 import be.agence_interim.model.EmployerAccessStatus;
 import be.agence_interim.model.Role;
@@ -34,14 +35,17 @@ public class EmployerAccessService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmployerAccessRequestRepository requestRepository;
+    private final AuditService auditService;
 
     public EmployerAccessService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            EmployerAccessRequestRepository requestRepository) {
+            EmployerAccessRequestRepository requestRepository,
+            AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.requestRepository = requestRepository;
+        this.auditService = auditService;
     }
 
     /**
@@ -163,13 +167,18 @@ public class EmployerAccessService {
     }
 
     @Transactional
-    public void accept(int requestId) {
+    public void accept(int adminId, int requestId) {
         EmployerAccessRequest request = pendingRequest(requestId);
         User user = request.getUser();
         user.setRole(Role.EMPLOYER);
+        // Le rôle voyage dans le jeton : sans révocation, le nouvel employeur garderait
+        // jusqu'à une heure un jeton qui le dit encore en attente. La version de session
+        // est incrémentée, il se reconnecte, et ses droits sont immédiatement les bons.
+        user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
         request.setStatus(EmployerAccessStatus.ACCEPTED);
         requestRepository.save(request);
+        auditService.record(AuditAction.EMPLOYER_ACCESS_GRANTED, adminId, "USER", user.getId(), null);
     }
 
     /**
@@ -177,22 +186,17 @@ public class EmployerAccessService {
      * pourra plus resoumettre, ce qui évite qu'un compte éconduit inonde l'agence.
      */
     @Transactional
-    public void refuse(int requestId, boolean block) {
+    public void refuse(int adminId, int requestId, boolean block) {
         EmployerAccessRequest request = pendingRequest(requestId);
         request.setStatus(EmployerAccessStatus.REFUSED);
         request.setReapplyBlocked(block);
         requestRepository.save(request);
-    }
-
-    /** Suppression du compte par un employeur en attente (et de ses demandes). */
-    @Transactional
-    public void deleteAccount(int userId) {
-        User user = userRepository.requireById(userId);
-        if (user.getRole() != Role.EMPLOYER_PENDING) {
-            throw new IllegalArgumentException("Action non autorisee.");
-        }
-        requestRepository.deleteByUserId(userId);
-        userRepository.delete(user);
+        auditService.record(
+                AuditAction.EMPLOYER_ACCESS_REFUSED,
+                adminId,
+                "USER",
+                request.getUser().getId(),
+                block ? "Refus définitif" : "Refus, nouvelle demande possible");
     }
 
     private void createRequest(User user, String message) {

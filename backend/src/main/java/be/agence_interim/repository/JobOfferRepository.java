@@ -19,6 +19,12 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, Integer> {
      * décompte. Chaque ligne se neutralise quand son paramètre est nul, de sorte qu'une
      * requête unique couvre toutes les combinaisons de filtres.
      *
+     * <p>Le {@code escape '!'} accompagne le motif construit par
+     * {@code OfferFilter.keywordPattern()} : les jokers que le mot-clé contenait déjà y
+     * sont préfixés de ce caractère, ce qui les ramène au rang de caractères ordinaires.
+     * JPQL n'accepte qu'un littéral ici — la valeur doit rester alignée sur
+     * {@code OfferFilter.LIKE_ESCAPE}.
+     *
      * <p>Le salaire demandé est comparé au <em>haut</em> de la fourchette annoncée :
      * une offre est retenue dès qu'elle peut atteindre le montant souhaité. Une offre
      * qui n'annonce aucune fourchette est écartée, sans quoi le filtre ne garantirait
@@ -28,7 +34,9 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, Integer> {
      */
     String OPEN_FILTERS = """
             where o.status = :status
-              and (:keyword is null or lower(o.title) like :keyword or lower(o.description) like :keyword)
+              and (:keyword is null
+                   or lower(o.title) like :keyword escape '!'
+                   or lower(o.description) like :keyword escape '!')
               and (:sector is null or o.sector = :sector)
               and (:province is null or o.province = :province)
               and (:minHourlyWage is null or coalesce(o.salaryMax, o.salaryMin) >= :minHourlyWage)
@@ -78,4 +86,10 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, Integer> {
             BigDecimal minHourlyWage,
             Integer maxExperienceYears,
             boolean noVehicleRequired);
+
+    /** Vrai si le compte a déjà publié une offre (clôture par anonymisation). */
+    boolean existsByEmployerId(int employerId);
+
+    /** Toutes les offres d'un employeur (clôture de compte). */
+    List<JobOffer> findByEmployerId(int employerId);
 }

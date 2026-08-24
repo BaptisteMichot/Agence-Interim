@@ -60,4 +60,10 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
 
         Long getTotal();
     }
+
+    /** Vrai si le compte a déjà postulé : sa clôture ne peut alors plus être une suppression. */
+    boolean existsByJobSeekerId(int jobSeekerId);
+
+    /** Candidatures dans un statut donné sur les offres d'un employeur (clôture de compte). */
+    List<Application> findByJobOfferEmployerIdAndStatus(int employerId, ApplicationStatus status);
 }

@@ -41,4 +41,7 @@ public interface ContractRepository extends JpaRepository<Contract, Integer> {
             + "(c.mission.application.jobOffer.employer.id = :userId and c.statusEmployer = :pending) "
             + "or (c.mission.application.jobSeeker.id = :userId and c.statusWorker = :pending)")
     long countAwaitingSignature(int userId, SignatureStatus pending);
+
+    /** Contrats antérieurs à une date (politique de conservation). */
+    List<Contract> findByGenerationTimeBefore(java.time.LocalDateTime limit);
 }

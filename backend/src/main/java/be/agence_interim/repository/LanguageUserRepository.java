@@ -20,4 +20,7 @@ public interface LanguageUserRepository extends JpaRepository<LanguageUser, Lang
     Optional<LanguageUser> findByUserIdAndLanguageId(int userId, int languageId);
 
     boolean existsByUserIdAndLanguageId(int userId, int languageId);
+
+    /** Efface les langues déclarées par un compte clôturé. */
+    void deleteByUserId(int userId);
 }

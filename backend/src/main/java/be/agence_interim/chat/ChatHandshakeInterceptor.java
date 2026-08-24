@@ -15,8 +15,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
+import be.agence_interim.repository.UserRepository;
 import be.agence_interim.security.AuthCookie;
 import be.agence_interim.security.CurrentUser;
+import be.agence_interim.service.JwtService;
 
 /**
  * Authentifie la poignée de main WebSocket à partir du cookie de session.
@@ -39,9 +41,11 @@ public class ChatHandshakeInterceptor implements HandshakeInterceptor {
     public static final String USER_ID_ATTRIBUTE = "userId";
 
     private final JwtDecoder jwtDecoder;
+    private final UserRepository userRepository;
 
-    public ChatHandshakeInterceptor(JwtDecoder jwtDecoder) {
+    public ChatHandshakeInterceptor(JwtDecoder jwtDecoder, UserRepository userRepository) {
         this.jwtDecoder = jwtDecoder;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -59,11 +63,29 @@ public class ChatHandshakeInterceptor implements HandshakeInterceptor {
         }
         try {
             Jwt jwt = jwtDecoder.decode(token);
+            // Le même contrôle de révocation que sur les requêtes HTTP. Il compte
+            // davantage ici : une WebSocket ouverte survit à la déconnexion, et sans
+            // cette vérification la messagerie resterait le seul canal qu'un jeton
+            // révoqué continue d'ouvrir.
+            if (!currentVersion(jwt)) {
+                return reject(response);
+            }
             attributes.put(USER_ID_ATTRIBUTE, CurrentUser.id(jwt));
             return true;
         } catch (JwtException | IllegalStateException e) {
             return reject(response);
         }
+    }
+
+    /** Vrai si la version de session du jeton est encore celle du compte. */
+    private boolean currentVersion(Jwt jwt) {
+        Integer presented = jwt.getClaim(JwtService.TOKEN_VERSION_CLAIM) instanceof Number number
+                ? number.intValue()
+                : null;
+        return presented != null
+                && userRepository.findTokenVersionById(CurrentUser.id(jwt))
+                        .filter(version -> version.equals(presented))
+                        .isPresent();
     }
 
     /** Refuse la poignée de main avec un 401 explicite (sans cela, le statut resterait 200). */

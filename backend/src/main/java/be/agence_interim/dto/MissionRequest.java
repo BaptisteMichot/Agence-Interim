@@ -39,6 +39,7 @@ public record MissionRequest(
         @NotNull(message = "Le motif de recours est obligatoire.") WorkReason workReason,
         @Size(max = Mission.REPLACED_WORKER_MAX_LENGTH, message = "Le nom du travailleur remplacé est trop long.")
         String replacedWorker,
+        @Size(max = Mission.NOTES_MAX_LENGTH, message = "Les remarques sont trop longues.")
         String notes,
         @NotEmpty(message = "La mission doit comporter au moins une journée de travail.")
         @Valid List<DailySlotRequest> slots) {

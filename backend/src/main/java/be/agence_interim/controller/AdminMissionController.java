@@ -2,6 +2,8 @@ package be.agence_interim.controller;
 
 import java.util.Map;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import be.agence_interim.dto.MissionResponse;
 import be.agence_interim.dto.PageResponse;
 import be.agence_interim.dto.RefuseMissionRequest;
+import be.agence_interim.security.CurrentUser;
 import be.agence_interim.service.MissionService;
 import jakarta.validation.Valid;
 
@@ -47,12 +50,15 @@ public class AdminMissionController {
     }
 
     @PostMapping("/{id}/validate")
-    public MissionResponse validate(@PathVariable int id) {
-        return missionService.validate(id);
+    public MissionResponse validate(@AuthenticationPrincipal Jwt jwt, @PathVariable int id) {
+        return missionService.validate(CurrentUser.id(jwt), id);
     }
 
     @PostMapping("/{id}/refuse")
-    public MissionResponse refuse(@PathVariable int id, @Valid @RequestBody RefuseMissionRequest request) {
-        return missionService.refuse(id, request.reason().trim());
+    public MissionResponse refuse(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable int id,
+            @Valid @RequestBody RefuseMissionRequest request) {
+        return missionService.refuse(CurrentUser.id(jwt), id, request.reason().trim());
     }
 }

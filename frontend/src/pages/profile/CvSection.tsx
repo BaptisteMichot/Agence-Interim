@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { openBlob } from '../../api/files';
 import { errorMessage } from '../../api/http';
 import { deleteCv, downloadCv, uploadCv } from '../../api/profile';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -58,9 +59,7 @@ export default function CvSection({ cvFilePath, onChanged }: CvSectionProps) {
     setError(null);
     try {
       const blob = await downloadCv();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener');
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      openBlob(blob);
     } catch (err) {
       setError(errorMessage(err, 'Une erreur est survenue.'));
     }

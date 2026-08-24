@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { openBlob } from '../../api/files';
 import { errorMessage } from '../../api/http';
 import { downloadContract, getAdminMissions, refuseMission, validateMission } from '../../api/missions';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -100,7 +101,7 @@ export default function AdminMissionsPage() {
     setError(null);
     try {
       const blob = await downloadContract(missionId);
-      window.open(URL.createObjectURL(blob), '_blank', 'noopener');
+      openBlob(blob);
     } catch (err) {
       setError(errorMessage(err, 'Le contrat n’a pas pu être ouvert.'));
     }

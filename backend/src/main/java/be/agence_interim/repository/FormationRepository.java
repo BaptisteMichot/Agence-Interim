@@ -10,4 +10,7 @@ public interface FormationRepository extends JpaRepository<Formation, Integer> {
     List<Formation> findByUserIdOrderByStartDateDesc(int userId);
 
     Optional<Formation> findByIdAndUserId(int id, int userId);
+
+    /** Efface les formations d'un compte clôturé. */
+    void deleteByUserId(int userId);
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { openBlob } from '../api/files';
 import { errorMessage } from '../api/http';
 import { downloadContract, requestSigningCode, signContract } from '../api/missions';
 import { btnPrimary, btnSecondary, errorBox, inputClass, labelClass } from '../components/ui';
@@ -38,7 +39,7 @@ export default function ContractPanel({
     setError(null);
     try {
       const blob = await downloadContract(mission.id);
-      window.open(URL.createObjectURL(blob), '_blank', 'noopener');
+      openBlob(blob);
     } catch (err) {
       setError(errorMessage(err, 'Le contrat n’a pas pu être ouvert.'));
     }

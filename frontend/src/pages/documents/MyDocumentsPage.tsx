@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { openBlob } from '../../api/files';
 import { Link } from 'react-router-dom';
 import { errorMessage } from '../../api/http';
 import { downloadContract, getContractsToSignCount, getMyContracts } from '../../api/missions';
@@ -56,7 +57,7 @@ export default function MyDocumentsPage() {
     setError(null);
     try {
       const blob = await downloadContract(contract.missionId);
-      window.open(URL.createObjectURL(blob), '_blank', 'noopener');
+      openBlob(blob);
     } catch (err) {
       setError(errorMessage(err, "Le document n'a pas pu être ouvert."));
     }

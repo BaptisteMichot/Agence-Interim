@@ -37,6 +37,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { to: '/documents', label: 'Mes documents', icon: 'document', counter: 'contractsToSign' },
     { to: '/messages', label: 'Messages', icon: 'chat', counter: 'unreadMessages' },
     { to: '/interimaire/profil', label: 'Mon profil', icon: 'user' },
+    { to: '/mon-compte', label: 'Mon compte', icon: 'shield' },
   ],
   EMPLOYER: [
     { to: '/employeur', label: 'Accueil', icon: 'home', end: true },
@@ -45,6 +46,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { to: '/documents', label: 'Mes documents', icon: 'document', counter: 'contractsToSign' },
     { to: '/messages', label: 'Messages', icon: 'chat', counter: 'unreadMessages' },
     { to: '/employeur/entreprise', label: 'Mon entreprise', icon: 'building' },
+    { to: '/mon-compte', label: 'Mon compte', icon: 'shield' },
   ],
   ADMIN: [
     { to: '/admin', label: "Demandes d'accès", icon: 'home', end: true },
@@ -54,6 +56,8 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
       icon: 'check',
       counter: 'missionsToValidate',
     },
+    { to: '/admin/journal', label: "Journal d'audit", icon: 'document' },
+    { to: '/mon-compte', label: 'Mon compte', icon: 'shield' },
   ],
   // Un employeur en attente reste sur sa page de statut, hors de la coquille.
   EMPLOYER_PENDING: [],

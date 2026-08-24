@@ -24,7 +24,7 @@ public record JobOfferRequest(
         @NotNull(message = "Le secteur est obligatoire.") Sector sector,
         @NotBlank(message = "La ville est obligatoire.") @Size(max = CITY_MAX_LENGTH, message = "La ville ne peut pas dépasser {max} caractères.") String city,
         @NotNull(message = "La province est obligatoire.") Province province,
-        @NotBlank(message = "La description est obligatoire.") String description,
+        @NotBlank(message = "La description est obligatoire.") @Size(max = JobOffer.DESCRIPTION_MAX_LENGTH, message = "La description ne peut pas dépasser {max} caractères.") String description,
         @PositiveOrZero(message = "Le salaire minimum doit être positif.") BigDecimal salaryMin,
         @PositiveOrZero(message = "Le salaire maximum doit être positif.") BigDecimal salaryMax,
         @Pattern(regexp = "\\d{1,2}", message = "L'experience requise doit être un nombre d'annees (ex. 2).") String experienceTime,

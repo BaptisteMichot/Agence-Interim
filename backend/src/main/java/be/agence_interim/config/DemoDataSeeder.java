@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.NonNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
@@ -96,8 +97,17 @@ import be.agence_interim.service.ContractService;
 @ConditionalOnProperty(name = "app.demo-data.enabled", havingValue = "true")
 public class DemoDataSeeder implements CommandLineRunner {
 
-    /** Même mot de passe que l'administrateur, pour n'en retenir qu'un en démonstration. */
-    private static final String PASSWORD = "AVAfur!ousPUBG03";
+    /**
+     * Mot de passe des comptes de démonstration, lu dans la configuration.
+     *
+     * <p>Il était écrit en clair dans ce fichier. Le jeu de démonstration est certes
+     * désactivé par défaut, mais un identifiant valide publié dans un dépôt reste un
+     * identifiant valide : il suffit que la propriété passe à vrai quelque part pour que
+     * deux comptes connus de tous s'ouvrent. La valeur vit désormais dans le {@code .env},
+     * au même endroit que les autres secrets, et {@link ProductionGuard} refuse de toute
+     * façon un démarrage en HTTPS avec la démonstration active.
+     */
+    private final String demoPassword;
 
     private static final String EMPLOYER_EMAIL = "test@employer.com";
     private static final String JOBSEEKER_EMAIL = "test@jobseeker.com";
@@ -170,7 +180,9 @@ public class DemoDataSeeder implements CommandLineRunner {
             LanguageJobOfferRepository languageJobOfferRepository,
             ExperienceRepository experienceRepository,
             FormationRepository formationRepository,
-            ContractService contractService) {
+            ContractService contractService,
+            @Value("${app.demo-data.password}") String demoPassword) {
+        this.demoPassword = demoPassword;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.accessRequestRepository = accessRequestRepository;
@@ -278,7 +290,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private User newUser(String email, String firstName, String lastName, Role role) {
         User user = new User();
         user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(PASSWORD));
+        user.setPassword(passwordEncoder.encode(demoPassword));
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setRole(role);

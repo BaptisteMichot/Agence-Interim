@@ -33,6 +33,7 @@ build/
 ### VS Code ###
 .vscode/
 
+deploy/
 
 .env
 .env.*
@@ -40,3 +41,5 @@ build/
 
 **/config/application-local.properties
 **/src/main/resources/application-local.properties
+# Magasins de cles et autres secrets hors du dossier des fichiers deposes.
+secrets/

@@ -31,6 +31,7 @@ import be.agence_interim.model.Contract;
 import be.agence_interim.model.DailySchedule;
 import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.JobOfferStatus;
+import be.agence_interim.model.AuditAction;
 import be.agence_interim.model.Mission;
 import be.agence_interim.model.MissionStatus;
 import be.agence_interim.model.Unavailability;
@@ -76,6 +77,7 @@ public class MissionService {
     private final UnavailabilityRepository unavailabilityRepository;
     private final ContractService contractService;
     private final MailService mailService;
+    private final AuditService auditService;
     private final String frontendUrl;
 
     public MissionService(
@@ -87,6 +89,7 @@ public class MissionService {
             UnavailabilityRepository unavailabilityRepository,
             ContractService contractService,
             MailService mailService,
+            AuditService auditService,
             @Value("${app.frontend.url}") String frontendUrl) {
         this.missionRepository = missionRepository;
         this.dailyScheduleRepository = dailyScheduleRepository;
@@ -96,6 +99,7 @@ public class MissionService {
         this.unavailabilityRepository = unavailabilityRepository;
         this.contractService = contractService;
         this.mailService = mailService;
+        this.auditService = auditService;
         this.frontendUrl = frontendUrl;
     }
 
@@ -228,12 +232,13 @@ public class MissionService {
      * attente de la réponse de l'intérimaire.
      */
     @Transactional
-    public MissionResponse validate(int missionId) {
+    public MissionResponse validate(int adminId, int missionId) {
         Mission mission = mission(missionId);
         if (mission.getStatus() != MissionStatus.PENDING) {
             throw new IllegalArgumentException("Seule une mission en attente de validation peut être validée.");
         }
         checkNoOverlap(mission);
+        auditService.record(AuditAction.MISSION_VALIDATED, adminId, "MISSION", missionId, null);
         if (mission.getPreviousMission() != null) {
             return toResponse(activate(mission));
         }
@@ -243,13 +248,14 @@ public class MissionService {
 
     /** Refuse une mission provisoire ; le motif est transmis à l'employeur, qui peut corriger. */
     @Transactional
-    public MissionResponse refuse(int missionId, String reason) {
+    public MissionResponse refuse(int adminId, int missionId, String reason) {
         Mission mission = mission(missionId);
         if (mission.getStatus() != MissionStatus.PENDING) {
             throw new IllegalArgumentException("Seule une mission en attente de validation peut être refusée.");
         }
         mission.setStatus(MissionStatus.REFUSED);
         mission.setRefusalReason(reason);
+        auditService.record(AuditAction.MISSION_REFUSED, adminId, "MISSION", missionId, reason);
         return toResponse(missionRepository.save(mission));
     }
 

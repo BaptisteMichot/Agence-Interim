@@ -20,4 +20,7 @@ public interface DegreeUserRepository extends JpaRepository<DegreeUser, DegreeUs
     Optional<DegreeUser> findByUserIdAndDegreeId(int userId, int degreeId);
 
     boolean existsByUserIdAndDegreeId(int userId, int degreeId);
+
+    /** Efface les diplômes déclarés par un compte clôturé. */
+    void deleteByUserId(int userId);
 }

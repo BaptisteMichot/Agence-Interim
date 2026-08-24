@@ -7,7 +7,8 @@ export type IconName =
   | 'chat'
   | 'building'
   | 'check'
-  | 'search';
+  | 'search'
+  | 'shield';
 
 /** Tracés d'une seule ligne : de simples repères visuels, sans dépendance externe. */
 const PATHS: Record<IconName, string> = {
@@ -21,6 +22,7 @@ const PATHS: Record<IconName, string> = {
   building: 'M5 21V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v17M15 9h3a1 1 0 0 1 1 1v11M3 21h18M8 7h3M8 11h3M8 15h3',
   check: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-4 9 3 3 5-6',
   search: 'M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm4.6 11.1L21 21',
+  shield: 'M12 3 5 6v6c0 4.2 2.8 7.6 7 9 4.2-1.4 7-4.8 7-9V6l-7-3Zm-3 9 2.2 2.2L15 10',
 };
 
 export default function Icon({

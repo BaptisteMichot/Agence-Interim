@@ -25,4 +25,10 @@ public interface FavoriteJobOfferRepository extends JpaRepository<FavoriteJobOff
     Optional<FavoriteJobOffer> findByJobSeekerIdAndJobOfferId(int jobSeekerId, int jobOfferId);
 
     boolean existsByJobSeekerIdAndJobOfferId(int jobSeekerId, int jobOfferId);
+
+    /** Efface les favoris d'un compte clôturé. */
+    void deleteByJobSeekerId(int jobSeekerId);
+
+    /** Retire une offre supprimée des favoris de tous les intérimaires. */
+    void deleteByJobOfferId(int jobOfferId);
 }

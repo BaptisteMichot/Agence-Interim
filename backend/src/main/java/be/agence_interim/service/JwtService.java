@@ -14,6 +14,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class JwtService {
 
+    /** Claim portant la version de session, comparée à celle du compte à chaque requête. */
+    public static final String TOKEN_VERSION_CLAIM = "tv";
+
     private final JwtEncoder jwtEncoder;
     private final long expirationMinutes;
 
@@ -25,10 +28,11 @@ public class JwtService {
     }
 
     /**
-     * Cree un JWT signe contenant l'identite et le role de l'utilisateur.
+     * Cree un JWT signe contenant l'identite, le role et la version de session de
+     * l'utilisateur.
      *
      * @param user utilisateur authentifie
-     * @return token a envoyer dans un en-tete Authorization Bearer
+     * @return token depose dans le cookie de session
      */
     public String generateToken(User user) {
         Instant now = Instant.now();
@@ -39,6 +43,7 @@ public class JwtService {
                 .subject(user.getEmail())
                 .claim("userId", user.getId())
                 .claim("role", user.getRole().name())
+                .claim(TOKEN_VERSION_CLAIM, user.getTokenVersion())
                 .build();
 
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();

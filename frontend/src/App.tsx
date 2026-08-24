@@ -8,8 +8,11 @@ import RegisterPage from './pages/RegisterPage';
 import EmployerRegisterPage from './pages/EmployerRegisterPage';
 import EmployerStatusPage from './pages/EmployerStatusPage';
 import PrivacyPage from './pages/PrivacyPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import AccountSecurityPage from './pages/account/AccountSecurityPage';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
 import AdminMissionsPage from './pages/dashboards/AdminMissionsPage';
+import AdminAuditPage from './pages/dashboards/AdminAuditPage';
 import EmployerDashboard from './pages/dashboards/EmployerDashboard';
 import JobSeekerDashboard from './pages/dashboards/JobSeekerDashboard';
 import ProfilePage from './pages/profile/ProfilePage';
@@ -49,6 +52,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/inscription-employeur" element={<EmployerRegisterPage />} />
+      <Route path="/mot-de-passe-oublie" element={<ForgotPasswordPage />} />
       {/* Consultable sans compte : elle doit pouvoir être lue avant de s'inscrire. */}
       <Route path="/vie-privee" element={<PrivacyPage />} />
 
@@ -90,6 +94,9 @@ export default function App() {
               element={<MissionFormPage mode="renew" />}
             />
           </Route>
+          {/* Mot de passe, export et clôture : les trois rôles ont les mêmes droits
+              sur leur propre compte. */}
+          <Route path="/mon-compte" element={<AccountSecurityPage />} />
           {/* Messagerie et documents : les deux parties d'une mission y accèdent. */}
           <Route element={<ProtectedRoute allowedRoles={['JOBSEEKER', 'EMPLOYER']} />}>
             <Route path="/messages" element={<ConversationsPage />} />
@@ -99,6 +106,7 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/missions" element={<AdminMissionsPage />} />
+            <Route path="/admin/journal" element={<AdminAuditPage />} />
           </Route>
         </Route>
       </Route>

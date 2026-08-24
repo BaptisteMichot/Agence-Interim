@@ -93,6 +93,34 @@ export function apiGet<T>(path: string): Promise<T> {
   return request<T>('GET', path);
 }
 
+/**
+ * POST sur une route publique, jeton CSRF compris.
+ *
+ * Deux différences avec `apiPost`. D'abord, un 401 ou un 403 n'y signifie pas que la
+ * session a expiré — il n'y a pas de session — donc `expireSession()` n'est pas
+ * déclenché : sans cela, saisir un mauvais code de réinitialisation renverrait le
+ * visiteur vers un écran de connexion en lui annonçant que sa session a expiré.
+ *
+ * Ensuite, le jeton CSRF est bien envoyé, contrairement à `postPublic` de `client.ts`
+ * qui sert la connexion et l'inscription : ces trois routes-là sont explicitement
+ * exemptées côté serveur, la réinitialisation de mot de passe ne l'est pas. Le cookie
+ * XSRF-TOKEN est déposé dès le premier appel de la page, fût-il un 401 sur
+ * `/auth/me` — il est donc toujours disponible ici.
+ */
+export async function apiPostPublic<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { ...csrfHeaders('POST'), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
 export function apiPost<T>(path: string, body: unknown): Promise<T> {
   return request<T>('POST', path, body);
 }

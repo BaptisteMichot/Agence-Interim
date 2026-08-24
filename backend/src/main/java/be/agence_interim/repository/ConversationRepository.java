@@ -1,5 +1,6 @@
 package be.agence_interim.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -42,4 +43,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Inte
     /** Conversation avec ses participants et son offre chargés. */
     @Query(FETCH_ALL + "where c.id = :conversationId")
     Optional<Conversation> findByIdFetchAll(int conversationId);
+
+    /** Conversations auxquelles l'utilisateur participe (export RGPD, clôture). */
+    List<Conversation> findBySenderIdOrReceiverId(int senderId, int receiverId);
 }

@@ -37,7 +37,6 @@ class AuthControllerTests {
                           "password": "Password123456!",
                           "hasVehicle": true,
                           "birthdate": "2000-01-15",
-                          "cvFilePath": null,
                           "companyName": null
                         }
                         """),

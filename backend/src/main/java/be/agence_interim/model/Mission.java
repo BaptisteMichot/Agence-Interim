@@ -31,6 +31,9 @@ import lombok.Setter;
 public class Mission {
 
     public static final int STATUS_MAX_LENGTH = 8;
+    /** Borne des remarques libres, dernier champ texte de l'API à en manquer. */
+    public static final int NOTES_MAX_LENGTH = 2000;
+
     public static final int POSITION_MAX_LENGTH = 50;
     public static final int WORKPLACE_MAX_LENGTH = 100;
     public static final int WORK_REASON_MAX_LENGTH = 15;
