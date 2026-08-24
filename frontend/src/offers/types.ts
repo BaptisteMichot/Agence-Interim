@@ -75,6 +75,8 @@ export interface JobOfferPayload {
   salaryMax: number | null;
   experienceTime: string | null;
   vehicleMandatory: boolean;
+  /** Valeur faciale du titre-repas par jour presté ; null = pas de chèques-repas. */
+  mealVoucherAmount: number | null;
   skills: OfferSkillRequirement[];
   degrees: OfferDegreeRequirement[];
   languages: OfferLanguageRequirement[];
@@ -113,6 +115,8 @@ export interface JobOfferDetail extends JobOfferSummary {
   description: string;
   experienceTime: string | null;
   vehicleMandatory: boolean | null;
+  /** Valeur faciale du titre-repas par jour presté ; null = pas de chèques-repas. */
+  mealVoucherAmount: number | null;
   skills: (OfferSkillRequirement & { skillId: number })[];
   degrees: (OfferDegreeRequirement & { degreeId: number })[];
   languages: (OfferLanguageRequirement & { name: string })[];

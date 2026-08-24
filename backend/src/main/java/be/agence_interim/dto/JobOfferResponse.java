@@ -28,6 +28,8 @@ public record JobOfferResponse(
         BigDecimal salaryMax,
         String experienceTime,
         Boolean vehicleMandatory,
+        /** Valeur faciale du titre-repas par jour presté ; null = pas de chèques-repas. */
+        BigDecimal mealVoucherAmount,
         JobOfferStatus status,
         String companyName,
         /** Faux dès que l'offre est clôturée ou qu'elle a reçu une candidature. */
@@ -103,6 +105,7 @@ public record JobOfferResponse(
                 offer.getSalaryMax(),
                 offer.getExperienceTime(),
                 offer.getVehicleMandatory(),
+                offer.getMealVoucherAmount(),
                 offer.getStatus(),
                 offer.getEmployer().getCompanyName(),
                 editable,

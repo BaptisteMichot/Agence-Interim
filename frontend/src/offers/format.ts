@@ -68,3 +68,13 @@ export function hasActiveFilters(filters: OfferFilters): boolean {
     filters.noVehicleRequired
   );
 }
+
+/**
+ * Valeur faciale maximale d'un titre-repas, en vigueur depuis le 1er janvier 2026
+ * (cf. `JobOffer.MEAL_VOUCHER_MAX_AMOUNT` côté backend, qui fait foi). Sert de valeur
+ * proposée par défaut et de borne haute du champ.
+ */
+export const MEAL_VOUCHER_MAX = 10;
+
+/** Montant proposé quand l'employeur coche « chèques-repas » : le plafond légal. */
+export const MEAL_VOUCHER_DEFAULT = '10.00';

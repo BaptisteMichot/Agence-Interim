@@ -16,6 +16,7 @@ import {
   btnPrimary,
   btnSecondary,
   checkboxInput,
+  checkboxRow,
   errorBox,
   inputClass,
   labelClass,
@@ -39,6 +40,7 @@ import {
   WORK_REASONS,
 } from '../../missions/format';
 import type { MissionPayload, WorkReason } from '../../missions/types';
+import { MEAL_VOUCHER_DEFAULT, MEAL_VOUCHER_MAX } from '../../offers/format';
 import { formatDate } from '../../profile/format';
 
 /** Une journée de la période, prestée ou non. Une pause vide signifie « pas de pause ». */
@@ -255,6 +257,10 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
   const [description, setDescription] = useState('');
   const [jointCommittee, setJointCommittee] = useState('');
   const [hourlyWage, setHourlyWage] = useState('');
+  // L'avantage est facultatif : la case pilote la présence du montant, seul ce dernier
+  // part au serveur (nul = pas de chèques-repas).
+  const [mealVouchers, setMealVouchers] = useState(false);
+  const [mealVoucherAmount, setMealVoucherAmount] = useState(MEAL_VOUCHER_DEFAULT);
   const [workReason, setWorkReason] = useState<WorkReason>('OVERLOAD');
   const [replacedWorker, setReplacedWorker] = useState('');
   const [notes, setNotes] = useState('');
@@ -309,6 +315,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setDescription(mission.description);
           setJointCommittee(mission.jointCommittee);
           setHourlyWage(String(mission.hourlyWage));
+          setMealVouchers(mission.mealVoucherAmount !== null);
+          setMealVoucherAmount(mission.mealVoucherAmount?.toString() ?? MEAL_VOUCHER_DEFAULT);
           setWorkReason(mission.workReason);
           setReplacedWorker(mission.replacedWorker ?? '');
           setNotes(mission.notes ?? '');
@@ -377,6 +385,8 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
           setWorkplace({ ...EMPTY_ADDRESS, city: offer.city });
           setJointCommittee(company.jointCommittee ?? '');
           setHourlyWage(offer.salaryMin !== null ? String(offer.salaryMin) : '');
+          setMealVouchers(offer.mealVoucherAmount !== null);
+          setMealVoucherAmount(offer.mealVoucherAmount?.toString() ?? MEAL_VOUCHER_DEFAULT);
           rebuildDays(addDays(todayIso(), 7), addDays(todayIso(), 11), []);
         }
       } catch (err) {
@@ -494,6 +504,7 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
       description: description.trim(),
       jointCommittee: jointCommittee.trim(),
       hourlyWage: wageNumber,
+      mealVoucherAmount: mealVouchers ? Number(mealVoucherAmount) : null,
       workReason,
       replacedWorker: workReason === 'REPLACEMENT' ? replacedWorker.trim() : null,
       notes: notes.trim() ? notes.trim() : null,
@@ -625,6 +636,39 @@ export default function MissionFormPage({ mode = 'create' }: { mode?: MissionFor
               <p className="mt-1 text-xs text-slate-500">
                 Fourchette annoncée dans l'offre : {salaryMin ?? '?'} – {salaryMax ?? '?'} €/h.
               </p>
+            )}
+          </div>
+          <div>
+            <label className={checkboxRow}>
+              <input
+                type="checkbox"
+                className={checkboxInput}
+                checked={mealVouchers}
+                onChange={(e) => setMealVouchers(e.target.checked)}
+              />
+              Chèques-repas
+            </label>
+            {mealVouchers && (
+              <>
+                <label className={`${labelClass} mt-3`} htmlFor="mission-meal">
+                  Montant du chèque-repas (€ par jour presté)
+                </label>
+                <input
+                  id="mission-meal"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={MEAL_VOUCHER_MAX}
+                  className={inputClass}
+                  value={mealVoucherAmount}
+                  required
+                  onChange={(e) => setMealVoucherAmount(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Maximum légal : {MEAL_VOUCHER_MAX.toFixed(2).replace('.', ',')} € par journée
+                  prestée depuis le 1er janvier 2026.
+                </p>
+              </>
             )}
           </div>
           <div>

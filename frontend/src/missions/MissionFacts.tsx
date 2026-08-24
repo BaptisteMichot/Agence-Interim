@@ -37,6 +37,14 @@ export default function MissionFacts({ mission }: { mission: Mission }) {
           label="Volume rémunéré"
           value={`${formatMinutes(minutes)} · ${estimatedPay(minutes, mission.hourlyWage)} brut`}
         />
+        <Fact
+          label="Chèques-repas"
+          value={
+            mission.mealVoucherAmount === null
+              ? 'Non octroyés'
+              : `${mission.mealVoucherAmount} € par journée prestée`
+          }
+        />
       </dl>
       <div>
         <p className="text-xs uppercase tracking-wide text-slate-400">Description du poste</p>

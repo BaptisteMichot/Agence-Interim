@@ -4,9 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.Mission;
 import be.agence_interim.model.WorkReason;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -32,6 +34,8 @@ public record MissionRequest(
         @NotNull(message = "Le salaire horaire est obligatoire.")
         @DecimalMin(value = "0.01", message = "Le salaire horaire doit être supérieur à 0.")
         BigDecimal hourlyWage,
+        /** Valeur faciale du titre-repas par jour presté ; null = pas de chèques-repas. */
+        @DecimalMin(value = JobOffer.MEAL_VOUCHER_MIN_AMOUNT, message = "Le montant du chèque-repas doit être supérieur à 0.") @DecimalMax(value = JobOffer.MEAL_VOUCHER_MAX_AMOUNT, message = "Le chèque-repas ne peut pas dépasser {value} € par jour (maximum légal).") BigDecimal mealVoucherAmount,
         @NotNull(message = "Le motif de recours est obligatoire.") WorkReason workReason,
         @Size(max = Mission.REPLACED_WORKER_MAX_LENGTH, message = "Le nom du travailleur remplacé est trop long.")
         String replacedWorker,

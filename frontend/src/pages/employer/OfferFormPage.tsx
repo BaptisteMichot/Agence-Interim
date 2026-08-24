@@ -14,7 +14,12 @@ import {
   labelClass,
   linkBack,
 } from '../../components/ui';
-import { PROVINCES, SECTORS } from '../../offers/format';
+import {
+  MEAL_VOUCHER_DEFAULT,
+  MEAL_VOUCHER_MAX,
+  PROVINCES,
+  SECTORS,
+} from '../../offers/format';
 import type {
   JobOfferPayload,
   OfferDegreeRequirement,
@@ -49,6 +54,10 @@ export default function OfferFormPage() {
   const [salaryMax, setSalaryMax] = useState('');
   const [experienceTime, setExperienceTime] = useState('');
   const [vehicleMandatory, setVehicleMandatory] = useState(false);
+  // L'avantage est facultatif : la case pilote la présence du montant, et c'est le
+  // montant seul qui est envoyé au serveur (nul = pas de chèques-repas).
+  const [mealVouchers, setMealVouchers] = useState(false);
+  const [mealVoucherAmount, setMealVoucherAmount] = useState(MEAL_VOUCHER_DEFAULT);
   const [skills, setSkills] = useState<OfferSkillRequirement[]>([]);
   const [degrees, setDegrees] = useState<OfferDegreeRequirement[]>([]);
   const [languages, setLanguages] = useState<OfferLanguageRequirement[]>([]);
@@ -89,6 +98,8 @@ export default function OfferFormPage() {
         setSalaryMax(offer.salaryMax?.toString() ?? '');
         setExperienceTime(offer.experienceTime ?? '');
         setVehicleMandatory(offer.vehicleMandatory ?? false);
+        setMealVouchers(offer.mealVoucherAmount !== null);
+        setMealVoucherAmount(offer.mealVoucherAmount?.toString() ?? MEAL_VOUCHER_DEFAULT);
         setSkills(offer.skills.map((s) => ({ name: s.name, isMandatory: s.isMandatory, requiredLevel: s.requiredLevel })));
         setDegrees(offer.degrees.map((d) => ({ type: d.type, section: d.section, isMandatory: d.isMandatory })));
         setLanguages(offer.languages.map((l) => ({ languageId: l.languageId, isMandatory: l.isMandatory, requiredLevel: l.requiredLevel })));
@@ -125,6 +136,7 @@ export default function OfferFormPage() {
       salaryMax: salaryMax === '' ? null : Number(salaryMax),
       experienceTime: experienceTime === '' ? null : experienceTime,
       vehicleMandatory,
+      mealVoucherAmount: mealVouchers ? Number(mealVoucherAmount) : null,
       skills: skills.map((s) => ({ ...s, name: s.name.trim() })),
       degrees: degrees.map((d) => ({ ...d, section: d.section.trim() })),
       languages,
@@ -217,6 +229,20 @@ export default function OfferFormPage() {
                 <input type="checkbox" checked={vehicleMandatory} onChange={(e) => setVehicleMandatory(e.target.checked)} className={checkboxInput} />
                 Véhicule obligatoire
               </label>
+              <label className={checkboxRow}>
+                <input type="checkbox" checked={mealVouchers} onChange={(e) => setMealVouchers(e.target.checked)} className={checkboxInput} />
+                Chèques-repas
+              </label>
+              {mealVouchers && (
+                <div className="sm:col-span-2">
+                  <label className={labelClass} htmlFor="offer-meal">Montant du chèque-repas (€ par jour presté)</label>
+                  <input id="offer-meal" type="number" required min={0.01} max={MEAL_VOUCHER_MAX} step="0.01" value={mealVoucherAmount} onChange={(e) => setMealVoucherAmount(e.target.value)} className={`${inputClass} sm:max-w-xs`} />
+                  <p className="mt-1 text-xs text-muted">
+                    Maximum légal : {MEAL_VOUCHER_MAX.toFixed(2).replace('.', ',')} € par journée
+                    prestée depuis le 1er janvier 2026.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

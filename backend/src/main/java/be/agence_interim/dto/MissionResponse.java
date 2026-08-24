@@ -27,6 +27,8 @@ public record MissionResponse(
         String description,
         String jointCommittee,
         BigDecimal hourlyWage,
+        /** Valeur faciale du titre-repas par jour presté ; null = pas de chèques-repas. */
+        BigDecimal mealVoucherAmount,
         WorkReason workReason,
         String replacedWorker,
         String notes,
@@ -66,6 +68,7 @@ public record MissionResponse(
                 mission.getDescription(),
                 mission.getJointCommittee(),
                 mission.getHourlyWage(),
+                mission.getMealVoucherAmount(),
                 mission.getWorkReason(),
                 mission.getReplacedWorker(),
                 mission.getNotes(),

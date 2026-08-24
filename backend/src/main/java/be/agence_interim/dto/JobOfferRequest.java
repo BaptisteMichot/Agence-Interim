@@ -6,9 +6,12 @@ import static be.agence_interim.model.JobOffer.TITLE_MAX_LENGTH;
 import java.math.BigDecimal;
 import java.util.List;
 
+import be.agence_interim.model.JobOffer;
 import be.agence_interim.model.Province;
 import be.agence_interim.model.Sector;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -26,6 +29,8 @@ public record JobOfferRequest(
         @PositiveOrZero(message = "Le salaire maximum doit être positif.") BigDecimal salaryMax,
         @Pattern(regexp = "\\d{1,2}", message = "L'experience requise doit être un nombre d'annees (ex. 2).") String experienceTime,
         Boolean vehicleMandatory,
+        /** Valeur faciale du titre-repas par jour presté ; null = pas de chèques-repas. */
+        @DecimalMin(value = JobOffer.MEAL_VOUCHER_MIN_AMOUNT, message = "Le montant du chèque-repas doit être supérieur à 0.") @DecimalMax(value = JobOffer.MEAL_VOUCHER_MAX_AMOUNT, message = "Le chèque-repas ne peut pas dépasser {value} € par jour (maximum légal).") BigDecimal mealVoucherAmount,
         @Valid List<OfferSkillRequirement> skills,
         @Valid List<OfferDegreeRequirement> degrees,
         @Valid List<OfferLanguageRequirement> languages) {

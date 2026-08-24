@@ -35,6 +35,18 @@ public class JobOffer {
     public static final int EXPERIENCE_TIME_MAX_LENGTH = 5;
     public static final int STATUS_MAX_LENGTH = 8;
 
+    /**
+     * Valeur faciale maximale d'un titre-repas, en vigueur depuis le 1er janvier 2026 :
+     * au-delà, l'avantage perd son exonération de cotisations sociales (AR du 28
+     * novembre 1969, art. 19bis §2). Déclarée en chaîne parce que les annotations de
+     * validation n'acceptent que des constantes de compilation ; à mettre à jour ici,
+     * et nulle part ailleurs, si le barème change.
+     */
+    public static final String MEAL_VOUCHER_MAX_AMOUNT = "10.00";
+
+    /** Un montant renseigné doit être réel : un chèque de 0 € n'est pas un avantage. */
+    public static final String MEAL_VOUCHER_MIN_AMOUNT = "0.01";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
@@ -71,6 +83,13 @@ public class JobOffer {
     private String experienceTime;
 
     private Boolean vehicleMandatory;
+
+    /**
+     * Valeur faciale du titre-repas accordé par journée prestée, ou {@code null} si
+     * l'employeur n'en accorde pas : l'avantage est facultatif, un seul champ suffit
+     * donc à le décrire — nul signifie « pas de chèques-repas ».
+     */
+    private BigDecimal mealVoucherAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = STATUS_MAX_LENGTH)

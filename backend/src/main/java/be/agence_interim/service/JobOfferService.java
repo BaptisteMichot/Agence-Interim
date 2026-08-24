@@ -170,6 +170,7 @@ public class JobOfferService {
         // qui compare ce texte à un nombre, échouerait sur cette ligne.
         offer.setExperienceTime(Strings.blankToNull(request.experienceTime()));
         offer.setVehicleMandatory(request.vehicleMandatory());
+        offer.setMealVoucherAmount(request.mealVoucherAmount());
     }
 
     private void validateSalaries(JobOfferRequest request) {

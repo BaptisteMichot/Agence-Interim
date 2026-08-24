@@ -102,6 +102,8 @@ export interface MissionPayload {
   description: string;
   jointCommittee: string;
   hourlyWage: number;
+  /** Valeur faciale du titre-repas par jour presté ; null = pas de chèques-repas. */
+  mealVoucherAmount: number | null;
   workReason: WorkReason;
   /** Obligatoire lorsque le motif de recours est un remplacement. */
   replacedWorker: string | null;

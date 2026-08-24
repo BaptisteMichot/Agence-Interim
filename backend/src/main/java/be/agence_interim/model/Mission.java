@@ -88,6 +88,13 @@ public class Mission {
     @Column(nullable = false)
     private BigDecimal hourlyWage;
 
+    /**
+     * Valeur faciale du titre-repas par journée prestée, ou {@code null} si la mission
+     * n'en prévoit pas. Pré-remplie depuis l'offre puis modifiable : comme le salaire
+     * et la commission paritaire, c'est la mission qui porte la valeur contractuelle.
+     */
+    private BigDecimal mealVoucherAmount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = WORK_REASON_MAX_LENGTH)
     private WorkReason workReason;

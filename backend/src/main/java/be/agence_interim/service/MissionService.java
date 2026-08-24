@@ -488,6 +488,7 @@ public class MissionService {
         mission.setDescription(request.description().trim());
         mission.setJointCommittee(request.jointCommittee().trim());
         mission.setHourlyWage(request.hourlyWage());
+        mission.setMealVoucherAmount(request.mealVoucherAmount());
         mission.setWorkReason(request.workReason());
         mission.setReplacedWorker(replacedWorker(request));
         mission.setNotes(Strings.blankToNull(request.notes()));

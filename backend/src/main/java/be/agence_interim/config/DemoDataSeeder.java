@@ -436,6 +436,12 @@ public class DemoDataSeeder implements CommandLineRunner {
         // Trois niveaux d'exigence : sans expérience, deux ans, cinq ans.
         offer.setExperienceTime(index % 3 == 0 ? "5" : index % 2 == 0 ? "2" : null);
         offer.setVehicleMandatory(index % 5 == 0);
+        // Deux offres sur trois accordent des chèques-repas, à des montants différents.
+        offer.setMealVoucherAmount(switch (index % 3) {
+            case 0 -> new BigDecimal("10.00");
+            case 1 -> new BigDecimal("8.00");
+            default -> null;
+        });
         offer.setStatus(status);
         return offer;
     }
@@ -556,6 +562,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         mission.setEndDate(end);
         mission.setPosition(position);
         mission.setWorkplace(employer.getAddress());
+        mission.setMealVoucherAmount(offer.getMealVoucherAmount());
         mission.setDescription("Manutention et préparation de commandes en entrepôt. "
                 + "Port de charges, utilisation d'un transpalette électrique, respect des consignes de sécurité.");
         mission.setJointCommittee(employer.getJointCommittee());

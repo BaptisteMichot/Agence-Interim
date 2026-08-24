@@ -157,7 +157,7 @@ public class ContractDocument {
         addFact(table, "Lieu d'exécution", mission.getWorkplace());
         addFact(table, "Travailleur remplacé",
                 mission.getReplacedWorker() == null ? "Sans objet" : mission.getReplacedWorker());
-        document.add(table);
+        addFacts(document, table);
 
         document.add(labelled("Description du poste", mission.getDescription()));
     }
@@ -171,7 +171,7 @@ public class ContractDocument {
         addFact(facts, "Fin de la mission", DATE.format(mission.getEndDate()));
         addFact(facts, "Journées prestées", String.valueOf(slots.size()));
         addFact(facts, "Total rémunéré", WorkTime.format(paidMinutes));
-        document.add(facts);
+        addFacts(document, facts);
 
         PdfPTable table = new PdfPTable(new float[] { 3.2f, 2.2f, 2.2f, 1.6f });
         table.setWidthPercentage(100);
@@ -208,7 +208,12 @@ public class ContractDocument {
         addFact(table, "Volume rémunéré", WorkTime.format(paidMinutes));
         addFact(table, "Rémunération brute estimée", euros(gross));
         addFact(table, "Périodicité", "Mensuelle");
-        document.add(table);
+        // Avantage facultatif : la ligne n'apparaît que s'il a été convenu. La loi du
+        // 24 juillet 1987 impose de reprendre au contrat la rémunération et les avantages.
+        addFact(table, "Titres-repas", mission.getMealVoucherAmount() == null
+                ? "Non octroyés"
+                : euros(mission.getMealVoucherAmount()) + " par journée prestée");
+        addFacts(document, table);
         document.add(note("Le travailleur intérimaire a droit au même salaire que celui qu'il "
                 + "percevrait s'il était engagé directement par l'entreprise utilisatrice."));
     }
@@ -325,6 +330,18 @@ public class ContractDocument {
         table.setWidthPercentage(100);
         table.setSpacingBefore(2);
         return table;
+    }
+
+    /**
+     * Ajoute un tableau de rubriques au document, dernière ligne complétée.
+     *
+     * <p>Le tableau compte deux colonnes : un nombre impair de rubriques laisse une
+     * ligne inachevée, qu'OpenPDF supprime <em>silencieusement</em> à la génération.
+     * La rubrique concernée disparaîtrait du contrat sans la moindre erreur.
+     */
+    private void addFacts(Document document, PdfPTable table) throws DocumentException {
+        table.completeRow();
+        document.add(table);
     }
 
     private void addFact(PdfPTable table, String label, String value) {

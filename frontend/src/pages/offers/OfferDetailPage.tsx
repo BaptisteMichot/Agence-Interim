@@ -145,6 +145,12 @@ export default function OfferDetailPage() {
             <dt className="font-medium text-slate-700">Véhicule</dt>
             <dd>{offer.vehicleMandatory ? 'Obligatoire' : 'Non requis'}</dd>
           </div>
+          {offer.mealVoucherAmount !== null && (
+            <div>
+              <dt className="font-medium text-slate-700">Chèques-repas</dt>
+              <dd>{offer.mealVoucherAmount} € par journée prestée</dd>
+            </div>
+          )}
         </dl>
       </section>
 
