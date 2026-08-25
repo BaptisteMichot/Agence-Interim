@@ -1,0 +1,12 @@
+# Ce qui ne doit pas entrer dans le contexte de construction.
+#
+# node_modules est le poste principal : plusieurs centaines de mégaoctets, transmis au
+# démon Docker à chaque construction pour être aussitôt écrasés par le `npm ci` de
+# l'image. Pire, les dépendances installées sous Windows ne sont pas celles qu'il faut
+# dans une image Linux — les emporter serait à la fois lent et faux.
+
+node_modules/
+dist/
+.env
+.env.*
+*.md

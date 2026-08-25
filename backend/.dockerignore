@@ -1,0 +1,22 @@
+# Ce qui ne doit pas entrer dans le contexte de construction.
+#
+# Deux raisons distinctes. La première est la vitesse : tout ce qui est listé ici est
+# transmis au démon Docker à chaque construction, et `target/` pèse plus lourd que le
+# code source lui-même. La seconde est la confidentialité : `.env` contient le secret de
+# signature des jetons, la clé de chiffrement et le mot de passe SMTP. Le Dockerfile ne
+# le copie pas, mais un fichier absent du contexte ne peut pas être copié par accident,
+# aujourd'hui ni après une modification distraite.
+
+target/
+.env
+.env.*
+!.env.example
+
+# Fichiers déposés et générés : ils vivent dans des volumes, jamais dans l'image.
+uploads/
+
+# Magasins de clés, s'il en existe un jour.
+secrets/
+
+HELP.md
+*.md

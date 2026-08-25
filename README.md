@@ -73,7 +73,46 @@ pertinente la protection CSRF par jeton double-envoi.
 
 ---
 
-## Démarrer le projet
+## Démarrer avec Docker
+
+C'est le chemin le plus court, et le seul qui ne demande d'installer ni Java, ni Node, ni
+PostgreSQL : les trois vivent dans les images.
+
+```bash
+cp .env.example .env     # puis remplir les douze valeurs demandées
+docker compose up --build
+```
+
+L'application est servie sur <http://localhost:8081>.
+
+Le fichier `.env` de la racine ne contient que les secrets et les adresses personnelles.
+Tout le reste — ports, chemins, identité de l'agence, réglages SMTP — est écrit en clair
+dans `compose.yml`, qui vaut ainsi description lisible de ce que l'application attend. Ce
+fichier n'a rien à voir avec `backend/.env`, qui configure l'exécution directe sur le
+poste : ce sont deux installations distinctes, avec deux bases distinctes.
+
+Trois services sont démarrés. Seul le frontend publie un port ; PostgreSQL et le backend
+ne sont joignables que par le réseau privé des conteneurs. nginx sert les fichiers
+statiques et relaie `/api` et `/ws` vers le backend — ce que faisait le serveur de
+développement de Vite, qui n'existe plus une fois l'application construite.
+
+Les CV déposés, les contrats générés et la base de données vivent dans des volumes
+nommés. `docker compose down` détruit les conteneurs sans y toucher ; il faut
+`docker compose down -v` pour tout effacer et repartir d'une base vierge.
+
+> **Le schéma est créé par Hibernate** (`DDL_AUTO=update`), faute de migrations
+> versionnées. C'est sans danger ici : la base naît avec le conteneur.
+
+> **Aucun TLS.** L'application est servie en clair, `COOKIE_SECURE` reste donc à `false` —
+> un cookie marqué `Secure` serait ignoré par le navigateur. C'est aussi ce qui laisse
+> `ProductionGuard` en simple avertissement au démarrage.
+
+---
+
+## Démarrer sans Docker
+
+À préférer pour développer : le rechargement à chaud du backend et de Vite est bien plus
+rapide qu'une reconstruction d'image.
 
 ### Prérequis
 

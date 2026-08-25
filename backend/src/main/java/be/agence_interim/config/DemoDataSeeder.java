@@ -109,8 +109,19 @@ public class DemoDataSeeder implements CommandLineRunner {
      */
     private final String demoPassword;
 
-    private static final String EMPLOYER_EMAIL = "test@employer.com";
-    private static final String JOBSEEKER_EMAIL = "test@jobseeker.com";
+    /**
+     * Adresses des deux comptes de démonstration.
+     *
+     * <p>Elles étaient des constantes, et le sont restées en pratique : les valeurs par
+     * défaut sont celles d'avant, si bien qu'une installation qui n'en dit rien ne voit
+     * aucune différence. Ce qui les a rendues configurables, c'est l'exécution en
+     * conteneur avec l'envoi d'emails actif — la base y est neuve à chaque création, ces
+     * deux comptes sont donc recréés, et une adresse inexistante fait partir chaque
+     * message de la démonstration vers un serveur qui le refuse. Pouvoir y placer une
+     * boîte réelle est ce qui rend la démonstration démontrable.
+     */
+    private final String employerEmail;
+    private final String jobSeekerEmail;
 
     /** Sept secteurs pour huit lieux : les deux listes ne se répètent pas au même rythme. */
     private static final Sector[] SECTORS = {
@@ -181,8 +192,12 @@ public class DemoDataSeeder implements CommandLineRunner {
             ExperienceRepository experienceRepository,
             FormationRepository formationRepository,
             ContractService contractService,
-            @Value("${app.demo-data.password}") String demoPassword) {
+            @Value("${app.demo-data.password}") String demoPassword,
+            @Value("${app.demo-data.employer-email:test@employer.com}") String employerEmail,
+            @Value("${app.demo-data.jobseeker-email:test@jobseeker.com}") String jobSeekerEmail) {
         this.demoPassword = demoPassword;
+        this.employerEmail = employerEmail;
+        this.jobSeekerEmail = jobSeekerEmail;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.accessRequestRepository = accessRequestRepository;
@@ -232,8 +247,8 @@ public class DemoDataSeeder implements CommandLineRunner {
      * la création d'une mission.
      */
     private User employerAccount() {
-        User employer = userRepository.findByEmail(EMPLOYER_EMAIL).orElseGet(() -> {
-            User created = newUser(EMPLOYER_EMAIL, "Emma", "Ployeur", Role.EMPLOYER);
+        User employer = userRepository.findByEmail(employerEmail).orElseGet(() -> {
+            User created = newUser(employerEmail, "Emma", "Ployeur", Role.EMPLOYER);
             created.setCompanyName("Entreprise Démo SPRL");
             User saved = userRepository.save(created);
 
@@ -256,8 +271,8 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     /** Le compte intérimaire de démonstration, avec un profil assez fourni pour le matching. */
     private User jobSeekerAccount() {
-        User jobSeeker = userRepository.findByEmail(JOBSEEKER_EMAIL).orElseGet(() -> {
-            User created = newUser(JOBSEEKER_EMAIL, "Jean", "Térim", Role.JOBSEEKER);
+        User jobSeeker = userRepository.findByEmail(jobSeekerEmail).orElseGet(() -> {
+            User created = newUser(jobSeekerEmail, "Jean", "Térim", Role.JOBSEEKER);
             created.setBirthdate(LocalDate.of(1995, 4, 12));
             created.setHasVehicle(true);
             return userRepository.save(created);

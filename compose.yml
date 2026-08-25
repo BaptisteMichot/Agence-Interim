@@ -1,0 +1,151 @@
+# Assemblage complet de l'application : base de données, backend et frontend.
+#
+# CE QUE CE FICHIER REMPLACE
+# Sans lui, faire tourner l'application demande d'installer un JDK 25, Node 22 et
+# PostgreSQL 18 aux bonnes versions, de créer une base, puis de remplir une trentaine de
+# variables. Ici, `docker compose up` suffit, et rien de tout cela n'a besoin d'exister
+# sur la machine hôte.
+#
+# OÙ SONT LES VALEURS
+# Tout ce qui n'est pas sensible est écrit en clair ci-dessous : le fichier est versionné,
+# et cela en fait la description exacte et lisible de ce que l'application attend. Seuls
+# les secrets et les adresses personnelles viennent d'un fichier `.env` placé à la racine,
+# que Compose lit de lui-même et que git ignore. La forme `${VAR:?...}` fait échouer le
+# démarrage avec un message explicite si l'un d'eux manque, plutôt que de laisser
+# l'application démarrer sur une valeur vide.
+#
+# CE QUI N'EST PAS ICI
+# Ni TLS ni redirection HTTPS : l'application est servie en clair, et `COOKIE_SECURE`
+# reste donc à false — un cookie marqué Secure serait purement et simplement ignoré par
+# le navigateur. C'est aussi ce qui garde `ProductionGuard` silencieux, puisqu'il ne
+# vérifie ses règles de production que lorsque ce réglage est vrai.
+
+name: agence-interim
+
+services:
+
+  # ------------------------------------------------------------------ base de données
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: agence_interim
+      POSTGRES_USER: ${DB_USER:?nom d utilisateur PostgreSQL manquant dans .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?mot de passe PostgreSQL manquant dans .env}
+      # Le répertoire de données est placé dans un sous-dossier du volume, et non à sa
+      # racine : PostgreSQL refuse d'initialiser un répertoire qui n'est pas vide, et un
+      # point de montage peut en contenir. C'est aussi ce qui rend ce montage
+      # indépendant de la version de l'image, dont le chemin par défaut a changé.
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # Aucun port publié : seul le backend s'adresse à cette base, par le réseau privé des
+    # conteneurs. La publier entrerait en conflit avec le PostgreSQL de développement, et
+    # exposerait la base à toute la machine sans le moindre besoin.
+    healthcheck:
+      # Accepter les connexions est plus tardif que « le conteneur tourne » : sans cette
+      # vérification, le backend démarrerait avant que la base ne réponde et échouerait
+      # sur sa première connexion.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------- backend
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Les CV déposés et les contrats générés vivent hors du conteneur. Sans ces deux
+      # volumes, ils disparaîtraient à chaque reconstruction d'image : la ligne resterait
+      # en base, le fichier n'existerait plus, et le bouton « Contrat » rendrait un 404.
+      - cv-data:/app/uploads/cv
+      - contract-data:/app/uploads/contracts
+    environment:
+      APP_NAME: agence-interim
+      SERVER_PORT: "8080"
+
+      # « db » est le nom du service, résolu par le DNS interne de Compose. Le port est
+      # 5432, celui de l'image : le 5433 du poste de développement n'a pas cours ici.
+      DB_URL: jdbc:postgresql://db:5432/agence_interim
+      DB_USER: ${DB_USER:?nom d utilisateur PostgreSQL manquant dans .env}
+      DB_PASSWORD: ${DB_PASSWORD:?mot de passe PostgreSQL manquant dans .env}
+      # La base est vide à la première création : c'est Hibernate qui bâtit le schéma,
+      # faute de migrations versionnées. C'est la limite assumée du projet, et elle est
+      # ici sans danger — la base naît avec le conteneur.
+      DDL_AUTO: update
+
+      JWT_SECRET: ${JWT_SECRET:?secret de signature des jetons manquant dans .env}
+      JWT_EXPIRATION_MINUTES: "60"
+      # Servi en clair : un cookie Secure ne serait pas conservé par le navigateur.
+      COOKIE_SECURE: "false"
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?cle de chiffrement manquante dans .env}
+
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?adresse de l administrateur manquante dans .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?mot de passe de l administrateur manquant dans .env}
+
+      # Ces deux chemins sont les points de montage déclarés plus haut.
+      CV_STORAGE_DIR: /app/uploads/cv
+      CONTRACT_STORAGE_DIR: /app/uploads/contracts
+      MAX_FILE_SIZE: 6MB
+      MAX_REQUEST_SIZE: 7MB
+
+      AGENCY_NAME: Agence Interim SA
+      AGENCY_ADDRESS: Rue de l'Emploi 1, 4000 Liege
+      AGENCY_COMPANY_NUMBER: 0123.456.749
+      AGENCY_LICENCE_NUMBER: W.RS.1234
+      AGENCY_JOINT_COMMITTEE: "322"
+      SIGNATURE_CODE_VALIDITY_MINUTES: "15"
+
+      # L'origine telle que le navigateur la voit, port compris. WebSocketConfig n'accepte
+      # la poignée de main du chat que si l'en-tête Origin lui correspond exactement :
+      # une valeur fausse ici coupe la messagerie, et seulement elle.
+      FRONTEND_URL: http://localhost:8081
+
+      MAIL_ENABLED: "true"
+      MAIL_HOST: smtp.gmail.com
+      MAIL_PORT: "587"
+      MAIL_SMTP_AUTH: "true"
+      MAIL_STARTTLS: "true"
+      MAIL_USERNAME: ${MAIL_USERNAME:?compte SMTP manquant dans .env}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?mot de passe d application SMTP manquant dans .env}
+      MAIL_FROM: ${MAIL_FROM:?adresse d expedition manquante dans .env}
+      # Les emails partent réellement : inutile de déverser leur corps dans le journal,
+      # où figureraient les codes à usage unique.
+      MAIL_LOG_LEVEL: INFO
+
+      DEMO_DATA_ENABLED: "true"
+      DEMO_DATA_PASSWORD: ${DEMO_DATA_PASSWORD:?mot de passe des comptes de demonstration manquant dans .env}
+      # Des boîtes réelles, sans quoi tout message de la démonstration partirait vers une
+      # adresse inexistante et reviendrait en avis de non-remise.
+      DEMO_EMPLOYER_EMAIL: ${DEMO_EMPLOYER_EMAIL:?adresse du compte employeur de demonstration manquante dans .env}
+      DEMO_JOBSEEKER_EMAIL: ${DEMO_JOBSEEKER_EMAIL:?adresse du compte interimaire de demonstration manquante dans .env}
+
+      RETENTION_ENABLED: "false"
+
+      # Le backend n'est atteint qu'à travers nginx : sans cette prise en compte des
+      # en-têtes X-Forwarded-*, toutes les requêtes paraîtraient venir de l'adresse du
+      # proxy, et le quota par adresse bloquerait tout le monde dès le premier visiteur
+      # un peu insistant.
+      FORWARD_HEADERS_STRATEGY: native
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------- frontend
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      # Seul port publié de tout l'assemblage : c'est la porte d'entrée de l'application.
+      # 8081 et non 8080, pour ne pas heurter un backend lancé depuis l'IDE.
+      - "8081:80"
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  cv-data:
+  contract-data:
