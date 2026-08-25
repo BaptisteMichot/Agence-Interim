@@ -120,6 +120,19 @@ public class User {
      */
     private LocalDateTime lastLoginAt;
 
+    /**
+     * Date de clôture du compte ; {@code null} tant que le compte est vivant.
+     *
+     * <p>Un compte clôturé qui a déjà engagé quelque chose n'est pas supprimé mais
+     * anonymisé : sa ligne subsiste pour que la chaîne contractuelle reste vérifiable.
+     * Rien dans les champs restants ne dit alors qu'il s'agit d'un compte fermé — le
+     * rôle, lui, ne change pas — de sorte que tout traitement qui parcourt « tous les
+     * intérimaires » continue de le prendre pour un utilisateur actif. Cette date est
+     * la marque explicite qui permet de l'écarter, plutôt que de reconnaître un compte
+     * clôturé à la forme de son adresse email.
+     */
+    private LocalDateTime closedAt;
+
     /** Commission paritaire dont relève l'entreprise utilisatrice. */
     @Column(length = JOINT_COMMITTEE_MAX_LENGTH)
     private String jointCommittee;

@@ -332,6 +332,10 @@ public class AccountService {
         user.setNationalNumber(null);
         user.setIban(null);
         user.setCvFilePath(null);
+        // La ligne survit, mais le compte ne doit plus compter parmi les utilisateurs :
+        // cette date est ce qui le retire des traitements qui parcourent une population,
+        // à commencer par le contact automatique à la publication d'une offre.
+        user.setClosedAt(LocalDateTime.now());
         // Les jetons encore en circulation cessent d'être acceptés à l'instant.
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);

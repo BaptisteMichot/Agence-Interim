@@ -61,8 +61,14 @@ public class MatchNotificationService {
         OfferRequirements requirements = matchingService.loadRequirements(offer);
 
         int contacted = 0;
-        // Les profils sont chargés en quatre requêtes groupées plutôt qu'en quatre par candidat.
-        for (CandidateProfile profile : matchingService.loadProfiles(userRepository.findByRole(Role.JOBSEEKER))) {
+        // Les profils sont chargés en quatre requêtes groupées plutôt qu'en quatre par
+        // candidat. Les comptes clôturés sont écartés du vivier : leur profil a été vidé,
+        // ils correspondraient donc à 100 % à toute offre qui n'exige rien, et l'email
+        // partirait vers l'adresse de remplacement laissée par l'anonymisation. Au-delà du
+        // courrier perdu, c'est le principe même de la clôture : on cesse de traiter les
+        // données de quelqu'un qui est parti.
+        for (CandidateProfile profile
+                : matchingService.loadProfiles(userRepository.findByRoleAndClosedAtIsNull(Role.JOBSEEKER))) {
             MatchScore match = matchingService.score(profile, requirements);
             if (match.shouldContact()) {
                 mailService.send(
