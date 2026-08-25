@@ -50,9 +50,9 @@ score = 100 × Σ(poids × taux) / Σ(poids)
 ```
 
 Un critère **exigé** doit être satisfait entièrement, sans quoi le candidat est écarté
-quel que soit son score — le score classe, la règle d'exclusion filtre. À la publication
-d'une offre, les candidats éligibles atteignant 50 % sont contactés automatiquement par
-email.
+quel que soit son score — le score classe, la règle d'exclusion filtre. Le calcul se fait
+à la demande du candidat, quand il ouvre son onglet « Pour moi » : aucun email n'est
+envoyé à la publication d'une offre.
 
 ---
 
@@ -215,6 +215,17 @@ frontend/                     React + Vite
 ## Choix et limites assumées
 
 Quelques décisions valent d'être connues avant de lire le code.
+
+**Le contact automatique des candidats a été retiré.** L'analyse prévoyait qu'une offre
+publiée écrive d'office à tout candidat dépassant un seuil de correspondance. C'était le
+seul email que la plateforme envoyait sans que son destinataire ait rien demandé, et le
+seul à partir à plusieurs personnes d'un coup — proportionnellement au vivier, non au
+nombre d'offres. Rien ne permettait de s'y soustraire : ni case à cocher à l'inscription,
+ni lien de désinscription, ni réglage dans le profil, alors que le RGPD ouvre un droit
+d'opposition. Plutôt que d'ajouter un consentement à un travail qui touchait à sa fin,
+l'envoi a été supprimé. Le rapprochement, lui, demeure : le candidat le déclenche
+lui-même en ouvrant « Pour moi ». Le seuil de contact a disparu avec l'email qu'il
+servait à décider.
 
 **Le score ne tient pas compte des disponibilités.** L'analyse les cite pourtant parmi
 les données qui affinent les propositions. La raison tient au modèle de données : une

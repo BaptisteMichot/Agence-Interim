@@ -47,8 +47,15 @@ import be.agence_interim.repository.SkillUserRepository;
  * RÈGLE D'EXCLUSION
  * Indépendamment du score, chaque critère obligatoire doit être satisfait à 100 %.
  * Si un seul critère obligatoire est partiellement ou pas satisfait, le candidat est
- * écarté (mandatoryOk = false) : il n'apparaît pas dans « Pour moi » et n'est pas
- * contacté. Le véhicule obligatoire est par nature un critère obligatoire.
+ * écarté (mandatoryOk = false) et l'offre n'apparaît pas dans son onglet « Pour moi ».
+ * Le véhicule obligatoire est par nature un critère obligatoire.
+ *
+ * QUI DÉCLENCHE LE CALCUL
+ * Le score n'est calculé qu'à la demande du candidat, quand il ouvre « Pour moi ».
+ * L'application a longtemps contacté d'office par email tout candidat dépassant un
+ * seuil à la publication d'une offre ; cet envoi a été retiré, faute de pouvoir offrir
+ * un moyen de s'y opposer. Le rapprochement reste, la sollicitation non : c'est le
+ * candidat qui vient voir ce qui lui correspond.
  *
  * EXEMPLE CHIFFRÉ
  * Offre : Cariste niveau Avancé (obligatoire), Anglais B2 (optionnel).
@@ -60,12 +67,6 @@ import be.agence_interim.repository.SkillUserRepository;
  */
 @Service
 public class MatchingService {
-
-    /**
-     * Seuil de contact automatique : à la publication d'une offre, un candidat est
-     * contacté si ses critères obligatoires sont satisfaits ET score ≥ ce seuil.
-     */
-    public static final int CONTACT_MIN_SCORE = 50;
 
     private final SkillJobOfferRepository skillJobOfferRepository;
     private final DegreeJobOfferRepository degreeJobOfferRepository;
@@ -100,11 +101,6 @@ public class MatchingService {
      * @param score       moyenne pondérée des taux de satisfaction, de 0 à 100
      */
     public record MatchScore(boolean mandatoryOk, int score) {
-
-        /** Le candidat doit-il être contacté automatiquement à la publication ? */
-        public boolean shouldContact() {
-            return mandatoryOk && score >= CONTACT_MIN_SCORE;
-        }
     }
 
     /**
@@ -155,34 +151,6 @@ public class MatchingService {
                 experienceRepository.findByUserIdOrderByStartDateDesc(userId));
     }
 
-    /**
-     * Charge les profils de plusieurs candidats en quatre requêtes groupées (au
-     * lieu de quatre par candidat), dans l'ordre de la liste reçue.
-     */
-    @Transactional(readOnly = true)
-    public List<CandidateProfile> loadProfiles(List<User> jobSeekers) {
-        if (jobSeekers.isEmpty()) {
-            return List.of();
-        }
-        List<Integer> userIds = jobSeekers.stream().map(jobSeeker -> jobSeeker.getId()).toList();
-        Map<Integer, List<SkillUser>> skills = skillUserRepository.findByUserIdInFetchSkill(userIds)
-                .stream().collect(Collectors.groupingBy(su -> su.getUser().getId()));
-        Map<Integer, List<LanguageUser>> languages = languageUserRepository.findByUserIdInFetchLanguage(userIds)
-                .stream().collect(Collectors.groupingBy(lu -> lu.getUser().getId()));
-        Map<Integer, List<DegreeUser>> degrees = degreeUserRepository.findByUserIdInFetchDegree(userIds)
-                .stream().collect(Collectors.groupingBy(du -> du.getUser().getId()));
-        Map<Integer, List<Experience>> experiences = experienceRepository.findByUserIdInOrderByStartDateDesc(userIds)
-                .stream().collect(Collectors.groupingBy(experience -> experience.getUser().getId()));
-        return jobSeekers.stream()
-                .map(jobSeeker -> buildProfile(
-                        jobSeeker,
-                        skills.getOrDefault(jobSeeker.getId(), List.of()),
-                        languages.getOrDefault(jobSeeker.getId(), List.of()),
-                        degrees.getOrDefault(jobSeeker.getId(), List.of()),
-                        experiences.getOrDefault(jobSeeker.getId(), List.of())))
-                .toList();
-    }
-
     private CandidateProfile buildProfile(
             User jobSeeker,
             List<SkillUser> skills,
@@ -203,8 +171,8 @@ public class MatchingService {
      * Déroulement : (1) évaluer chaque critère de l'offre (taux de satisfaction
      * + poids) dans l'accumulateur, (2) en déduire le score final et
      * l'éligibilité. Le profil du candidat a été chargé au préalable par
-     * {@link #loadProfile} ou {@link #loadProfiles}, une seule fois quel que
-     * soit le nombre d'offres évaluées.
+     * {@link #loadProfile}, une seule fois quel que soit le nombre d'offres
+     * évaluées.
      */
     public MatchScore score(CandidateProfile profile, OfferRequirements requirements) {
 

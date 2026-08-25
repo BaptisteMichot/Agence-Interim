@@ -1,6 +1,5 @@
 package be.agence_interim.repository;
 
-import be.agence_interim.model.Role;
 import be.agence_interim.model.User;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -27,16 +26,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
      */
     @Query("select u.tokenVersion from User u where u.id = :id")
     Optional<Integer> findTokenVersionById(int id);
-
-    /**
-     * Utilisateurs vivants d'un rôle donné, les comptes clôturés exclus.
-     *
-     * <p>La clôture d'un compte engagé l'anonymise sans le supprimer : sans la condition
-     * sur {@code closedAt}, il resterait dans le vivier interrogé à chaque publication
-     * d'offre. C'est le seul point d'entrée pour parcourir une population d'utilisateurs ;
-     * il vaut mieux qu'il ne laisse pas le choix d'oublier la condition.
-     */
-    List<User> findByRoleAndClosedAtIsNull(Role role);
 
     /** Comptes dormants qui détiennent encore un CV (politique de conservation). */
     List<User> findByLastLoginAtBeforeAndCvFilePathIsNotNull(java.time.LocalDateTime limit);

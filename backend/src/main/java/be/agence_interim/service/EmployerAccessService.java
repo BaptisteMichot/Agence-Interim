@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,16 +37,22 @@ public class EmployerAccessService {
     private final PasswordEncoder passwordEncoder;
     private final EmployerAccessRequestRepository requestRepository;
     private final AuditService auditService;
+    private final MailService mailService;
+    private final String frontendUrl;
 
     public EmployerAccessService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             EmployerAccessRequestRepository requestRepository,
-            AuditService auditService) {
+            AuditService auditService,
+            MailService mailService,
+            @Value("${app.frontend.url}") String frontendUrl) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.requestRepository = requestRepository;
         this.auditService = auditService;
+        this.mailService = mailService;
+        this.frontendUrl = frontendUrl;
     }
 
     /**
@@ -179,6 +186,7 @@ public class EmployerAccessService {
         request.setStatus(EmployerAccessStatus.ACCEPTED);
         requestRepository.save(request);
         auditService.record(AuditAction.EMPLOYER_ACCESS_GRANTED, adminId, "USER", user.getId(), null);
+        notifyAccepted(user);
     }
 
     /**
@@ -197,6 +205,46 @@ public class EmployerAccessService {
                 "USER",
                 request.getUser().getId(),
                 block ? "Refus définitif" : "Refus, nouvelle demande possible");
+        notifyRefused(request.getUser(), block);
+    }
+
+    /**
+     * Prévient l'employeur que son accès est accordé.
+     *
+     * <p>Le message insiste sur la reconnexion : {@code accept} vient d'incrémenter la
+     * version de session, si bien que l'intéressé se retrouve déconnecté au moment même
+     * où on lui ouvre la porte. Sans cette phrase, l'effet ressemble à une panne.
+     */
+    private void notifyAccepted(User user) {
+        mailService.send(user.getEmail(),
+                "Votre accès employeur est accordé",
+                "Bonjour " + user.getFirstName() + ",\n\n"
+                        + "Votre demande d'accès employeur a été acceptée. Vous pouvez désormais "
+                        + "publier des offres et suivre les candidatures reçues.\n\n"
+                        + "Reconnectez-vous pour accéder à votre espace :\n"
+                        + frontendUrl + "/login\n\n"
+                        + "L'agence d'intérim");
+    }
+
+    /**
+     * Prévient l'employeur que sa demande est refusée.
+     *
+     * <p>Les deux refus n'ouvrent pas les mêmes suites — {@code reapplyBlocked} interdit
+     * toute nouvelle demande — et le message doit le dire. Inviter à resoumettre quelqu'un
+     * dont la porte est fermée l'enverrait se heurter à un écran de refus.
+     */
+    private void notifyRefused(User user, boolean block) {
+        mailService.send(user.getEmail(),
+                "Votre demande d'accès employeur",
+                "Bonjour " + user.getFirstName() + ",\n\n"
+                        + "Votre demande d'accès employeur n'a pas été retenue.\n\n"
+                        + (block
+                                ? "Cette décision est définitive : une nouvelle demande ne pourra "
+                                        + "pas être examinée. Pour toute question, contactez l'agence.\n\n"
+                                : "Vous pouvez soumettre une nouvelle demande en précisant votre "
+                                        + "activité depuis votre espace :\n"
+                                        + frontendUrl + "/statut-employeur\n\n")
+                        + "L'agence d'intérim");
     }
 
     private void createRequest(User user, String message) {

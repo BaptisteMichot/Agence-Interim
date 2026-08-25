@@ -103,7 +103,6 @@ class MatchingScoreTests {
 
         assertThat(match.score()).isEqualTo(75);
         assertThat(match.mandatoryOk()).isFalse();
-        assertThat(match.shouldContact()).isFalse();
     }
 
     @Test
@@ -279,27 +278,15 @@ class MatchingScoreTests {
     }
 
     @Test
-    @DisplayName("Un profil vide n'est pas écarté d'une offre sans exigence, mais son score le laisse hors du contact")
+    @DisplayName("Un profil vide n'est pas écarté d'une offre sans exigence, il est classé en dernier")
     void anEmptyProfileIsRankedLastRatherThanExcluded() {
         // Rien d'obligatoire n'est en défaut, donc rien à exclure : l'offre reste visible
-        // dans « Pour moi », en bas de liste. Elle ne déclenche simplement pas d'email,
-        // parce qu'écrire à quelqu'un dont on ignore tout n'est pas une recommandation.
+        // dans « Pour moi », en bas de liste. Score et exclusion sont deux informations
+        // distinctes — un score de 0 n'est pas un refus, c'est un mauvais rang.
         MatchScore match = matching.score(
                 profile().build(), offer().skill(CARISTE, SkillLevel.AVANCE, false).build());
 
         assertThat(match).isEqualTo(new MatchScore(true, 0));
-        assertThat(match.shouldContact()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Le contact automatique exige à la fois les critères obligatoires et un score d'au moins 50")
-    void automaticContactNeedsBothConditions() {
-        // Les deux conditions sont indépendantes, et le seuil est inclusif : c'est la règle
-        // qui décide qui reçoit un email à chaque publication d'offre, donc celle dont
-        // l'assouplissement involontaire se paierait en courriers non sollicités.
-        assertThat(new MatchScore(true, 50).shouldContact()).isTrue();
-        assertThat(new MatchScore(true, 49).shouldContact()).isFalse();
-        assertThat(new MatchScore(false, 100).shouldContact()).isFalse();
     }
 
     // ------------------------------------------------------------------------------

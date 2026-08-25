@@ -28,12 +28,15 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final MailService mailService;
     private final String decoyHash;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
+            MailService mailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.mailService = mailService;
         // Haché une seule fois au démarrage : le recalculer à chaque échec ajouterait le
         // coût d'un chiffrement là où seule une comparaison est nécessaire.
         this.decoyHash = passwordEncoder.encode(DECOY_PASSWORD);
@@ -113,12 +116,35 @@ public class AuthService {
         return applyNewPassword(user, newPassword);
     }
 
-    /** Pose un nouveau mot de passe et révoque les jetons déjà émis. */
+    /**
+     * Pose un nouveau mot de passe, révoque les jetons déjà émis et en avertit le
+     * titulaire.
+     *
+     * <p>L'avertissement est ancré ici, et non chez les appelants, parce que les deux
+     * chemins qui mènent à un mot de passe changé — le changement volontaire et la
+     * réinitialisation par code — passent tous deux par cette méthode. Un seul point
+     * d'envoi vaut mieux que deux textes à garder identiques.
+     *
+     * <p>Il ne s'agit pas d'informer quelqu'un de ce qu'il vient de faire, mais d'alerter
+     * celui qui n'y est pour rien : un mot de passe changé à son insu est le premier
+     * signe visible d'un compte repris, et cet email est le seul canal qui échappe à
+     * l'attaquant, puisqu'il part vers une boîte que la plateforme ne contrôle pas.
+     */
     @Transactional
     public User applyNewPassword(User user, String newPassword) {
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setTokenVersion(user.getTokenVersion() + 1);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        mailService.send(saved.getEmail(),
+                "Votre mot de passe a été modifié",
+                "Bonjour " + saved.getFirstName() + ",\n\n"
+                        + "Le mot de passe de votre compte vient d'être modifié, et les sessions "
+                        + "ouvertes ont été fermées.\n\n"
+                        + "Si vous êtes à l'origine de ce changement, il n'y a rien à faire. "
+                        + "Dans le cas contraire, réinitialisez immédiatement votre mot de passe "
+                        + "et prévenez l'agence.\n\n"
+                        + "L'agence d'intérim");
+        return saved;
     }
 
     /**

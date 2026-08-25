@@ -256,7 +256,31 @@ public class MissionService {
         mission.setStatus(MissionStatus.REFUSED);
         mission.setRefusalReason(reason);
         auditService.record(AuditAction.MISSION_REFUSED, adminId, "MISSION", missionId, reason);
-        return toResponse(missionRepository.save(mission));
+        MissionResponse response = toResponse(missionRepository.save(mission));
+        notifyRefusal(mission, reason);
+        return response;
+    }
+
+    /**
+     * Prévient l'employeur du refus et lui en donne le motif.
+     *
+     * <p>Une mission refusée n'est visible que de lui et de l'agence : l'intérimaire n'est
+     * pas averti, il ignore encore qu'on lui destinait cette mission. Sans cet email,
+     * l'employeur devrait revenir de lui-même constater un refus dont rien ne l'avertit,
+     * alors que la correction n'attend que lui.
+     */
+    private void notifyRefusal(Mission mission, String reason) {
+        User employer = mission.getApplication().getJobOffer().getEmployer();
+        mailService.send(employer.getEmail(),
+                "Mission « " + mission.getPosition() + " » : correction demandée",
+                "Bonjour " + employer.getFirstName() + ",\n\n"
+                        + "L'agence n'a pas validé la mission « " + mission.getPosition()
+                        + " » du " + DATE.format(mission.getStartDate())
+                        + " au " + DATE.format(mission.getEndDate()) + ".\n\n"
+                        + "Motif : " + reason + "\n\n"
+                        + "Vous pouvez la corriger et la soumettre à nouveau :\n"
+                        + frontendUrl + "/employeur/missions/" + mission.getId() + "\n\n"
+                        + "L'agence d'intérim");
     }
 
     // --------------------------------------------------------------- intérimaire

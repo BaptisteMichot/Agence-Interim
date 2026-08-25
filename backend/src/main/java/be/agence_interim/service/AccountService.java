@@ -103,12 +103,14 @@ public class AccountService {
     private final MissionRepository missionRepository;
     private final ContractRepository contractRepository;
     private final EmployerAccessRequestRepository employerAccessRequestRepository;
+    private final MailService mailService;
 
     @SuppressWarnings("java:S107") // Une clôture de compte touche, par nature, tout le modèle.
     public AccountService(
             UserRepository userRepository,
             AuthService authService,
             AuditService auditService,
+            MailService mailService,
             AgencyProperties agency,
             PasswordEncoder passwordEncoder,
             CvService cvService,
@@ -134,6 +136,7 @@ public class AccountService {
         this.userRepository = userRepository;
         this.authService = authService;
         this.auditService = auditService;
+        this.mailService = mailService;
         this.agency = agency;
         this.passwordEncoder = passwordEncoder;
         this.cvService = cvService;
@@ -219,6 +222,13 @@ public class AccountService {
         }
         requireNoBindingMission(user);
 
+        // L'adresse et le prénom sont relevés maintenant, tant qu'ils existent encore :
+        // la clôture se termine soit par une anonymisation, qui remplace l'email par une
+        // adresse de rebut, soit par la suppression pure et simple de la ligne. Dans les
+        // deux cas, il ne resterait plus rien à qui écrire.
+        String recipient = user.getEmail();
+        String firstName = user.getFirstName();
+
         // Données de profil : rien ne les retient, elles partent dans les deux cas.
         cvService.delete(userId);
         experienceRepository.deleteByUserId(userId);
@@ -250,6 +260,34 @@ public class AccountService {
             userRepository.delete(user);
             log.info("Compte {} supprimé.", userId);
         }
+
+        // En dernier : l'accusé ne part qu'une fois la clôture réellement faite. Il vaut
+        // aussi confirmation écrite de l'exercice du droit à l'effacement, que le RGPD
+        // demande de traiter mais dont rien d'autre ici ne laisserait de trace à
+        // l'intéressé — son compte, précisément, n'existe plus.
+        notifyClosure(recipient, firstName, engaged);
+    }
+
+    /**
+     * Accuse réception de la clôture.
+     *
+     * <p>Le texte diffère selon l'issue, parce que l'engagement n'est pas le même. Un
+     * compte sans rien derrière lui disparaît ; un compte qui a candidaté ou publié laisse
+     * des pièces que la loi impose de conserver, et l'annoncer évite de promettre un
+     * effacement total qui n'a pas eu lieu.
+     */
+    private void notifyClosure(String recipient, String firstName, boolean engaged) {
+        mailService.send(recipient,
+                "Votre compte a été clôturé",
+                "Bonjour " + firstName + ",\n\n"
+                        + "Votre compte a été clôturé et vos données de profil ont été effacées.\n\n"
+                        + (engaged
+                                ? "Les candidatures, offres et contrats auxquels vous avez pris part "
+                                        + "sont conservés sans votre identité : ils engagent d'autres "
+                                        + "parties et relèvent d'obligations légales de conservation.\n\n"
+                                : "Aucune donnée vous concernant ne subsiste sur la plateforme.\n\n")
+                        + "Vous ne recevrez plus aucun message de notre part.\n\n"
+                        + "L'agence d'intérim");
     }
 
     /**
