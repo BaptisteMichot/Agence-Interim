@@ -6,16 +6,21 @@ import Pagination from '../../components/Pagination';
 import { card, errorBox, inputClass, mutedText } from '../../components/ui';
 import { usePagedResource } from '../../hooks/usePagedResource';
 
-/** Une ligne du journal, telle que l'API la renvoie. */
+/**
+ * Une ligne du journal, réduite à ce que l'écran affiche.
+ *
+ * L'API en renvoie davantage — l'objet visé et l'adresse IP notamment. Ces deux
+ * informations restent consignées en base, où elles servent une éventuelle
+ * investigation ; elles ne sont simplement plus mises sous les yeux de l'agence, à qui
+ * elles n'apprenaient rien d'utile au quotidien. Les déclarer sans jamais les lire
+ * laisserait croire à un oubli d'affichage.
+ */
 interface AuditEvent {
   id: number;
   occurredAt: string;
   action: string;
   actorId: number | null;
   actorEmail: string | null;
-  targetType: string | null;
-  targetId: number | null;
-  ip: string | null;
   detail: string | null;
 }
 
@@ -41,8 +46,8 @@ const DATE_TIME = new Intl.DateTimeFormat('fr-BE', {
  * Journal d'audit de l'agence.
  *
  * <p>Lecture seule, et il n'existe aucune route d'écriture : un journal que son lecteur
- * peut retoucher ne prouve rien. C'est ici que l'agence retrouve qui a signé un contrat,
- * quand, et depuis quelle adresse — ce que l'état d'un contrat, à lui seul, ne dit pas.
+ * peut retoucher ne prouve rien. C'est ici que l'agence retrouve qui a signé un contrat
+ * et quand — ce que l'état d'un contrat, à lui seul, ne dit pas.
  */
 export default function AdminAuditPage() {
   const [action, setAction] = useState('');
@@ -104,14 +109,12 @@ export default function AdminAuditPage() {
 function AuditTable({ events }: { events: AuditEvent[] }) {
   return (
     <div className="mt-4 overflow-x-auto">
-      <table className="w-full min-w-[46rem] border-collapse text-sm">
+      <table className="w-full min-w-[34rem] border-collapse text-sm">
         <thead>
           <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
             <th className="py-2 pr-4 font-medium">Date</th>
             <th className="py-2 pr-4 font-medium">Acte</th>
             <th className="py-2 pr-4 font-medium">Auteur</th>
-            <th className="py-2 pr-4 font-medium">Objet</th>
-            <th className="py-2 pr-4 font-medium">Adresse</th>
             <th className="py-2 font-medium">Précision</th>
           </tr>
         </thead>
@@ -127,10 +130,6 @@ function AuditTable({ events }: { events: AuditEvent[] }) {
               <td className="py-2 pr-4 text-slate-600">
                 {event.actorEmail ?? (event.actorId === null ? 'Système' : `#${event.actorId}`)}
               </td>
-              <td className="whitespace-nowrap py-2 pr-4 text-slate-600">
-                {event.targetType === null ? '—' : `${event.targetType} #${event.targetId}`}
-              </td>
-              <td className="whitespace-nowrap py-2 pr-4 text-slate-500">{event.ip ?? '—'}</td>
               <td className="py-2 text-slate-600">{event.detail ?? '—'}</td>
             </tr>
           ))}
