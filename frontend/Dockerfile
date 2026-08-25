@@ -34,7 +34,10 @@ RUN npm run build
 FROM nginx:alpine AS runtime
 
 # La configuration par défaut sert un « Welcome to nginx » et ne relaie rien : elle est
-# remplacée, pas complétée.
+# remplacée, pas complétée. Le corps commun est déposé à part, parce que la variante TLS
+# l'inclut elle aussi — elle est montée par compose.https.yml par-dessus default.conf,
+# sans reconstruction de l'image.
+COPY nginx-common.conf /etc/nginx/app-common.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /build/dist /usr/share/nginx/html
 

@@ -43,3 +43,13 @@ deploy/
 **/src/main/resources/application-local.properties
 # Magasins de cles et autres secrets hors du dossier des fichiers deposes.
 secrets/
+
+# Certificats TLS. Le certificat auto-signe de la demonstration se regenere en une
+# commande (voir le README) : il n'a aucune raison d'etre versionne, et la cle privee
+# encore moins. Regle large a dessein, pour qu'un futur keystore ne passe pas au travers.
+certs/
+*.crt
+*.key
+*.pem
+*.p12
+*.jks

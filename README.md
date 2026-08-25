@@ -103,9 +103,75 @@ nommés. `docker compose down` détruit les conteneurs sans y toucher ; il faut
 > **Le schéma est créé par Hibernate** (`DDL_AUTO=update`), faute de migrations
 > versionnées. C'est sans danger ici : la base naît avec le conteneur.
 
-> **Aucun TLS.** L'application est servie en clair, `COOKIE_SECURE` reste donc à `false` —
-> un cookie marqué `Secure` serait ignoré par le navigateur. C'est aussi ce qui laisse
-> `ProductionGuard` en simple avertissement au démarrage.
+Ce premier montage est servi **en clair**, `COOKIE_SECURE` reste donc à `false` — un
+cookie marqué `Secure` serait ignoré par le navigateur. C'est aussi ce qui laisse
+`ProductionGuard` en simple avertissement au démarrage. Pour le chiffrer, voir ci-dessous.
+
+### En TLS
+
+Un certificat est à produire une seule fois, par l'un des deux moyens. Avec
+[mkcert](https://github.com/FiloSottile/mkcert), qui signe avec une autorité ajoutée au
+magasin de confiance du poste — le navigateur n'avertit plus, et le HSTS devient
+réellement actif :
+
+```bash
+mkcert -install                                   # une fois par machine
+mkdir -p certs
+mkcert -key-file certs/agence.key -cert-file certs/agence.crt agence-interim.localhost
+```
+
+Sans mkcert, un certificat auto-signé fait le même travail de chiffrement, au prix d'un
+avertissement à chaque première visite :
+
+```bash
+mkdir -p certs
+openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 365 \
+  -keyout certs/agence.key -out certs/agence.crt \
+  -subj "/C=BE/O=Agence Interim SA/CN=agence-interim.localhost" \
+  -addext "subjectAltName=DNS:agence-interim.localhost"
+```
+
+Dans les deux cas le certificat ne porte **que** `agence-interim.localhost`, jamais
+`localhost` : voir l'encart sur le HSTS plus bas.
+
+```bash
+docker compose -f compose.yml -f compose.https.yml up -d
+```
+
+L'application est alors servie sur <https://agence-interim.localhost:8443>, et le port
+8081 ne fait plus que rediriger vers elle. Le navigateur avertira à la première visite :
+sans domaine public, aucune autorité ne peut certifier ce nom.
+
+**L'ordre compte à la première bascule.** `COOKIE_SECURE=true` réveille `ProductionGuard`,
+qui refuse alors de démarrer sur un jeu de démonstration actif ou sur un `ddl-auto` qui
+modifie le schéma. La variante TLS éteint donc ces deux réglages, ce qui suppose une base
+déjà établie :
+
+```bash
+docker compose up -d                                      # en clair : schéma + données
+docker compose down
+docker compose -f compose.yml -f compose.https.yml up -d  # bascule
+```
+
+Les volumes survivent à l'opération, la démonstration reste entièrement jouable.
+
+> **Pourquoi `agence-interim.localhost` et non `localhost`.** Le HSTS ignore le numéro de
+> port : reçu depuis `https://localhost:8443`, il forcerait en HTTPS tout ce qui répond
+> sur `localhost`, serveur de développement compris. Le certificat ne porte que le nom
+> dédié, si bien qu'un accès par `localhost` échoue plutôt que de risquer l'effet de bord.
+> Les navigateurs résolvent d'eux-mêmes `*.localhost` vers 127.0.0.1 (RFC 6761).
+
+> **Jusqu'où va la confiance.** Un certificat certifie un nom de domaine, et aucune
+> autorité publique ne signe un nom en `.localhost`. mkcert contourne la difficulté en
+> installant sa propre autorité sur le poste : la confiance y est complète, mais elle
+> s'arrête à ce poste. Ailleurs, l'avertissement reparaît. Un certificat reconnu partout
+> supposerait un vrai domaine — et le livrer avec le dépôt exigerait d'y publier la clé
+> privée, c'est-à-dire la faute même que le TLS prévient.
+
+> **Un détail qui a son importance.** Un navigateur n'enregistre le HSTS que sur une
+> connexion dont le certificat est valide. Avec un auto-signé, l'en-tête est émis mais
+> ignoré ; avec mkcert, il prend effet pour de bon. C'est à ce moment que le choix du nom
+> dédié cesse d'être une précaution théorique.
 
 ---
 
@@ -175,6 +241,38 @@ npm run dev
 
 L'interface est servie sur <http://localhost:5173>. Le serveur de développement relaie
 `/api` et `/ws` vers le backend, ce qui évite toute question de CORS en développement.
+
+### 4. Développer en HTTPS (facultatif)
+
+Aligne l'environnement de travail sur celui des conteneurs : le chat s'ouvre en `wss`, et
+les différences de comportement liées au protocole se découvrent en développant plutôt
+qu'au déploiement. Il suffit d'un certificat, que Vite prend en compte s'il le trouve :
+
+```bash
+mkcert -key-file certs/localhost.key -cert-file certs/localhost.crt localhost 127.0.0.1
+```
+
+Puis, dans `backend/.env` :
+
+```properties
+FRONTEND_URL=https://localhost:5173
+```
+
+`WebSocketConfig` n'accepte la poignée de main du chat que si l'en-tête `Origin` de la
+requête correspond exactement à cette valeur : l'oublier ne coupe que la messagerie, et
+sans message clair.
+
+Le certificat absent, `npm run dev` repart en clair sans rien signaler — rien ne casse.
+
+> **`COOKIE_SECURE` reste à `false`, même en HTTPS.** Le passer à `true` réveillerait
+> `ProductionGuard`, qui exigerait alors de couper le jeu de démonstration et d'abandonner
+> `ddl-auto=update` : il rendrait l'environnement de développement inutilisable. Un cookie
+> sans cet attribut fonctionne parfaitement sur une connexion chiffrée.
+
+> **Le backend, lui, reste en clair.** Le chiffrement s'arrête au serveur de Vite, comme
+> il s'arrête à nginx dans les conteneurs. C'est aussi ce qui évite que Spring émette un
+> HSTS : cet en-tête ignore le numéro de port, et forcerait en HTTPS **tout** ce qui
+> tourne sur `localhost`, projets étrangers compris, pendant un an.
 
 ---
 

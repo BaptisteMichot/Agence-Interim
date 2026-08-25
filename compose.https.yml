@@ -1,0 +1,65 @@
+# Variante TLS, à superposer au montage de base :
+#
+#     docker compose -f compose.yml -f compose.https.yml up -d
+#
+# L'application est alors servie sur https://agence-interim.localhost:8443, et le port
+# 8081 ne fait plus que rediriger vers lui.
+#
+# CE FICHIER NE SE SUFFIT PAS À LUI-MÊME
+# Il ne redéfinit que ce qui change ; tout le reste vient de compose.yml. Les listes s'y
+# ajoutent (un port de plus, deux montages de plus), les variables d'environnement s'y
+# substituent.
+#
+# ---------------------------------------------------------------------------------
+# DEUX PRÉALABLES, faute de quoi rien ne démarre.
+#
+# 1. LE CERTIFICAT. Auto-signé, hors du dépôt, à produire une fois :
+#
+#      mkdir -p certs
+#      openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 365 \
+#        -keyout certs/agence.key -out certs/agence.crt \
+#        -subj "/C=BE/O=Agence Interim SA/CN=agence-interim.localhost" \
+#        -addext "subjectAltName=DNS:agence-interim.localhost"
+#
+#    Il ne porte volontairement que ce nom, et pas « localhost » : voir l'explication du
+#    HSTS dans frontend/nginx-https.conf.
+#
+# 2. UNE BASE DÉJÀ PEUPLÉE. `COOKIE_SECURE=true` réveille ProductionGuard, qui refuse
+#    alors de démarrer sur un jeu de démonstration actif ou sur un `ddl-auto` qui modifie
+#    le schéma. Ces deux réglages sont donc éteints ci-dessous — ce qui suppose que le
+#    schéma et les données existent déjà. D'où l'ordre à respecter la première fois :
+#
+#      docker compose up -d          # en clair : Hibernate crée le schéma, le seeder peuple
+#      docker compose down
+#      docker compose -f compose.yml -f compose.https.yml up -d
+#
+#    Les volumes survivent à la bascule : la démonstration reste entièrement jouable.
+#    C'est aussi ce que le garde-fou cherchait à montrer — le TLS n'est pas un réglage
+#    isolé, il entraîne la fin du jeu de démonstration et l'abandon de ddl-auto=update,
+#    c'est-à-dire le passage à des migrations versionnées.
+
+services:
+
+  backend:
+    environment:
+      # Le cookie de session ne part plus qu'en clair chiffré. C'est ce réglage qui fait
+      # de tout le reste une obligation.
+      COOKIE_SECURE: "true"
+      # Doit correspondre exactement à l'origine vue par le navigateur, port compris :
+      # WebSocketConfig compare l'en-tête Origin à cette valeur, et ProductionGuard
+      # refuse un http:// alors que le cookie est marqué Secure.
+      FRONTEND_URL: https://agence-interim.localhost:8443
+      # Exigés par ProductionGuard dès que le cookie est Secure. Le schéma et les données
+      # ont été établis lors du démarrage en clair ; ils vivent dans les volumes.
+      DEMO_DATA_ENABLED: "false"
+      DDL_AUTO: none
+
+  frontend:
+    ports:
+      # S'ajoute au 8081 de compose.yml, qui ne sert plus qu'à la redirection.
+      - "8443:443"
+    volumes:
+      # Montés plutôt que copiés dans l'image : passer d'un mode à l'autre ne demande
+      # aucune reconstruction, et la clé privée n'entre dans aucune couche d'image.
+      - ./frontend/nginx-https.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
