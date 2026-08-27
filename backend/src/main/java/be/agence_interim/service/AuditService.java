@@ -35,14 +35,14 @@ public class AuditService {
      * Consigne un acte.
      *
      * @param action     nature de l'acte
-     * @param actorId    auteur, ou {@code null} si c'est le système
+     * @param actorId    auteur de l'acte
      * @param targetType nature de l'objet visé (CONTRACT, MISSION, USER…)
      * @param targetId   identifiant de l'objet visé
      * @param detail     précision courte et lisible, ou {@code null}
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void record(
-            AuditAction action, Integer actorId, String targetType, Integer targetId, String detail) {
+            AuditAction action, int actorId, String targetType, int targetId, String detail) {
         AuditEvent event = new AuditEvent();
         event.setOccurredAt(LocalDateTime.now());
         event.setAction(action);
@@ -50,24 +50,17 @@ public class AuditService {
         event.setActorEmail(actorEmail(actorId));
         event.setTargetType(targetType);
         event.setTargetId(targetId);
-        event.setDetail(truncate(detail));
+        event.setDetail(detail);
         auditEventRepository.save(event);
     }
 
     /** Email de l'auteur, recopié dans la trace pour qu'elle survive à son compte. */
-    private String actorEmail(Integer actorId) {
-        if (actorId == null) {
-            return null;
-        }
-        return userRepository.findById(actorId).map(user -> user.getEmail()).orElse(null);
+    private String actorEmail(int actorId) {
+        return userRepository
+                .findById(actorId)
+                .map(user -> user.getEmail())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Impossible de consigner l'acte : auteur " + actorId + " introuvable."));
     }
 
-    private static String truncate(String detail) {
-        if (detail == null) {
-            return null;
-        }
-        return detail.length() <= AuditEvent.DETAIL_MAX_LENGTH
-                ? detail
-                : detail.substring(0, AuditEvent.DETAIL_MAX_LENGTH);
-    }
 }

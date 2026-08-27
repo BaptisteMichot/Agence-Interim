@@ -111,33 +111,6 @@ class AuditAndTokenTests {
     }
 
     @Test
-    @DisplayName("Un acte du système s'inscrit sans auteur, plutôt que sous un auteur inventé")
-    void asystemActionIsRecordedWithoutAnAuthor() {
-        // La clôture d'un compte ou une tâche de fond n'a pas d'auteur humain. Lui en
-        // attribuer un par défaut rendrait le journal faux là où il doit être muet, et un
-        // journal qui invente est pire qu'un journal incomplet.
-        auditService.record(AuditAction.ACCOUNT_CLOSED, null, "USER", 1, null);
-
-        AuditEvent recorded = latest();
-        assertThat(recorded.getActorId()).isNull();
-        assertThat(recorded.getActorEmail()).isNull();
-        assertThat(recorded.getDetail()).isNull();
-    }
-
-    @Test
-    @DisplayName("Un détail trop long est tronqué plutôt que de faire échouer l'écriture")
-    void anoverlongDetailIsTruncatedRatherThanLosingTheTrace() {
-        // Le détail vient parfois d'un texte libre — le motif de refus d'une mission. Le
-        // laisser dépasser ferait échouer l'insertion, et l'acte ne serait pas consigné du
-        // tout : mieux vaut une trace amputée qu'aucune trace.
-        String tooLong = "m".repeat(AuditEvent.DETAIL_MAX_LENGTH + 200);
-
-        auditService.record(AuditAction.MISSION_REFUSED, actor.getId(), "MISSION", 3, tooLong);
-
-        assertThat(latest().getDetail()).hasSize(AuditEvent.DETAIL_MAX_LENGTH);
-    }
-
-    @Test
     @DisplayName("Le journal se lit du plus récent au plus ancien, et se filtre par acte")
     void thejournalReadsNewestFirstAndFiltersByAction() {
         auditService.record(AuditAction.PASSWORD_CHANGED, actor.getId(), "USER", actor.getId(), "Un");

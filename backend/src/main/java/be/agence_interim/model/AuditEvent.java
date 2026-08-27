@@ -34,8 +34,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AuditEvent {
 
-    public static final int DETAIL_MAX_LENGTH = 500;
-    public static final int ACTOR_MAX_LENGTH = 255;
+    /** Aligné sur l'email d'un compte : la colonne en recopie la valeur. */
+    public static final int ACTOR_MAX_LENGTH = User.EMAIL_MAX_LENGTH;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,20 +48,22 @@ public class AuditEvent {
     @Column(nullable = false, length = 40)
     private AuditAction action;
 
-    /** Identifiant de l'auteur au moment des faits ; nul pour une action du système. */
-    private Integer actorId;
+    /** Identifiant de l'auteur au moment des faits. */
+    @Column(nullable = false)
+    private int actorId;
 
     /** Email de l'auteur, recopié : la trace survit à la suppression du compte. */
-    @Column(length = ACTOR_MAX_LENGTH)
+    @Column(nullable = false, length = ACTOR_MAX_LENGTH)
     private String actorEmail;
 
     /** Nature de l'objet visé (CONTRACT, MISSION, USER…). */
-    @Column(length = 40)
+    @Column(nullable = false, length = 40)
     private String targetType;
 
-    private Integer targetId;
+    @Column(nullable = false)
+    private int targetId;
 
-    /** Précision libre et courte : motif d'un refus, rôle du signataire… */
-    @Column(length = DETAIL_MAX_LENGTH)
+    /** Précision libre : motif d'un refus, rôle du signataire… */
+    @Column(columnDefinition = "TEXT")
     private String detail;
 }

@@ -9,10 +9,10 @@ public record AuditEventResponse(
         int id,
         LocalDateTime occurredAt,
         String action,
-        Integer actorId,
+        int actorId,
         String actorEmail,
         String targetType,
-        Integer targetId,
+        int targetId,
         String detail) {
 
     public static AuditEventResponse fromEntity(AuditEvent event) {
