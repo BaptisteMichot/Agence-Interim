@@ -5,15 +5,11 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import be.agence_interim.model.AuditAction;
 import be.agence_interim.model.AuditEvent;
 import be.agence_interim.repository.AuditEventRepository;
 import be.agence_interim.repository.UserRepository;
-import be.agence_interim.security.ClientIp;
 
 /**
  * Écriture du journal d'audit.
@@ -23,10 +19,6 @@ import be.agence_interim.security.ClientIp;
  * elle en cas d'annulation — or c'est précisément la tentative avortée qu'on veut
  * parfois retrouver. La contrepartie est acceptée : une trace peut subsister pour une
  * opération finalement annulée, ce qui est le bon sens d'un journal.
- *
- * <p>L'adresse de l'appelant est lue dans la requête en cours, quand il y en a une : les
- * traitements de fond ({@code @Async}, tâches planifiées) n'en ont pas, et la colonne
- * reste alors vide plutôt que de porter une valeur inventée.
  */
 @Service
 public class AuditService {
@@ -58,7 +50,6 @@ public class AuditService {
         event.setActorEmail(actorEmail(actorId));
         event.setTargetType(targetType);
         event.setTargetId(targetId);
-        event.setIp(currentIp());
         event.setDetail(truncate(detail));
         auditEventRepository.save(event);
     }
@@ -69,13 +60,6 @@ public class AuditService {
             return null;
         }
         return userRepository.findById(actorId).map(user -> user.getEmail()).orElse(null);
-    }
-
-    private String currentIp() {
-        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
-        return attributes instanceof ServletRequestAttributes servlet
-                ? ClientIp.of(servlet.getRequest())
-                : null;
     }
 
     private static String truncate(String detail) {

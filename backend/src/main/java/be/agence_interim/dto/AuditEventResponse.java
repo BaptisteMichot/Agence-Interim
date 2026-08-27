@@ -13,7 +13,6 @@ public record AuditEventResponse(
         String actorEmail,
         String targetType,
         Integer targetId,
-        String ip,
         String detail) {
 
     public static AuditEventResponse fromEntity(AuditEvent event) {
@@ -25,7 +24,6 @@ public record AuditEventResponse(
                 event.getActorEmail(),
                 event.getTargetType(),
                 event.getTargetId(),
-                event.getIp(),
                 event.getDetail());
     }
 }

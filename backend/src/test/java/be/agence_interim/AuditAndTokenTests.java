@@ -125,18 +125,6 @@ class AuditAndTokenTests {
     }
 
     @Test
-    @DisplayName("L'adresse de l'appelant est consignée lorsqu'une requête est en cours")
-    void thecallerAddressIsRecordedWhenARequestIsInFlight() {
-        // Sans adresse, le journal dit qu'un contrat a été signé mais pas d'où. Elle est
-        // lue dans la requête en cours ; hors requête — traitement asynchrone, tâche
-        // planifiée — la colonne reste vide plutôt que de porter une valeur inventée, ce
-        // que ces tests ne peuvent pas montrer : le contexte de test en fournit une.
-        auditService.record(AuditAction.DATA_EXPORTED, actor.getId(), "USER", actor.getId(), null);
-
-        assertThat(latest().getIp()).isNotBlank();
-    }
-
-    @Test
     @DisplayName("Un détail trop long est tronqué plutôt que de faire échouer l'écriture")
     void anoverlongDetailIsTruncatedRatherThanLosingTheTrace() {
         // Le détail vient parfois d'un texte libre — le motif de refus d'une mission. Le

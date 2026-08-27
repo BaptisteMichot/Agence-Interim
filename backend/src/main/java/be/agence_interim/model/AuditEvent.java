@@ -25,7 +25,7 @@ import lombok.Setter;
  *
  * <p>Ce que l'application produit sont des contrats de travail : la non-répudiation
  * n'est pas un raffinement technique mais une exigence métier. Sans journal, l'état
- * final d'un contrat dit qu'il est signé, jamais par qui, ni quand, ni depuis où.
+ * final d'un contrat dit qu'il est signé, jamais par qui ni quand.
  */
 @Entity
 @Table(name = "audit_event")
@@ -35,7 +35,6 @@ import lombok.Setter;
 public class AuditEvent {
 
     public static final int DETAIL_MAX_LENGTH = 500;
-    public static final int IP_MAX_LENGTH = 45; // une adresse IPv6 en toutes lettres
     public static final int ACTOR_MAX_LENGTH = 255;
 
     @Id
@@ -61,9 +60,6 @@ public class AuditEvent {
     private String targetType;
 
     private Integer targetId;
-
-    @Column(length = IP_MAX_LENGTH)
-    private String ip;
 
     /** Précision libre et courte : motif d'un refus, rôle du signataire… */
     @Column(length = DETAIL_MAX_LENGTH)
