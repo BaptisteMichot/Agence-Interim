@@ -284,12 +284,18 @@ pagination :
 
 | Rôle | Adresse |
 |---|---|
-| Intérimaire | `test@jobseeker.com` |
-| Employeur | `test@employer.com` |
-| Agence | `test@admin.com` |
+| Intérimaire | `DEMO_JOBSEEKER_EMAIL`, sinon `MAIL_FROM` sous-adressé en `+jobseeker` |
+| Employeur | `DEMO_EMPLOYER_EMAIL`, sinon `MAIL_FROM` sous-adressé en `+employer` |
+| Agence | `ADMIN_EMAIL` |
 
 Le mot de passe commun est celui de `DEMO_DATA_PASSWORD`. L'amorçage est sans effet si
 les comptes existent déjà.
+
+Les deux premières adresses sont les seules du jeu qui reçoivent réellement : codes de
+signature, propositions de mission, réinitialisation de mot de passe. Les deuxièmes rôles
+(candidats, entreprises demandant l'accès) portent des adresses en `@example.com`, un
+domaine réservé par la RFC 2606 — une acceptation de demande d'accès faite en
+démonstration ne peut donc pas écrire à un inconnu. Rien n'est envoyé au compte agence.
 
 > À laisser à `false` hors développement. Un garde-fou (`ProductionGuard`) refuse
 > d'ailleurs le démarrage si le jeu de démonstration, les emails simulés ou un

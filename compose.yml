@@ -94,9 +94,9 @@ services:
       MAX_REQUEST_SIZE: 7MB
 
       AGENCY_NAME: Agence Interim SA
-      AGENCY_ADDRESS: Rue de l'Emploi 1, 4000 Liege
-      AGENCY_COMPANY_NUMBER: 0123.456.749
-      AGENCY_LICENCE_NUMBER: W.RS.1234
+      AGENCY_ADDRESS: Boulevard d'Avroy 42, 4000 Liege
+      AGENCY_COMPANY_NUMBER: 0764.312.884
+      AGENCY_LICENCE_NUMBER: W.RS.874
       AGENCY_JOINT_COMMITTEE: "322"
       SIGNATURE_CODE_VALIDITY_MINUTES: "15"
 
@@ -119,10 +119,11 @@ services:
 
       DEMO_DATA_ENABLED: "true"
       DEMO_DATA_PASSWORD: ${DEMO_DATA_PASSWORD:?mot de passe des comptes de demonstration manquant dans .env}
-      # Des boîtes réelles, sans quoi tout message de la démonstration partirait vers une
-      # adresse inexistante et reviendrait en avis de non-remise.
-      DEMO_EMPLOYER_EMAIL: ${DEMO_EMPLOYER_EMAIL:?adresse du compte employeur de demonstration manquante dans .env}
-      DEMO_JOBSEEKER_EMAIL: ${DEMO_JOBSEEKER_EMAIL:?adresse du compte interimaire de demonstration manquante dans .env}
+      # Facultatives : vides, les deux adresses se déduisent de MAIL_FROM par
+      # sous-adressage (« +employer », « +jobseeker »), donc d'une boîte nécessairement
+      # relevée puisque c'est elle qui envoie. À renseigner pour viser ailleurs.
+      DEMO_EMPLOYER_EMAIL: ${DEMO_EMPLOYER_EMAIL:-}
+      DEMO_JOBSEEKER_EMAIL: ${DEMO_JOBSEEKER_EMAIL:-}
 
       RETENTION_ENABLED: "false"
 
