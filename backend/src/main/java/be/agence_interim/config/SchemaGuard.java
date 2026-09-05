@@ -11,7 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Vérifie que les colonnes chiffrées peuvent accueillir un chiffré.
+ * Vérifie que les colonnes chiffrées peuvent contenir une valeur chiffrée.
  *
  * <p><strong>Pourquoi ce contrôle existe.</strong> Le chiffrement du numéro de registre
  * national et de l'IBAN rend les valeurs plus longues que le clair. Les colonnes ont donc
@@ -59,9 +59,9 @@ public class SchemaGuard {
             sql.append("\n  ALTER TABLE users ALTER COLUMN ").append(column).append(" TYPE text;");
         }
         throw new IllegalStateException(
-                "Les colonnes chiffrées sont trop courtes pour accueillir un chiffré : "
+                "Ces colonnes sont trop courtes pour contenir une valeur chiffrée : "
                         + String.join(", ", tooShort)
-                        + ".\nHibernate n'élargit pas une colonne existante. Exécutez :"
+                        + ".\nHibernate n'élargit pas une colonne qui existe déjà. Exécutez :"
                         + sql
                         + "\npuis relancez l'application.");
     }
