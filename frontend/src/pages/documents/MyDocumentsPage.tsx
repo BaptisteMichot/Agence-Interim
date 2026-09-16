@@ -117,8 +117,7 @@ export default function MyDocumentsPage() {
                       {formatDate(contract.startDate)} au {formatDate(contract.endDate)}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-400">
-                      Établi le {formatDateTime(contract.generationTime)} · document n°{' '}
-                      {contract.id}
+                      Établi le {formatDateTime(contract.generationTime)}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">

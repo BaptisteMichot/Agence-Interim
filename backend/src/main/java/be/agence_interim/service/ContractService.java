@@ -167,7 +167,7 @@ public class ContractService {
                 : mission.getApplication().getJobSeeker();
         String code = signingCodeService.generate(contract.getId(), userId);
         mailService.send(signer.getEmail(),
-                "Code de signature du contrat n° " + contract.getId(),
+                "Code de signature pour votre contrat",
                 "Bonjour " + signer.getFirstName() + ",\n\n"
                         + "Votre code de signature est : " + code + "\n"
                         + "Il est valable " + signingCodeService.getValidityMinutes() + " minutes.\n\n"

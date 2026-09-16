@@ -32,7 +32,6 @@ import be.agence_interim.model.DegreeUser;
 import be.agence_interim.model.EmployerAccessRequest;
 import be.agence_interim.model.EmployerAccessStatus;
 import be.agence_interim.model.Experience;
-import be.agence_interim.model.FavoriteJobOffer;
 import be.agence_interim.model.Formation;
 import be.agence_interim.model.FormationStatus;
 import be.agence_interim.model.JobOffer;
@@ -63,7 +62,6 @@ import be.agence_interim.repository.DegreeRepository;
 import be.agence_interim.repository.DegreeUserRepository;
 import be.agence_interim.repository.EmployerAccessRequestRepository;
 import be.agence_interim.repository.ExperienceRepository;
-import be.agence_interim.repository.FavoriteJobOfferRepository;
 import be.agence_interim.repository.FormationRepository;
 import be.agence_interim.repository.JobOfferRepository;
 import be.agence_interim.repository.LanguageJobOfferRepository;
@@ -672,7 +670,6 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final EmployerAccessRequestRepository accessRequestRepository;
     private final JobOfferRepository jobOfferRepository;
     private final ApplicationRepository applicationRepository;
-    private final FavoriteJobOfferRepository favoriteRepository;
     private final MissionRepository missionRepository;
     private final DailyScheduleRepository dailyScheduleRepository;
     private final ContractRepository contractRepository;
@@ -698,7 +695,6 @@ public class DemoDataSeeder implements CommandLineRunner {
             EmployerAccessRequestRepository accessRequestRepository,
             JobOfferRepository jobOfferRepository,
             ApplicationRepository applicationRepository,
-            FavoriteJobOfferRepository favoriteRepository,
             MissionRepository missionRepository,
             DailyScheduleRepository dailyScheduleRepository,
             ContractRepository contractRepository,
@@ -731,7 +727,6 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.accessRequestRepository = accessRequestRepository;
         this.jobOfferRepository = jobOfferRepository;
         this.applicationRepository = applicationRepository;
-        this.favoriteRepository = favoriteRepository;
         this.missionRepository = missionRepository;
         this.dailyScheduleRepository = dailyScheduleRepository;
         this.contractRepository = contractRepository;
@@ -764,7 +759,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         User jobSeeker = jobSeekerAccount();
         Map<Sector, Owner> owners = owners(employer);
         List<JobOffer> openOffers = createBrowsableOffers(owners);
-        createFavoritesAndApplications(jobSeeker, openOffers);
+        createApplications(jobSeeker, openOffers);
         // Les candidats viennent avant les missions : ce sont eux qui les remplissent.
         List<User> workers = createOtherCandidates(employer, openOffers.get(0));
         List<Mission> missions = createMissions(employer, jobSeeker, workers);
@@ -1137,17 +1132,17 @@ public class DemoDataSeeder implements CommandLineRunner {
                 });
     }
 
-    // ------------------------------------------- favoris et candidatures du profil type
+    // ------------------------------------------------- candidatures du profil type
 
-    private void createFavoritesAndApplications(User jobSeeker, List<JobOffer> offers) {
-        // Quatre offres mises de côté : on en garde toujours un peu plus qu'on n'en
-        // postule, sans pour autant collectionner.
-        for (JobOffer offer : offers.subList(0, 4)) {
-            FavoriteJobOffer favorite = new FavoriteJobOffer();
-            favorite.setJobSeeker(jobSeeker);
-            favorite.setJobOffer(offer);
-            favoriteRepository.save(favorite);
-        }
+    /**
+     * Les candidatures libres du compte de démonstration.
+     *
+     * <p>Aucune offre n'est mise de côté. Le seeder en marquait quatre, ce qui présentait
+     * le compte avec une liste déjà garnie sans qu'on sache qui l'avait garnie. Mettre une
+     * offre de côté est un geste de l'utilisateur : il se montre mieux fait en direct que
+     * trouvé tout fait.
+     */
+    private void createApplications(User jobSeeker, List<JobOffer> offers) {
         // Quatre candidatures libres, dont une annulée : les deux états du suivi sont
         // montrés. Il y en avait seize, auxquelles s'ajoutait la candidature que chaque
         // mission porte — « Mes candidatures » en comptait alors soixante-sept, ce qu'un

@@ -110,8 +110,7 @@ public class ContractDocument {
         document.add(title);
 
         document.add(new Paragraph(
-                "Contrat n° " + contract.getId() + " — établi le "
-                        + TIMESTAMP.format(contract.getGenerationTime()),
+                "Contrat établi le " + TIMESTAMP.format(contract.getGenerationTime()),
                 SUBTITLE));
         document.add(new Paragraph(
                 "Conclu conformément à la loi du 24 juillet 1987 sur le travail temporaire, le travail "

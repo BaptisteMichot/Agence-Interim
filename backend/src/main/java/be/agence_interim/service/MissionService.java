@@ -452,7 +452,7 @@ public class MissionService {
         User worker = mission.getApplication().getJobSeeker();
         User employer = mission.getApplication().getJobOffer().getEmployer();
         String period = DATE.format(mission.getStartDate()) + " au " + DATE.format(mission.getEndDate());
-        String subject = "Contrat de mission n° " + contract.getId() + " — " + mission.getPosition();
+        String subject = "Votre contrat de mission — " + mission.getPosition();
         mailService.send(worker.getEmail(), subject,
                 "Bonjour " + worker.getFirstName() + ",\n\n"
                         + "Votre mission « " + mission.getPosition() + " » du " + period
