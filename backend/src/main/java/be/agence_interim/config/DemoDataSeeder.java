@@ -47,6 +47,7 @@ import be.agence_interim.model.MissionStatus;
 import be.agence_interim.model.Province;
 import be.agence_interim.model.Role;
 import be.agence_interim.model.Sector;
+import be.agence_interim.model.SignatureStatus;
 import be.agence_interim.model.SkillJobOffer;
 import be.agence_interim.model.SkillLevel;
 import be.agence_interim.model.SkillUser;
@@ -54,6 +55,7 @@ import be.agence_interim.model.User;
 import be.agence_interim.model.WorkReason;
 import be.agence_interim.repository.ApplicationRepository;
 import be.agence_interim.repository.AuditEventRepository;
+import be.agence_interim.repository.ContractRepository;
 import be.agence_interim.repository.ConversationRepository;
 import be.agence_interim.repository.DailyScheduleRepository;
 import be.agence_interim.repository.DegreeJobOfferRepository;
@@ -115,8 +117,11 @@ import be.agence_interim.service.Strings;
  * crée : une fois le jeu en place, un redémarrage ne le rejoue pas.
  *
  * <p>Les contrats des missions acceptées sont produits par {@code ContractService}, donc
- * avec leur PDF sur disque et les deux signatures en attente : le parcours de signature
- * reste entièrement jouable sur les données de démonstration.
+ * avec leur PDF sur disque. Ceux du compte de démonstration intérimaire sont signés par
+ * les deux parties, aux dates où ils l'auraient été : une mission terminée depuis trois
+ * mois, ou qui commence après-demain, n'a pas son contrat en souffrance. Les trois autres
+ * attendent encore les deux signatures : le parcours de signature reste jouable sur les
+ * données de démonstration, du côté de l'employeur.
  *
  * <p>Les entités sont créées directement par les repositories, sans passer par les
  * services : les règles métier (chevauchement de missions, clôture automatique de
@@ -670,6 +675,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final FavoriteJobOfferRepository favoriteRepository;
     private final MissionRepository missionRepository;
     private final DailyScheduleRepository dailyScheduleRepository;
+    private final ContractRepository contractRepository;
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final SkillRepository skillRepository;
@@ -695,6 +701,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             FavoriteJobOfferRepository favoriteRepository,
             MissionRepository missionRepository,
             DailyScheduleRepository dailyScheduleRepository,
+            ContractRepository contractRepository,
             ConversationRepository conversationRepository,
             MessageRepository messageRepository,
             SkillRepository skillRepository,
@@ -727,6 +734,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.favoriteRepository = favoriteRepository;
         this.missionRepository = missionRepository;
         this.dailyScheduleRepository = dailyScheduleRepository;
+        this.contractRepository = contractRepository;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.skillRepository = skillRepository;
@@ -1169,6 +1177,12 @@ public class DemoDataSeeder implements CommandLineRunner {
     }
 
     /**
+     * Le contrat d'une mission : aucun tant que l'intérimaire n'a pas accepté, puis en
+     * attente des deux signatures, puis signé par les deux parties.
+     */
+    private enum ContractState { NONE, PENDING, SIGNED }
+
+    /**
      * Douze missions, sur trois annonces et sept intérimaires.
      *
      * <p>Chaque mission avait son offre et son intérimaire : « Mes offres » comptait donc
@@ -1196,36 +1210,47 @@ public class DemoDataSeeder implements CommandLineRunner {
         List<Mission> missions = new ArrayList<>();
         int variant = 0;
         // Missions terminées : « Historique », côté intérimaire comme côté employeur.
-        missions.add(createMission(picking, jobSeeker, MissionStatus.ACTIVE, day(-95), day(-88), true, variant++));
-        missions.add(createMission(
-                picking, workers.get(0), MissionStatus.ACTIVE, day(-60), day(-53), true, variant++));
-        missions.add(createMission(
-                forklift, workers.get(1), MissionStatus.ACTIVE, day(-27), day(-20), true, variant++));
+        // Celle du compte de démonstration a son contrat signé des deux côtés, comme toute
+        // mission qui a eu lieu ; les autres l'ont encore en attente, ce qui laisse à
+        // l'employeur de démonstration de quoi jouer la signature.
+        missions.add(createMission(picking, jobSeeker, MissionStatus.ACTIVE,
+                day(-95), day(-88), ContractState.SIGNED, variant++));
+        missions.add(createMission(picking, workers.get(0), MissionStatus.ACTIVE,
+                day(-60), day(-53), ContractState.PENDING, variant++));
+        missions.add(createMission(forklift, workers.get(1), MissionStatus.ACTIVE,
+                day(-27), day(-20), ContractState.PENDING, variant++));
 
         // Missions confirmées, contrat à la clé : « Missions confirmées » / « en cours ».
-        Mission ongoing = createMission(
-                forklift, jobSeeker, MissionStatus.ACTIVE, day(2), day(6), true, variant++);
+        // Celle du compte de démonstration commence après-demain : son contrat est signé.
+        Mission ongoing = createMission(forklift, jobSeeker, MissionStatus.ACTIVE,
+                day(2), day(6), ContractState.SIGNED, variant++);
         missions.add(ongoing);
-        missions.add(createMission(forklift, workers.get(2), MissionStatus.ACTIVE, day(9), day(16), true, variant++));
+        missions.add(createMission(forklift, workers.get(2), MissionStatus.ACTIVE,
+                day(9), day(16), ContractState.PENDING, variant++));
 
         // Le renouvellement prolonge la mission en cours : même candidature, même annonce,
         // période à la suite. C'est exactement ce que fait MissionService.renew.
         missions.add(renewMission(forklift, ongoing, day(7), day(12), variant++));
 
         // Propositions qui attendent la réponse de l'intérimaire.
-        missions.add(createMission(dock, jobSeeker, MissionStatus.APPROVED, day(17), day(20), false, variant++));
-        missions.add(createMission(
-                dock, workers.get(5), MissionStatus.APPROVED, day(14), day(18), false, variant++));
+        missions.add(createMission(dock, jobSeeker, MissionStatus.APPROVED,
+                day(17), day(20), ContractState.NONE, variant++));
+        missions.add(createMission(dock, workers.get(5), MissionStatus.APPROVED,
+                day(14), day(18), ContractState.NONE, variant++));
 
         // Demandes de l'employeur en attente de validation de l'agence.
-        missions.add(createMission(dock, workers.get(3), MissionStatus.PENDING, day(21), day(24), false, variant++));
-        missions.add(createMission(dock, workers.get(4), MissionStatus.PENDING, day(23), day(27), false, variant++));
+        missions.add(createMission(dock, workers.get(3), MissionStatus.PENDING,
+                day(21), day(24), ContractState.NONE, variant++));
+        missions.add(createMission(dock, workers.get(4), MissionStatus.PENDING,
+                day(23), day(27), ContractState.NONE, variant++));
 
         // Une refusée par l'agence, une refusée par l'intérimaire : « Missions refusées »
         // montre les deux origines du refus, qui ne se ressemblent pas. Elles seules
         // peuvent recouvrir une autre période, puisqu'elles n'auront pas lieu.
-        missions.add(createMission(picking, workers.get(1), MissionStatus.REFUSED, day(9), day(13), false, variant++));
-        missions.add(createMission(dock, workers.get(0), MissionStatus.DECLINED, day(23), day(26), false, variant));
+        missions.add(createMission(picking, workers.get(1), MissionStatus.REFUSED,
+                day(9), day(13), ContractState.NONE, variant++));
+        missions.add(createMission(dock, workers.get(0), MissionStatus.DECLINED,
+                day(23), day(26), ContractState.NONE, variant));
         return missions;
     }
 
@@ -1252,17 +1277,17 @@ public class DemoDataSeeder implements CommandLineRunner {
             MissionStatus status,
             LocalDate start,
             LocalDate end,
-            boolean withContract,
+            ContractState contract,
             int variant) {
         Application application = applicationRepository.save(application(
                 worker, posting.offer(), applicationTime(start, variant), ApplicationStatus.PENDING));
-        return saveMission(posting, application, null, status, start, end, withContract, variant);
+        return saveMission(posting, application, null, status, start, end, contract, variant);
     }
 
     /** Un renouvellement reprend la candidature de la mission qu'il prolonge, et la désigne. */
     private Mission renewMission(Posting posting, Mission source, LocalDate start, LocalDate end, int variant) {
-        return saveMission(
-                posting, source.getApplication(), source, MissionStatus.RENEWAL, start, end, false, variant);
+        return saveMission(posting, source.getApplication(), source, MissionStatus.RENEWAL,
+                start, end, ContractState.NONE, variant);
     }
 
     /**
@@ -1283,7 +1308,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             MissionStatus status,
             LocalDate start,
             LocalDate end,
-            boolean withContract,
+            ContractState contract,
             int variant) {
         Job job = posting.job();
         User employer = posting.offer().getEmployer();
@@ -1322,12 +1347,34 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         // Les journées sont enregistrées d'abord : le contrat les reprend.
         List<DailySchedule> slots = dailyScheduleRepository.saveAll(workingDays(saved, start, end));
-        if (withContract) {
-            // Le contrat passe par le service de production : la ligne en base ET le PDF
-            // sur disque sont créés ensemble, sinon le bouton « Contrat » renverrait 404.
+        // Le contrat passe par le service de production : la ligne en base ET le PDF
+        // sur disque sont créés ensemble, sinon le bouton « Contrat » renverrait 404.
+        if (contract == ContractState.PENDING) {
             contractService.generate(saved, slots);
+        } else if (contract == ContractState.SIGNED) {
+            signedContract(saved, slots, start, variant);
         }
         return saved;
+    }
+
+    /**
+     * Un contrat conclu avant l'amorçage. Établi le lendemain de la validation par
+     * l'agence, signé le surlendemain par l'intérimaire puis par l'employeur — dans les
+     * deux jours que le contrat lui-même accorde. Si la mission commence trop tôt pour
+     * cet enchaînement, il se replie sur les derniers jours écoulés : un contrat signé
+     * demain n'existe pas.
+     */
+    private void signedContract(Mission mission, List<DailySchedule> slots, LocalDate start, int variant) {
+        LocalDate wanted = start.minusDays(4);
+        LocalDate latest = LocalDate.now().minusDays(2);
+        LocalDate established = wanted.isBefore(latest) ? wanted : latest;
+        int minute = 7 + variant % 50;
+        contractService.generateSigned(
+                mission,
+                slots,
+                established.atTime(10, minute),
+                established.plusDays(1).atTime(16, minute),
+                established.plusDays(1).atTime(14, minute));
     }
 
     /** Journées ouvrées de la période, 08:00–16:30 avec une pause de midi non payée. */
@@ -1450,8 +1497,8 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     /**
      * Le journal d'audit de l'agence, garni de ce que le jeu de données raconte : les six
-     * demandes d'accès tranchées, les missions validées ou refusées, et deux actes de
-     * l'intérimaire sur son propre compte.
+     * demandes d'accès tranchées, les missions validées ou refusées, les deux contrats
+     * signés par leurs deux parties, et deux actes de l'intérimaire sur son propre compte.
      *
      * <p>Il était vide, et un journal vide ne se démontre pas : ni la pagination, ni le
      * filtre par type d'acte, ni surtout ce qu'il sert à établir — qui a décidé quoi,
@@ -1459,7 +1506,7 @@ public class DemoDataSeeder implements CommandLineRunner {
      * en exploitation, pour qu'aucune ligne du jeu ne diffère d'une ligne réelle.
      *
      * <p>Elles sont écrites directement, et non par {@link be.agence_interim.service.AuditService} :
-     * ce service horodate à l'instant de l'appel, ce qui empilerait seize lignes à la même
+     * ce service horodate à l'instant de l'appel, ce qui empilerait vingt lignes à la même
      * seconde pour des faits étalés sur trois mois. Un journal ne vaut que par ses dates.
      */
     private void createAuditTrail(
@@ -1494,6 +1541,22 @@ public class DemoDataSeeder implements CommandLineRunner {
                         AuditAction.MISSION_REFUSED, "MISSION", mission.getId(), mission.getRefusalReason());
             }
             variant += 1;
+        }
+
+        // Un contrat signé a laissé deux traces, comme en laisse ContractService à chaque
+        // signature : le signataire, et la date que porte le document.
+        for (Mission mission : missions) {
+            contractRepository.findByMissionId(mission.getId()).ifPresent(contract -> {
+                Application application = mission.getApplication();
+                if (contract.getStatusWorker() == SignatureStatus.SIGNED) {
+                    trace(application.getJobSeeker(), contract.getWorkerSignedAt(),
+                            AuditAction.CONTRACT_SIGNED, "CONTRACT", contract.getId(), "Signature intérimaire");
+                }
+                if (contract.getStatusEmployer() == SignatureStatus.SIGNED) {
+                    trace(application.getJobOffer().getEmployer(), contract.getEmployerSignedAt(),
+                            AuditAction.CONTRACT_SIGNED, "CONTRACT", contract.getId(), "Signature employeur");
+                }
+            });
         }
 
         // Deux actes de l'intérimaire sur son propre compte : le journal ne consigne pas

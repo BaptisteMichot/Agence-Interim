@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -21,10 +23,14 @@ import org.springframework.core.io.Resource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import be.agence_interim.dto.ContractResponse;
+import be.agence_interim.model.DailySchedule;
+import be.agence_interim.model.Mission;
 import be.agence_interim.model.SignatureStatus;
 import be.agence_interim.model.User;
 import be.agence_interim.repository.ApplicationRepository;
+import be.agence_interim.repository.DailyScheduleRepository;
 import be.agence_interim.repository.JobOfferRepository;
+import be.agence_interim.repository.MissionRepository;
 import be.agence_interim.repository.UserRepository;
 import be.agence_interim.service.ContractService;
 import be.agence_interim.service.MailService;
@@ -65,6 +71,12 @@ class ContractSignatureTests {
 
     @Autowired
     private ApplicationRepository applicationRepository;
+
+    @Autowired
+    private MissionRepository missionRepository;
+
+    @Autowired
+    private DailyScheduleRepository dailyScheduleRepository;
 
     private MissionFixtures fixtures;
     private int missionId;
@@ -231,6 +243,34 @@ class ContractSignatureTests {
 
         assertThat(contractService.awaitingSignatureCount(fixtures.worker.getId())).isZero();
         assertThat(contractService.awaitingSignatureCount(fixtures.employer.getId())).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Un contrat rejoué déjà signé l'est pour les deux parties, aux dates données")
+    void areplayedContractIsSignedForBothPartiesAtTheGivenDates() {
+        // Le jeu de démonstration rejoue des missions conclues avant lui : leur contrat
+        // doit être dans l'état exact où l'auraient laissé deux signatures réelles, dates
+        // comprises, sans qu'aucun code n'ait circulé.
+        LocalDateTime established = LocalDateTime.of(2026, 6, 9, 10, 7);
+        LocalDateTime employerSigned = LocalDateTime.of(2026, 6, 10, 16, 7);
+        LocalDateTime workerSigned = LocalDateTime.of(2026, 6, 10, 14, 7);
+        Mission mission = missionRepository.findByIdFetchAll(missionId).orElseThrow();
+        List<DailySchedule> slots = dailyScheduleRepository.findByMissionIdOrderByDateAscStartTimeAsc(missionId);
+
+        contractService.generateSigned(mission, slots, established, employerSigned, workerSigned);
+
+        ContractResponse contract = contractService.get(missionId, fixtures.worker.getId(), false);
+        assertThat(contract.statusEmployer()).isEqualTo(SignatureStatus.SIGNED);
+        assertThat(contract.statusWorker()).isEqualTo(SignatureStatus.SIGNED);
+        assertThat(contract.generationTime()).isEqualTo(established);
+        assertThat(contract.employerSignedAt()).isEqualTo(employerSigned);
+        assertThat(contract.workerSignedAt()).isEqualTo(workerSigned);
+        // Plus rien n'attend personne, et personne ne signe une seconde fois.
+        assertThat(contractService.awaitingSignatureCount(fixtures.worker.getId())).isZero();
+        assertThat(contractService.awaitingSignatureCount(fixtures.employer.getId())).isZero();
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> contractService.requestSigningCode(missionId, fixtures.worker.getId()))
+                .withMessageContaining("déjà signé");
     }
 
     // ------------------------------------------------------------------------------ outils

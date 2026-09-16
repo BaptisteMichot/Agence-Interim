@@ -77,15 +77,44 @@ public class ContractService {
      */
     @Transactional
     public Contract generate(Mission mission, List<DailySchedule> slots) {
-        Contract contract = contractRepository.findByMissionId(mission.getId()).orElseGet(Contract::new);
-        contract.setMission(mission);
-        contract.setGenerationTime(LocalDateTime.now());
-        contract.setStatusEmployer(SignatureStatus.PENDING);
-        contract.setStatusWorker(SignatureStatus.PENDING);
-        contract.setContractFilePath("contrat-mission-" + mission.getId() + ".pdf");
+        Contract saved = contractRepository.save(pending(mission, LocalDateTime.now()));
+        write(saved, mission, slots);
+        return saved;
+    }
+
+    /**
+     * Contrat d'une mission conclue avant l'amorçage : généré et signé par les deux
+     * parties aux dates données, en un seul document. Aucun code n'est vérifié et rien
+     * n'est consigné au journal, puisque personne ne signe ici : l'appelant pose ces
+     * traces lui-même, aux mêmes dates. Ne sert qu'au jeu de démonstration, qui rejoue
+     * des missions passées ; en exploitation, seule {@link #sign} appose une signature.
+     */
+    @Transactional
+    public Contract generateSigned(
+            Mission mission,
+            List<DailySchedule> slots,
+            LocalDateTime generatedAt,
+            LocalDateTime employerSignedAt,
+            LocalDateTime workerSignedAt) {
+        Contract contract = pending(mission, generatedAt);
+        contract.setStatusEmployer(SignatureStatus.SIGNED);
+        contract.setEmployerSignedAt(employerSignedAt);
+        contract.setStatusWorker(SignatureStatus.SIGNED);
+        contract.setWorkerSignedAt(workerSignedAt);
         Contract saved = contractRepository.save(contract);
         write(saved, mission, slots);
         return saved;
+    }
+
+    /** Le contrat de la mission, nouveau ou régénéré, avec ses deux signatures en attente. */
+    private Contract pending(Mission mission, LocalDateTime generatedAt) {
+        Contract contract = contractRepository.findByMissionId(mission.getId()).orElseGet(Contract::new);
+        contract.setMission(mission);
+        contract.setGenerationTime(generatedAt);
+        contract.setStatusEmployer(SignatureStatus.PENDING);
+        contract.setStatusWorker(SignatureStatus.PENDING);
+        contract.setContractFilePath("contrat-mission-" + mission.getId() + ".pdf");
+        return contract;
     }
 
     /**

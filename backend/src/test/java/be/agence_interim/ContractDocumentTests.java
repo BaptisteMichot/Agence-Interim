@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,8 +16,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 
 import be.agence_interim.config.AgencyProperties;
+import be.agence_interim.model.Mission;
 import be.agence_interim.repository.ApplicationRepository;
+import be.agence_interim.repository.DailyScheduleRepository;
 import be.agence_interim.repository.JobOfferRepository;
+import be.agence_interim.repository.MissionRepository;
 import be.agence_interim.repository.UserRepository;
 import be.agence_interim.service.ContractService;
 import be.agence_interim.service.MissionService;
@@ -58,6 +62,12 @@ class ContractDocumentTests {
 
     @Autowired
     private ApplicationRepository applicationRepository;
+
+    @Autowired
+    private MissionRepository missionRepository;
+
+    @Autowired
+    private DailyScheduleRepository dailyScheduleRepository;
 
     private MissionFixtures fixtures;
     private int missionId;
@@ -174,6 +184,28 @@ class ContractDocumentTests {
                 .containsIgnoringCase("Signé électroniquement le")
                 .as("l'autre partie n'a pas encore signé")
                 .contains("En attente de signature");
+    }
+
+    @Test
+    @DisplayName("Un contrat rejoué déjà signé porte les deux signatures et leurs dates")
+    void areplayedSignedContractCarriesBothSignaturesAndTheirDates() {
+        // Le jeu de démonstration produit des contrats conclus avant lui. Le document
+        // doit être celui qu'auraient laissé deux signatures réelles : établi et signé
+        // aux dates données, sans plus rien « en attente ».
+        Mission mission = missionRepository.findByIdFetchAll(missionId).orElseThrow();
+
+        contractService.generateSigned(
+                mission,
+                dailyScheduleRepository.findByMissionIdOrderByDateAscStartTimeAsc(missionId),
+                LocalDateTime.of(2026, 6, 9, 10, 7),
+                LocalDateTime.of(2026, 6, 10, 16, 7),
+                LocalDateTime.of(2026, 6, 10, 14, 7));
+
+        assertThat(contractText())
+                .contains("établi le 09/06/2026 à 10:07")
+                .contains("Signé électroniquement le 10/06/2026 à 16:07")
+                .contains("Signé électroniquement le 10/06/2026 à 14:07")
+                .doesNotContain("En attente de signature");
     }
 
     // ------------------------------------------------------------------------------ outils
