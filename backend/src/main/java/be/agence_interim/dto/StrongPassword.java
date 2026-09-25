@@ -17,35 +17,51 @@ import jakarta.validation.constraints.Size;
 /**
  * Politique de mot de passe de l'application, écrite une seule fois.
  *
- * <p>Contrainte composée : elle n'a pas de validateur propre
- * ({@code validatedBy = {}}), elle agrège celles qu'elle porte. Les quatre formulaires
- * qui acceptent un mot de passe — inscription intérimaire, inscription employeur,
- * changement et réinitialisation — appliquent ainsi exactement la même règle. Avant, la
- * liste des six annotations était recopiée sur chaque champ : une politique dupliquée
- * finit toujours par diverger, et c'est en général l'exemplaire oublié qui est le plus
+ * <p>
+ * Contrainte composée : elle n'a pas de validateur propre
+ * ({@code validatedBy = {}}), elle agrège celles qu'elle porte. Les quatre
+ * formulaires
+ * qui acceptent un mot de passe — inscription intérimaire, inscription
+ * employeur,
+ * changement et réinitialisation — appliquent ainsi exactement la même règle.
+ * Avant, la
+ * liste des six annotations était recopiée sur chaque champ : une politique
+ * dupliquée
+ * finit toujours par diverger, et c'est en général l'exemplaire oublié qui est
+ * le plus
  * permissif.
  *
- * <p>Un plafond de longueur accompagne le plancher. BCrypt ne considère que les
- * 72 premiers octets ; au-delà, la fin du mot de passe ne protège plus rien, et rien ne
+ * <p>
+ * Un plafond de longueur accompagne le plancher. BCrypt ne considère que les
+ * 72 premiers octets ; au-delà, la fin du mot de passe ne protège plus rien, et
+ * rien ne
  * justifie de faire hacher un mégaoctet au serveur.
  */
 @Documented
 @NotBlank(message = "Le mot de passe est obligatoire.")
-@Size(min = PASSWORD_MIN_LENGTH, max = StrongPassword.MAX_LENGTH,
-        message = "Le mot de passe doit contenir au moins {min} caracteres.")
+@Size(min = PASSWORD_MIN_LENGTH, max = StrongPassword.MAX_LENGTH, message = "Le mot de passe doit contenir au moins {min} caracteres.")
 @Pattern(regexp = ".*[a-z].*", message = "Le mot de passe doit contenir au moins une minuscule.")
 @Pattern(regexp = ".*[A-Z].*", message = "Le mot de passe doit contenir au moins une majuscule.")
 @Pattern(regexp = ".*\\d.*", message = "Le mot de passe doit contenir au moins un chiffre.")
 @Pattern(regexp = ".*[^A-Za-z0-9].*", message = "Le mot de passe doit contenir au moins un caractere special.")
 @Constraint(validatedBy = {})
-@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD,
-        ElementType.RECORD_COMPONENT, ElementType.ANNOTATION_TYPE})
+@Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD,
+        ElementType.RECORD_COMPONENT, ElementType.ANNOTATION_TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface StrongPassword {
 
-    /** Au-delà, BCrypt ignore le surplus : le refuser est plus honnête que le tronquer. */
+    /**
+     * Au-delà, BCrypt ignore le surplus : le refuser est plus honnête que le
+     * tronquer.
+     */
     int MAX_LENGTH = 72;
 
+    /**
+     * Attributs obligatoires que la spécification Bean Validation (Jakarta
+     * Validation) impose à toute annotation de contrainte personnalisée.
+     * S'il en manque un, Hibernate Validator lève une ConstraintDefinitionException
+     * au démarrage.
+     */
     String message() default "Le mot de passe ne respecte pas la politique de securite.";
 
     Class<?>[] groups() default {};
