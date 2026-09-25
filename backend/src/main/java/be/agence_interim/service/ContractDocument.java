@@ -232,21 +232,24 @@ public class ContractDocument {
     }
 
     /**
-     * Page de signature. Les deux zones sont placées à des coordonnées fixes : ce sont
-     * elles que remplira la signature électronique, apposée après coup en mise à jour
-     * incrémentale du fichier.
+     * Page de signature. L'agence, employeur juridique, signe le contrat en l'établissant :
+     * sa signature figure toujours sur le document. Les deux autres zones sont remplies
+     * par la signature électronique de chaque partie, apposée après coup.
      */
     private void signatures(Document document, Contract contract, User employer, User worker)
             throws DocumentException {
         section(document, "7. Signatures");
         document.add(paragraph(
-                "Chaque partie signe le contrat sur la plateforme, après avoir confirmé un code à "
-                        + "usage unique envoyé à l'adresse email de son compte. La date de signature "
-                        + "et l'adresse à laquelle le code a été envoyé sont reprises ci-dessous."));
+                "L'entreprise de travail intérimaire signe le contrat lors de son établissement. "
+                        + "L'entreprise utilisatrice et le travailleur le signent ensuite sur la plateforme, "
+                        + "après avoir confirmé un code à usage unique envoyé à l'adresse email de leur "
+                        + "compte. La date de signature et l'adresse à laquelle le code a été envoyé sont "
+                        + "reprises ci-dessous."));
 
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
         table.setSpacingBefore(6);
+        table.addCell(agencySignatureCell(contract.getGenerationTime()));
         table.addCell(signatureCell("Pour l'entreprise utilisatrice",
                 employer.getFirstName() + " " + employer.getLastName(),
                 employer.getEmail(), contract.getStatusEmployer(), contract.getEmployerSignedAt()));
@@ -254,6 +257,23 @@ public class ContractDocument {
                 worker.getFirstName() + " " + worker.getLastName(),
                 worker.getEmail(), contract.getStatusWorker(), contract.getWorkerSignedAt()));
         document.add(table);
+    }
+
+    /** Bloc de signature de l'agence : toujours signé, à la date d'établissement du contrat. */
+    private PdfPCell agencySignatureCell(LocalDateTime generatedAt) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.BOX);
+        cell.setBorderColor(LINE);
+        cell.setPadding(10);
+        cell.setColspan(2);
+        cell.addElement(new Paragraph(
+                "Pour l'entreprise de travail intérimaire".toUpperCase(Locale.FRENCH), LABEL));
+        cell.addElement(new Paragraph(agency.getName(), BODY_BOLD));
+        cell.addElement(new Paragraph(
+                "Signé le " + TIMESTAMP.format(generatedAt),
+                font(9, Font.BOLD, SIGNED_GREEN)));
+        cell.addElement(new Paragraph("lors de l'établissement du contrat", SMALL));
+        return cell;
     }
 
     /** Bloc de signature d'une partie : identité, état et date. */

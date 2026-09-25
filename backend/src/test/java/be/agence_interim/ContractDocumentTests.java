@@ -187,6 +187,17 @@ class ContractDocumentTests {
     }
 
     @Test
+    @DisplayName("Le contrat porte toujours la signature de l'agence, dès son établissement")
+    void thecontractAlwaysCarriesTheAgencySignature() {
+        // L'agence est l'employeur juridique : elle signe le contrat en l'établissant,
+        // sans passer par le code à usage unique des deux autres parties.
+        assertThat(contractText())
+                .containsIgnoringCase("Pour l'entreprise de travail intérimaire")
+                .contains("Signé le ")
+                .contains("lors de l'établissement du contrat");
+    }
+
+    @Test
     @DisplayName("Un contrat rejoué déjà signé porte les deux signatures et leurs dates")
     void areplayedSignedContractCarriesBothSignaturesAndTheirDates() {
         // Le jeu de démonstration produit des contrats conclus avant lui. Le document
@@ -203,6 +214,7 @@ class ContractDocumentTests {
 
         assertThat(contractText())
                 .contains("établi le 09/06/2026 à 10:07")
+                .contains("Signé le 09/06/2026 à 10:07")
                 .contains("Signé électroniquement le 10/06/2026 à 16:07")
                 .contains("Signé électroniquement le 10/06/2026 à 14:07")
                 .doesNotContain("En attente de signature");
