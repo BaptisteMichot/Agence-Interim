@@ -1,10 +1,4 @@
-# Intégration continue : rejoue à chaque poussée les vérifications qui étaient jusqu'ici
-# lancées à la main. C'est ce qui donne leur valeur aux tests — un test qui ne s'exécute
-# que lorsqu'on y pense ne protège de rien.
-#
-# Les deux moitiés du projet sont vérifiées par deux tâches distinctes, qui s'exécutent
-# en parallèle : elles n'ont aucune dépendance l'une envers l'autre, et un échec du
-# frontend ne doit pas masquer l'état du backend.
+# Intégration continue : rejoue les tests à chaque push sur github
 name: CI
 
 on:
